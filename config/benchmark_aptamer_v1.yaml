@@ -1,0 +1,75 @@
+defaults:
+  - base
+  - _self_
+
+# RNA aptamer benchmark template (v1).
+#
+# Intended usage:
+#   - Prefer the one-shot CLI:
+#       gh design aptamer --task-name myjob --out-dir outputs --aptamer-len 28-36 --target-seq <SEQ>
+#   - Or manual override:
+#       gh run --task benchmark_aptamer_v1 --overlay overlay.yaml
+#
+# Notes:
+#   - Protomer 'A' is the RNA aptamer binder (random length range by default).
+#   - Protomer 'B' is the fixed target protein sequence.
+
+task_name: ???
+repeats: 1
+enable_pyrosetta: false
+
+out_dir: ???
+types:
+  A: "r"
+  B: "p"
+seqs:
+  A: "28-36"
+  B: ???
+
+homologies:
+  B: ???
+
+steps: 100
+initial_temperature: 0.03
+
+mutator:
+  NAMPNN:
+    temperature: 0.3
+    design_na_only: 1
+  selector_expression: null
+  mutator_terms:
+    NAMPNN:
+      _type: NAMPNN
+
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+    Protenix:
+      _type: Protenix
+    chai1:
+      _type: chai1
+    Boltz:
+      _type: boltz
+
+loss:
+  loss_terms:
+    aptamer_ptm:
+      _type: binder_ptm
+      binder_chain: A
+    aptamer_iptm:
+      _type: binder_iptm
+      binder_chain: A
+    aptamer_plddt:
+      _type: bindcraft_binder_plddt_norm
+      binder_chain: A
+
+stages:
+  default:
+    oligo: ["AB"]
+    evaluator: Alphafold3
+    mutators: ["NAMPNN"]
+    mutation_num: 100%
+    weighted_score_expression: aptamer_iptm + aptamer_plddt + 0.4 * aptamer_ptm
+    acceptance_threshold: null
+    early_stopping: null

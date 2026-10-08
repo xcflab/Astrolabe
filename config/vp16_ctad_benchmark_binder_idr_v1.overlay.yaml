@@ -1,0 +1,8 @@
+task_name: vp16_ctad_benchmark_binder_idr_v1
+out_dir: outputs
+
+seqs:
+  B: +GFTPHDSAPYGALDMADFEFEQMFTDALGIDEYGG
+
+homologies:
+  B: null

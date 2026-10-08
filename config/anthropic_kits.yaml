@@ -1,0 +1,75 @@
+schemaVersion: 1
+
+source:
+  id: anthropics/uplifting-biomolecular-modeling
+  path: vendor/uplifting-biomolecular-modeling
+  url: https://github.com/anthropics/uplifting-biomolecular-modeling.git
+  revision: f4f62fa6592ae4938d49b1757bea0cfeff9f468e
+  releaseStatus: reference_release_not_maintained
+
+# These are replacements only where the Anthropic kit has the same model/tool
+# role. The remaining GH software stays on its current source until a semantic
+# match exists; a similarly named kit is not treated as a substitute.
+kits:
+  af3_jax:
+    softwareIds: [alphafold3]
+    role: replacement
+    modes: ["off", exact, fast, big]
+    installArgs: [--config, h100, --variant, p2]
+    weightsEnv: AF3_JAX_PARAMS_ROOT
+  protenix_v2:
+    softwareIds: [protenix]
+    role: replacement
+    modes: ["off", exact, fast, big]
+    installArgs: []
+    weightsEnv: PROTENIX_ROOT_DIR
+  boltz2:
+    softwareIds: [boltz]
+    role: replacement
+    modes: ["off", exact, fast, big]
+    installArgs: []
+    weightsEnv: BOLTZ_CACHE
+  chai1:
+    softwareIds: [chai1]
+    role: replacement
+    modes: ["off", exact, fast, big]
+    installArgs: []
+    weightsEnv: CHAI_DOWNLOADS_DIR
+  esm_if1:
+    softwareIds: [esmif]
+    role: replacement
+    modes: ["off", fast]
+    installArgs: []
+    weightsEnv: ESM_IF1_WEIGHTS
+  esmfold2:
+    softwareIds: [esmfold, esmfold2]
+    role: model_upgrade
+    modes: ["off", exact, fast, big]
+    installArgs: []
+    weightsEnv: HF_HOME
+  opendde:
+    softwareIds: [opendde]
+    role: replacement
+    modes: ["off", exact, fast, big]
+    installArgs: []
+    weightsEnv: OPENDDE_ROOT_DIR
+  rosettafold3:
+    softwareIds: [rf3]
+    role: replacement
+    modes: ["off", exact, fast, big]
+    installArgs: []
+    weightsEnv: ROSETTAFOLD3_WEIGHTS
+    interpreterContract: dual
+
+unmapped:
+  alphafold2: no direct Anthropic kit; af2ig is binder interface scoring, not the current generic AF2 evaluator
+  ligandmpnn: no LigandMPNN kit; proteinmpnn is not a semantic replacement for ligand-aware design
+  esm2: no ESM2 kit; esmc is a different model family
+  esm3: no ESM3 kit; esmc is a different model family
+  rhofold: no RhoFold kit
+  dplm: no DPLM kit
+  nampnn: no NA-MPNN kit
+  rapidock: no RAPiDock kit
+  rpxdock: no RPXDock kit
+  autodock-vina: no AutoDock Vina kit
+  usalign: no USalign kit

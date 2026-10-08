@@ -1,0 +1,52 @@
+# Input overlay for astrolabe paper run; see ../README.md.
+task_name: linaclotide
+seqs:
+  A: '14'
+cyclization:
+  bonds:
+  - a:
+      aa: C
+      atom: SG
+      pos: 1
+      proto: A
+    b:
+      aa: C
+      atom: SG
+      pos: 6
+      proto: A
+    order: single
+    target_distance: 2.03
+    signal_mode: both
+  - a:
+      aa: C
+      atom: SG
+      pos: 2
+      proto: A
+    b:
+      aa: C
+      atom: SG
+      pos: 10
+      proto: A
+    order: single
+    target_distance: 2.03
+    signal_mode: both
+  - a:
+      aa: C
+      atom: SG
+      pos: 5
+      proto: A
+    b:
+      aa: C
+      atom: SG
+      pos: 13
+      proto: A
+    order: single
+    target_distance: 2.03
+    signal_mode: both
+  signal_mode: both
+  encoding:
+    scope: all_bonds
+paper_protocol:
+  topology: linaclotide
+  planned_runs: 40
+  source_manifest: 012_cyclic_peptide_design/manifests/cyclic_peptide_v3/04_multiring_patterns.json

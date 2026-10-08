@@ -1,0 +1,28 @@
+# Input overlay for astrolabe paper run; see ../README.md.
+task_name: single_ablation__generic_cyclic_index_offset__head_tail__s001
+seed: 720186
+seqs:
+  A: NELEAEATCKTEIAVTSELW
+cyclization:
+  bonds:
+  - a:
+      atom: N
+      pos: 1
+      proto: A
+    b:
+      atom: C
+      pos: 20
+      proto: A
+    order: single
+    signal_mode: both
+    target_distance: 1.33
+  encoding:
+    scope: all_bonds
+  signal_mode: bond_only
+paper_protocol:
+  topology: head_tail
+  representation: generic_cyclic_index_offset
+  planned_runs: 40
+  example_source_sample: 1
+  source_task_id: 361
+  source_task_index: 012_cyclic_peptide_design/analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv

@@ -1,0 +1,15 @@
+# @package _global_
+seqs:
+  B: +MLFTVTAPKEVYTVDVGSSVSLECDFDRRECTELEGIRASLQKVENDTSLQSERATLLEEQLPLGKALFHIPSVQVRDSGQYRCLVICGAAWDYKYLTVKVKASYMRIDTRILEVPGTGEVQLTCQARGYPLAEVSWQNVSVPANTSHIRTPEGLYQVTSVLRLKPQPSRNFSCMFWNAHMKELTSAIIDP
+  A: 75-90
+homologies:
+  B: ${oc.env:ASTROLABE_PAPER_DATA}/protein/targets/pdl2.json:A
+loss:
+  loss_terms:
+    target_hotspot:
+      _type: hotspot_dsasa
+      _for: AB
+      select_expression: B_1:94,85,40
+paper_protocol:
+  source:
+  - 40_control_native.tar.gz::controls/pdl1-pdl2__opt_pdl2__seed_29101__step_024/config.yaml

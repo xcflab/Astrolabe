@@ -1,0 +1,15 @@
+# @package _global_
+seqs:
+  B: +RCLSQSRNLLKTTDDMVKTAREKLKHYSCTAEDIDHEDITRDQTSTLKTCLPLELHKNESCLATRETSSTTRGSCLPPQKTSLMMTLCLGSIYEDLKMYQTEFQAINAALQNHNHQQIILDKGMLVAIDELMQSLNHNGETLRQKPPVGEADPYRVKMKLCILLHAFSTRVVTINRVMGYLSS
+  A: 75-90
+homologies:
+  B: ${oc.env:ASTROLABE_PAPER_DATA}/protein/targets/il12a_p35.json:A
+loss:
+  loss_terms:
+    target_hotspot:
+      _type: hotspot_dsasa
+      _for: AB
+      select_expression: B_1:176,180,52,173
+paper_protocol:
+  source:
+  - 40_control_native.tar.gz::controls/il12-il23__opt_il23__seed_29301__step_056/config.yaml

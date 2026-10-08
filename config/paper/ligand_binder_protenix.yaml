@@ -1,0 +1,9 @@
+# @package _global_
+defaults:
+  - /paper/ligand_binder_af3
+  - _self_
+
+evaluator:
+  evaluator_terms:
+    predictor:
+      _type: Protenix

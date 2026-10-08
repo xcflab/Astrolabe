@@ -1,0 +1,47 @@
+# Input overlay for astrolabe paper run; see ../README.md.
+task_name: missing_disulfide_modified__s001
+seed: 351485
+seqs:
+  A: MYA +[CAM] MIAVHIFLWYAV +[CAM] IAV
+cyclization:
+  bonds:
+  - a:
+      aa: C
+      atom: SG
+      pos: 4
+      proto: A
+      residue: CAM
+    b:
+      aa: C
+      atom: SG
+      pos: 17
+      proto: A
+      residue: CAM
+    order: single
+    signal_mode: both
+    target_distance: 2.03
+  encoding:
+    scope: all_bonds
+  signal_mode: bond_only
+paper_protocol:
+  topology: sidechain_sidechain_disulfide
+  representation: ptm_statements_plus_chemistry_prepare
+  planned_runs: 40
+  example_source_sample: 1
+  source_task_id: 81
+  source_task_index: 012_cyclic_peptide_design/analysis/cyclic_v3/55_missing_ablation_cells__20260519/task_index.csv
+nonstandard_residues:
+  aliases:
+    CAM:
+      atom_names:
+        C: C
+        CA: CA
+        CB: CB
+        N: N
+        O: O
+        SG: SG
+      ccd_id: CAY
+      parent_aa: C
+      source:
+        format: mmcif
+        value: ${oc.env:ASTROLABE_PAPER_DATA}/cyclic/chemistry/CAM.cif

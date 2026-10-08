@@ -1,0 +1,6 @@
+# Native specification must include the target structures and prepared MSA.
+native_config: ../../../data/baselines/boltzgen_target.yaml
+num_designs: 1000
+budget: 80
+assets:
+  - ../../../data/baselines/boltzgen_models

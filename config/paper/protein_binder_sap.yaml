@@ -1,0 +1,44 @@
+# @package _global_
+defaults:
+- /paper/protein_binder_af3
+- _self_
+mutator:
+  mutator_terms:
+    interface_mpnn:
+      _type: LigandMPNN
+      temperature: 0.3
+      position_selector: interface(mode='buried_sasa', buried_sasa_cutoff=10.0)
+      ligand_mpnn_use_side_chain_context: 1
+      fallback_to_all_mutable_if_selector_empty: false
+    surface_mpnn:
+      _type: LigandMPNN
+      model_type: soluble_mpnn
+      temperature: 0.3
+      position_selector: not interface(mode='buried_sasa', buried_sasa_cutoff=10.0)
+      fallback_to_all_mutable_if_selector_empty: false
+loss:
+  loss_terms:
+    binder_sap:
+      _type: sap_score
+      included_protomers: A
+stages:
+  complex:
+    mutators:
+    - interface_mpnn
+    - surface_mpnn
+    mutator_weights:
+    - 1.0
+    - 1.0
+    weighted_score_expression: iptm - shape_penalty + 0.5 * max(0, min(1, (70 - binder_sap) / 35))
+paper_protocol:
+  source:
+  - MainPaper 101-104
+  representative: accepted_max_objective
+  required_input_paths:
+  - homologies.B
+  notes:
+  - 'Manuscript protocol: monomer initialization followed by the simplified SAP-aware objective.'
+  - The frozen cohort used a parent-sequence continuation with a different objective; use protein-binder-sap-archived
+    for those settings.
+steps: 100
+task_name: protein_binder_sap

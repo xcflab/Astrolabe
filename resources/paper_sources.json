@@ -1,0 +1,28 @@
+{
+  "mainpaper": {
+    "documentId": "1Kq6pbxS8-CMkd34qNVdVih78L7LzSx4fKRgBnvmOvf4",
+    "title": "MainPaper",
+    "revisionId": "ANLCKQmoI0kVAD1h0O-mL5PcEldgbk96YuoG4R5oX-yp5WI9-tcK2TvbclA1b-2OwROnhuMXv_oF0ObLW_5C52yjHl-mwOh9eP3_D-h_Y_M",
+    "url": "https://docs.google.com/document/d/1Kq6pbxS8-CMkd34qNVdVih78L7LzSx4fKRgBnvmOvf4",
+    "modified_time": "2026-10-08T16:12:01.114Z"
+  },
+  "si": {
+    "documentId": "1Fs5F6eJsMFJEUKlRWSOuWw4K9a4Tn78mHHidtgN7yt0",
+    "title": "Astrolabe Supplementary Information",
+    "revisionId": "ANLCKQkGHYjbcQBdpvaHEB2CzuObop9Bs4EQdWy7ElZp13jzpg24zDEYLBQqj1JaeeFYCjJ2XBpeMRZSt2g6fIc2fD_FZv64681KmdKWDEo",
+    "url": "https://docs.google.com/document/d/1Fs5F6eJsMFJEUKlRWSOuWw4K9a4Tn78mHHidtgN7yt0",
+    "modified_time": "2026-10-08T16:03:34.501Z"
+  },
+  "accessed_date": "2026-10-09",
+  "run_source_snapshot": "2026-10-08 manuscript raw-score/config release",
+  "protocol_location": "config/paper",
+  "methods_alignment": {
+    "date": "2026-10-09",
+    "author_confirmed": {
+      "two_state_refinement": "Holo-only second stage maximizes holo confidence + 0.35 ligand burial - 0.45 sigmoid((normalized holo Rg - 1.10) / 0.08).",
+      "single_target_vhh_control": "Keep all-X CDR initialization and the monomer-shaping then complex-optimization stages; fixed framework, mutable CDRs only.",
+      "bindcraft_dual_acceptance": "Retain the historical tries=1 rule: evaluate the sole discrete proposal in both contexts, accept it without comparing the incumbent, and record the two-context mean full loss."
+    },
+    "historical_results": "Archived recipes retain recovered run semantics. The manuscript-aligned recipes are not evidence of a new GPU reproduction."
+  }
+}

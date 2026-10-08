@@ -1,0 +1,43 @@
+defaults:
+  - base
+  - _self_
+
+# AF3/MCMC workflow; not a paper benchmark or a known-good binder.
+task_name: release_protein
+out_dir: outputs
+seed: 1729
+repeats: 1
+steps: 5
+enable_pyrosetta: false
+skip_complex_poses: true
+types:
+  A: p
+seqs:
+  A: "80-80"
+initializer:
+  mode: random
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+      num_seeds: 1
+      num_recycles: 3
+      num_samples: 1
+      run_data_pipeline: false
+      run_inference: true
+      flash_attention_implementation: cudnn
+mutator:
+  mutator_terms:
+    MCMC:
+      _type: MCMC
+loss:
+  loss_terms: {}
+stages:
+  default:
+    evaluator: Alphafold3
+    oligo: [A]
+    mutators: [MCMC]
+    mutation_num: 5
+    weighted_score_expression: plddt
+    acceptance_threshold: null
+    early_stopping: null

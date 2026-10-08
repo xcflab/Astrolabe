@@ -1,0 +1,27 @@
+task_name: targetfree_disulfide__bond_constraint_only__s001
+seed: 297994
+seqs:
+  A: QHSCGMITLWSALWNTCHEK
+cyclization:
+  bonds:
+  - a:
+      aa: C
+      atom: SG
+      pos: 4
+      proto: A
+    b:
+      aa: C
+      atom: SG
+      pos: 17
+      proto: A
+    order: single
+    signal_mode: bond_only
+    target_distance: 2.03
+  encoding:
+    scope: all_bonds
+  signal_mode: bond_only
+paper_protocol:
+  topology: sidechain_sidechain_disulfide
+  source_task_id: 1
+  source_task_index: 012_cyclic_peptide_design/analysis/cyclic_v3/53_missing_single_ring_supplements__20260519/targetfree_disulfide/task_index.csv
+  representation: bond_constraint_only

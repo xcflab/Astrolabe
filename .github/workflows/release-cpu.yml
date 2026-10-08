@@ -1,0 +1,60 @@
+name: Software interface and distribution
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  clean-install:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize installer test sources
+        run: git submodule update --init --depth 1 -- vendor/sru vendor/protein_sequence_models
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Shell completion runtime
+        run: sudo apt-get update && sudo apt-get install -y zsh
+      - name: Non-editable installation
+        run: python -m pip install '.[dev]'
+      - name: Installed entrypoint outside checkout
+        run: |
+          cd "$RUNNER_TEMP"
+          astrolabe --version
+          astrolabe --help
+          astrolabe run --task release_protein --dry-run env=env
+      - name: CPU workflows and numerical regressions
+        run: |
+          python -m pytest -q \
+            tests/test_distribution.py tests/test_release_cli.py \
+            tests/test_cli_completion.py tests/test_cli_lightweight_paths.py \
+            tests/test_cli_run_dry_configs.py tests/test_env_local_defaults.py \
+            tests/test_cli_vendor_paths.py tests/test_container_behavior_alignment.py \
+            tests/test_apptainer_build.py tests/test_install.py \
+            tests/test_env_setup_selection.py::test_env_setup_writes_canonical_runner_hint \
+            tests/test_cpu_release_example.py tests/test_run_provenance.py \
+            tests/test_paper_cli.py tests/test_paper_scores.py \
+            tests/test_paper_statistics.py tests/test_paper_agreement.py \
+            tests/test_paper_baselines.py \
+            tests/test_paper_twostate.py tests/test_paper_geometry.py \
+            tests/test_paper_assemblies.py tests/test_paper_cyclic.py \
+            tests/test_rna_beam.py tests/test_rna_geometry.py \
+            tests/test_posthoc_collect_required_metrics.py tests/test_posthoc_filtering.py \
+            tests/test_posthoc_report.py tests/test_posthoc_target_chain_metrics.py \
+            tests/test_constraint_compliance_analysis.py tests/test_standard_scores_normalization.py
+      - name: Build public distributions
+        run: |
+          python scripts/release/export.py "$RUNNER_TEMP/Astrolabe" --archive dist/astrolabe-source.tar.gz
+          python -m build "$RUNNER_TEMP/Astrolabe" --outdir "$GITHUB_WORKSPACE/dist"
+      - name: Upload source and Python distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: astrolabe-python-${{ matrix.python }}
+          path: |
+            dist/astrolabe-*.tar.gz
+            dist/astrolabe-*.whl
+          if-no-files-found: error

@@ -1,0 +1,73 @@
+defaults:
+  - base
+  - _self_
+
+# Antibody/scFv benchmark template (v1).
+#
+# Intended usage:
+#   - Prefer the one-shot CLI:
+#       gh design antibody --task-name myjob --out-dir outputs --binder-seq "<protomer-statement>" --target-seq <SEQ>
+#   - Or manual override:
+#       gh run --task benchmark_antibody_v1 --overlay overlay.yaml
+#
+# Notes:
+#   - Protomer 'A' is the antibody/scFv binder:
+#       - Use protomer statement language with '+'-fixed framework segments.
+#       - Non-'+' segments (typically CDR/paratope) are mutable.
+#   - Protomer 'B' is the target protein (typically fixed; prefix with '+').
+#   - Optional epitope guidance (binding_site) can be injected by CLI overlay; by default it is not enabled.
+
+task_name: ???
+repeats: 1
+enable_pyrosetta: true
+
+out_dir: ???
+seqs:
+  A: ???
+  # Target protein sequence (usually fixed, prefix with '+').
+  B: ???
+
+homologies:
+  # Optional; typical convention: inputs/homologies/${target_name}.json:A
+  B: ???
+
+steps: 100
+initial_temperature: 0.03
+
+mutator:
+  # NOTE: `mutator.names` is legacy/ignored; stages reference aliases under `mutator_terms`.
+  selector_expression: null
+  mutator_terms:
+    LigandMPNN:
+      _type: LigandMPNN
+      temperature: 0.3
+
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+    Protenix:
+      _type: Protenix
+    chai1:
+      _type: chai1
+
+loss:
+  loss_terms:
+    interface_sc:
+      _type: protomer_shape_complementarity
+    ipsae:
+      _type: ipsae
+      chain_a: A
+      chain_b: B
+
+stages:
+  # Single-stage AB optimization; optional binding_site constraints can be injected by CLI overlay.
+  default:
+    oligo: ["AB"]
+    evaluator: Protenix
+    mutation_num: 100%
+    acceptance_threshold: null
+    mutators:
+      - LigandMPNN
+    weighted_score_expression: iptm + interface_sc + ipsae
+    early_stopping: null

@@ -1,0 +1,28 @@
+task_name: KEAP1_sidechain_sidechain_disulfide
+seqs:
+  A: 9-20
+  B: +GSSHHHHHHSSGLVPRGSHAPKVGRLIYTAGGYFRQSLSYLEAYNPSDGTWLRLADLQVPRSGLAGCVVGGLLYAVGGRNNSPDGNTDSSALDCYNPMTNQWSPCAPMSVPRNRIGVGVIDGHIYAVGGSHGCIHHNSVERYEPERDEWHLVAPMLTRRIGVGVAVLNRLLYAVGGFDGTNRLNSAECYYPERNEWRMITAMNTIRSGAGVCVLHNCIYAAGGYDGQDQLNSVERYDVETETWTFVAPMKHRRSALGITVHQGRIYVLGGYDGHTFLDSVECYDPDTDTWSEVTRMTSGRSGVGVAVT
+homologies:
+  B: ${oc.env:ASTROLABE_PAPER_DATA}/cyclic/homologies/KEAP1.json:A
+cyclization:
+  signal_mode: both
+  encoding:
+    scope: all_bonds
+  bonds:
+  - a:
+      proto: A
+      pos: nterm+3
+      atom: SG
+      aa: C
+    b:
+      proto: A
+      pos: cterm-3
+      atom: SG
+      aa: C
+    order: single
+    target_distance: 2.03
+paper_protocol:
+  topology: sidechain_sidechain_disulfide
+  target: KEAP1
+  source_config: 012_cyclic_peptide_design/configs/cyclic_peptide_v3/02_against_target_cyclization/KEAP1_sidechain_sidechain_disulfide.yaml
+  historical_protocol: cyclic-peptide-bound-archived

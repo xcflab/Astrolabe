@@ -1,0 +1,120 @@
+# @package _global_
+defaults:
+- /base
+- _self_
+task_name: single_target_vhh_control_archived
+out_dir: null
+seed: 1
+steps: 100
+repeats: 1
+enable_pyrosetta: true
+use_metropolis_acceptance: true
+initial_temperature: 0.03
+seqs:
+  A: +EVQLVESGGGLVQPGGSLRLSCAAS 7-11 +GWFRQAPGKGRELVAAI 6-10 +YPDSVEGRFTISRDNAKRMVYLQMNSLRAEDTAVYYCA 15-28 +GQGTQVTVSS
+  B: ???
+homologies:
+  A:
+    _type: antibody_framework_homology
+    framework_name: vhh__boltzgen_7eow
+    source: ${oc.env:ASTROLABE_PAPER_DATA}/protein/frameworks/vhh__boltzgen_7eow.json:A
+    layout:
+      fixed_segments:
+      - EVQLVESGGGLVQPGGSLRLSCAAS
+      - GWFRQAPGKGRELVAAI
+      - YPDSVEGRFTISRDNAKRMVYLQMNSLRAEDTAVYYCA
+      - GQGTQVTVSS
+      loop_order:
+      - H1
+      - H2
+      - H3
+      source_loop_lengths:
+        H1: 9
+        H2: 8
+        H3: 21
+  B: ???
+initializer:
+  mode: x_mix
+  x_fraction: 1.0
+  aa_set: null
+reinitialize_random_segments_with_dplm: false
+mutator:
+  selector_expression: null
+  mutator_terms:
+    LigandMPNN:
+      _type: LigandMPNN
+      model_type: protein_mpnn
+      temperature: 0.15
+loss:
+  loss_terms:
+    interface_sc:
+      _type: protomer_shape_complementarity
+      protomer_a: protomer:A
+      protomer_b: protomer:B
+    ipsae:
+      _type: ipsae
+      chain_a: protomer:A
+      chain_b: protomer:B
+stages:
+  default:
+    oligo:
+    - AB
+    evaluator: Alphafold3
+    mutators:
+    - LigandMPNN
+    mutation_num: 100%
+    acceptance_threshold: null
+    weighted_score_expression: iptm + interface_sc + ipsae
+    early_stopping: null
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+pre_eval_hooks:
+  af3_antibody_msa_cache:
+    enabled: true
+    require_msa_payload: true
+    chain_ids:
+    - A
+    af3_turboab_db_subset: VHH
+    clear_paired_msa: true
+    preserve_existing_templates: true
+    expected_template_count: 4
+    minimum_unpaired_msa_sequences: 2
+    dump_final_input_json: true
+    af3_turboab_db_dir: ${oc.env:ASTROLABE_TURBOAB_DB}
+    data_pipeline_command:
+    - ${oc.env:ASTROLABE_AF3_PYTHON,python}
+    - ${oc.env:ASTROLABE_AF3_DATA_PIPELINE}
+    - --json_path
+    - '{json_path}'
+    - --output_dir
+    - '{output_dir}'
+    - --db_dir
+    - '{db_dir}'
+    - --norun_inference
+    - --force_output_dir
+    - --jackhmmer_n_cpu
+    - '8'
+    - --nhmmer_n_cpu
+    - '8'
+paper_protocol:
+  source:
+  - MainPaper 155-163
+  - SI 47-57
+  - 019_multitarget_antibody_binder/config/001_simultaneous_antibody_binding/01_astrolabe_antibody_frameworks/11_vhh_dual_topup_single_controls/local/configs/vhh_single_il4_semantic_b_rep33_seed194033_steps100.yaml
+  representative: last_accepted
+  notes:
+  - Fixed framework and mutable CDR ranges are copied from the formal cohort; all-X CDR initialization.
+  - The execution cohort uses Metropolis acceptance with initial temperature 0.03.
+  - The recovered single-target VHH controls maximize iptm + interface_sc + ipsae, at ProteinMPNN temperature 0.15;
+    MainPaper 159 describes these controls more generally.
+  - The AF3-TurboAb hook requires ASTROLABE_TURBOAB_DB and an AF3 data-pipeline script via ASTROLABE_AF3_DATA_PIPELINE
+    (optional ASTROLABE_AF3_PYTHON).
+  required_input_paths:
+  - homologies.A.source
+  - homologies.B
+  - pre_eval_hooks.af3_antibody_msa_cache.af3_turboab_db_dir
+  framework: vhh_7eow
+  cdr_initializer: all-x
+  planned_runs_per_direction: 50

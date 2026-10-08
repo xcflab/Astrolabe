@@ -1,0 +1,46 @@
+# Input overlay for astrolabe paper run; see ../README.md.
+task_name: bond_modified__bond_plus_chemistry_prepare__head_sidechain_lactam__from_chemistry_prepare__s001
+seed: 38284
+seqs:
+  A: YVFTLEDFGMVVCPL +[EAM] GLIM
+cyclization:
+  bonds:
+  - a:
+      atom: N
+      pos: 1
+      proto: A
+    b:
+      aa: E
+      atom: CD
+      pos: 16
+      proto: A
+    order: single
+    signal_mode: bond_only
+    target_distance: 1.33
+  encoding:
+    scope: all_bonds
+  signal_mode: bond_only
+paper_protocol:
+  topology: head_sidechain_lactam
+  representation: bond_plus_chemistry_prepare
+  planned_runs: 40
+  example_source_sample: 1
+  source_task_id: 1
+  source_task_index: 012_cyclic_peptide_design/analysis/cyclic_v3/82_bond_modified_ablation__20260615/task_index.csv
+nonstandard_residues:
+  aliases:
+    EAM:
+      atom_names:
+        C: C
+        CA: CA
+        CB: CB
+        CD: CD
+        CG: CG
+        N: N
+        O: O
+        OE1: OE1
+      ccd_id: VAM
+      parent_aa: E
+      source:
+        format: mmcif
+        value: ${oc.env:ASTROLABE_PAPER_DATA}/cyclic/chemistry/EAM.cif

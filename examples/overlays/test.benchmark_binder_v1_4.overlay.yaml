@@ -1,0 +1,36 @@
+target_name: test
+seqs:
+  A: 80-120
+  B: +???
+stages:
+  ligand:
+    mutators:
+    - LigandMPNN_itf
+    - LigandMPNN_noitf
+    mutator_weights:
+    - 0.5
+    - 0.5
+    weighted_score_expression: cross_iptm + intra_lis + separation_std + plddt + pae
+      + iptm
+mutator:
+  mutator_terms:
+    LigandMPNN_itf:
+      position_selector: interface(interface_distance=10.0) and hotspot('B:14')
+    LigandMPNN_noitf:
+      position_selector: not interface(interface_distance=10.0) and hotspot('B:14')
+loss:
+  loss_terms:
+    cross_iptm:
+      _type: cross_iptm
+    intra_lis:
+      _type: intra_lis
+    separation_std:
+      _type: separation_std
+    plddt:
+      _type: plddt
+    pae:
+      _type: pae
+    iptm:
+      _type: iptm
+homologies:
+  B: inputs/homologies/test.json:A

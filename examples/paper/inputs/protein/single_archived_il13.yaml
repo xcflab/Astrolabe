@@ -1,0 +1,15 @@
+# @package _global_
+seqs:
+  B: +PGPVPPSTALRELIEELVNITQNQKAPLCNGSMVWSINLTAGMYCAALESLINVSGCSAIEKTQRMLSGFCPHKVSAGQFSSLHVRDTKIEVAQFVKDLLLHLKKLFREGQF
+  A: 100-120
+homologies:
+  B: ${oc.env:ASTROLABE_PAPER_DATA}/protein/targets/il13.json:A
+loss:
+  loss_terms:
+    target_hotspot:
+      _type: hotspot_dsasa
+      _for: AB
+      select_expression: B_1:8,9,12,69,65,66,62
+paper_protocol:
+  source:
+  - 40_control_native.tar.gz::configs/04_af3_only_hotspot2x_mono_ab_il13_steps100.yaml

@@ -1,0 +1,8 @@
+# @package _global_
+defaults:
+  - /paper/cid_iptm
+  - _self_
+
+stages:
+  default:
+    weighted_score_expression: iptm + 0.8 * interface_box_occupancy + 0.8 * interface_alpha_occupancy

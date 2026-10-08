@@ -1,0 +1,25 @@
+# @package _global_
+defaults:
+- /paper/cyclic_peptide_multiring
+- _self_
+mutator:
+  mutator_terms:
+    MCMC:
+      _type: MCMC
+stages:
+  default:
+    mutators:
+    - MCMC
+paper_protocol:
+  source:
+  - MainPaper 191-196
+  - SI 75-87
+  - '012_cyclic_peptide_design/scripts/run_cyclic_peptide_benchmark_task.py: multiring_patterns'
+  planned_runs_per_representation: 40
+  notes:
+  - Peptide-only representation trajectories retain the source MCMC proposal protocol,
+    20 steps, and plddt + 0.4*ptm + 0.3*cyclic_closure_norm objective.
+  - Input overlays preserve source method names and bond signal modes. The archived
+    generic_cyclic_index_offset usually enables both explicit bonds and offsets.
+  - Tail-sidechain lactone/thiolactone examples require the CTM postbond C terminus;
+    historical ordinary-terminus controls are not runnable release inputs.

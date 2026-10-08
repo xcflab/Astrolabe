@@ -1,0 +1,72 @@
+{
+  "recipe_kind": "manuscript_native",
+  "archived_generation_scripts_recovered": false,
+  "counts": {
+    "rfaa": {
+      "backbones": 100,
+      "sequences_per_backbone": 5
+    },
+    "rfdiffusion2": {
+      "backbones": 100,
+      "sequences_per_backbone": 5
+    },
+    "rfdiffusion3": {
+      "backbones": 100,
+      "sequences_per_backbone": 5
+    },
+    "boltzdesign1": {
+      "design_samples": "explicit launcher input",
+      "num_designs": "explicit native LigandMPNN refinement count"
+    }
+  },
+  "sources": {
+    "boltzdesign1": {
+      "repository": "https://github.com/yehlincho/BoltzDesign1",
+      "commit": "627c0cc7bab41e56f544c5d15467b2dbeb490168",
+      "native_entrypoint": "boltzdesign.py",
+      "run_log": "001_benchmark/ligand_benchmark/run_benchmark.py:BoltzDesignRunner",
+      "boundary": "Observed local source has a path-only modification to load design configs from the source directory. The launcher also links source boltzdesign/LigandMPNN assets into isolated work_dir, preserving the upstream relative-path contract. Historical optimizer settings were not recovered."
+    },
+    "rfaa": {
+      "repository": "https://github.com/baker-laboratory/rf_diffusion_all_atom",
+      "commit": "f913a19e16f30858ce7a724fe028475b1871319c",
+      "native_entrypoint": "run_inference.py",
+      "native_configuration": "config/inference/aa.yaml",
+      "run_log": "001_benchmark/ligand_benchmark/run_benchmark.py:RFAllAtomRunner",
+      "paper_display_label": "RoseTTAFold All-Atom",
+      "boundary": "The archived project maps its RFAA label to the RFdiffusion All-Atom generator. The separate RoseTTAFold-All-Atom prediction CLI is not substituted."
+    },
+    "rfdiffusion2": {
+      "repository": "https://github.com/RosettaCommons/RFdiffusion2",
+      "commit": "d365cbf4db3958814a9f8e4f6f94fa309dfebc2b",
+      "native_entrypoint": "rf_diffusion/run_inference.py",
+      "native_configuration": "rf_diffusion/config/inference/aa.yaml",
+      "boundary": "Official native source was inspected at the pinned revision. atomized-bb-False corresponds to retained RFdiffusion2 candidate names. Historical generator script/checkpoint identity was not recovered."
+    },
+    "rfdiffusion3": {
+      "repository": "https://github.com/RosettaCommons/foundry",
+      "commit": "e7601390a5b8a22002bccace9ac0fe240ef1371b",
+      "native_entrypoint": "models/rfd3/src/rfd3/engine.py:RFD3InferenceEngine.run",
+      "existing_adapter": "astrolabe/initializers/wrappers/rfd3_worker.py",
+      "boundary": "Existing Astrolabe Foundry adapter; 100 batches of one output preserve the published count while keeping GPU batches small. Historical generation scripts were not recovered."
+    }
+  },
+  "sequence_fitting": {
+    "source": "LigandMPNN/run.py",
+    "repository": "https://github.com/dauparas/LigandMPNN",
+    "arguments": {
+      "model_type": "ligand_mpnn",
+      "batch_size": 5,
+      "number_of_batches": 1
+    },
+    "sampler_settings": "Native defaults, except explicit sequence count/checkpoint/chains/seed. Seed is requested seed plus backbone index.",
+    "boundary": "The older 001_benchmark example requested eight sequences and was not used as the publication sequence count."
+  },
+  "unbundled_assets": [
+    "native source checkouts and their compatible runtimes",
+    "generator checkpoints",
+    "ligand-containing input PDBs or complete Foundry design specification",
+    "LigandMPNN checkpoint and runtime",
+    "BoltzDesign1 CCD and internal LigandMPNN assets"
+  ]
+}

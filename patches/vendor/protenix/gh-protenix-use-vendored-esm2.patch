@@ -1,0 +1,12 @@
+diff --git a/protenix/data/esm/compute_esm.py b/protenix/data/esm/compute_esm.py
+--- a/protenix/data/esm/compute_esm.py
++++ b/protenix/data/esm/compute_esm.py
+@@ -17,7 +17,7 @@ import os
+ 
+ import pandas as pd
+ import torch
+-from esm import FastaBatchedDataset, pretrained
++from esm2 import FastaBatchedDataset, pretrained
+ from tqdm.auto import tqdm
+ 
+ ESM_CONFIG = {

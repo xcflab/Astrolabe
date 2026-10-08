@@ -1,0 +1,69 @@
+# @package _global_
+defaults:
+  - /base
+  - _self_
+
+paper_protocol:
+  source: MainPaper Methods 183-186; SI 71-72
+  representative: any predicted state passing both endpoint criteria
+  success: ca90 > 0.8 and iptm > 0.8
+  planned_trajectories_per_ligand: 50
+task_name: ???
+out_dir: ???
+repeats: 1
+steps: 50
+seqs:
+  A: 61-91
+  B: 59-93
+  C: ???
+types:
+  C: ???
+initializer:
+  mode: random
+mutator:
+  mutator_terms:
+    ligandmpnn:
+      _type: LigandMPNN
+      temperature: 0.3
+evaluator:
+  evaluator_terms:
+    af3:
+      _type: Alphafold3
+loss:
+  loss_terms:
+    interface_box_occupancy:
+      _type: ligand_protein_interface_occupancy
+      _for: ABC
+      interface_chains: [A, B]
+      ligand_targets: C
+      interface_distance: 8.0
+      interface_padding: 1.0
+      min_box_size: 5.0
+    interface_alpha_occupancy:
+      _type: ligand_protein_interface_cb_alpha_shape_occupancy
+      _for: ABC
+      interface_chains: [A, B]
+      ligand_targets: C
+      interface_distance: 8.0
+      alpha_radius_scale: 1.8
+      alpha_min_radius: 3.0
+      alpha_max_radius: 8.0
+      alpha_tolerance: 1.0e-8
+    ca90:
+      _type: ligand_protein_interface_ca90
+      _for: ABC
+      interface_chains: [A, B]
+      ligand_targets: C
+      interface_distance: 8.0
+      coverage_percent: 90.0
+      padding: 1.0
+      min_box_size: 5.0
+stages:
+  default:
+    oligo: [ABC]
+    evaluator: af3
+    mutators: [ligandmpnn]
+    mutation_num: 100%
+    weighted_score_expression: iptm
+    acceptance_threshold: null
+    early_stopping: null

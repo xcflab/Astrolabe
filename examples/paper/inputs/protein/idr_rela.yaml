@@ -1,0 +1,5 @@
+# @package _global_
+seqs:
+  B: +APKPTQAGEGTLSEALLQLQFDDEDLGALLGNSTDPAVFTDLASVDNSEFQQLLNQGIPVAPHTTE
+homologies:
+  B: ${oc.env:ASTROLABE_PAPER_DATA}/protein/idr/rela_Q04206_425_490.json:A

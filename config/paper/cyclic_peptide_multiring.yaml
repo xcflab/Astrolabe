@@ -1,0 +1,72 @@
+# @package _global_
+defaults:
+- /base
+- _self_
+task_name: cyclic_peptide
+out_dir: null
+repeats: 1
+steps: 20
+seed: 1
+seqs:
+  A: ???
+homologies: {}
+enable_pyrosetta: false
+mutator:
+  selector_expression: null
+  mutator_terms:
+    mpnn:
+      _type: LigandMPNN
+      temperature: 0.3
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+cyclization:
+  bonds: ???
+  encoding:
+    scope: all_bonds
+  signal_mode: both
+loss:
+  loss_terms:
+    cyclic_closure_norm:
+      _type: cyclic_closure_norm
+      sigma: 0.2
+      aggregate: mean
+    closure_all_bonds:
+      _type: cyclic_all_bonds_within_error
+      margin: 0.3
+    closure_max_error:
+      _type: cyclic_max_bond_error
+stages:
+  default:
+    oligo:
+    - A
+    evaluator: Alphafold3
+    mutators:
+    - mpnn
+    mutation_num: 100%
+    weighted_score_expression: plddt + 0.4 * ptm + 0.3 * cyclic_closure_norm
+    acceptance_threshold: null
+    early_stopping: null
+paper_protocol:
+  source:
+  - MainPaper 198-200
+  - SI 90-91
+  representative: max_objective
+  planned_runs_per_topology: 40
+  notes:
+  - Supply the linkage topology and exact modified-residue inputs for plecanatide,
+    linaclotide, ziconotide, chlorotoxin or kalata B1.
+  - All-bond closure is evaluated separately from the mean Gaussian optimization score.
+  - This recipe follows the latest manuscript LigandMPNN method. The archived run
+    script used MCMC; use cyclic-peptide-multiring-archived for that execution protocol.
+initial_temperature: 0.03
+reinitialize_random_segments_with_dplm: false
+skip_complex_poses: true
+alphafold3:
+  num_seeds: 1
+  num_recycles: 1
+  num_samples: 1
+  run_data_pipeline: false
+  run_inference: true
+  flash_attention_implementation: xla

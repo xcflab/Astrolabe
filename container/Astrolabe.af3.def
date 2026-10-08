@@ -1,0 +1,425 @@
+Bootstrap: docker
+From: nvidia/cuda@sha256:6b3201183858bad08441837f5a5efc2c75290135cc25fcc87d9ff763190cfd09
+
+# Pinned linux/amd64 manifest for nvidia/cuda:12.6.3-base-ubuntu24.04.
+
+%arguments
+    GH_INSTALL_PYROSETTA=1
+    GH_INSTALL_ANANAS=0
+    GH_INSTALL_ROSETTA_TOOLS=0
+    GH_BUILD_FEATURES=pyrosetta
+
+%labels
+    Name Astrolabe
+    Description Astrolabe + AlphaFold3 base (mount weights/tools at runtime)
+    GH.BuildFeatures {{ GH_BUILD_FEATURES }}
+
+%setup
+    mkdir -p "${APPTAINER_ROOTFS}/cache"
+
+%post
+    set -eux
+    export DEBIAN_FRONTEND=noninteractive
+
+    # Keep downloaded debs outside the rootfs. A failed late build can then
+    # relink them without spending several minutes downloading the toolchain.
+    mkdir -p /cache/apt/archives/partial
+    apt-get update --quiet
+    apt-get \
+        -o Dir::Cache::archives=/cache/apt/archives \
+        -o APT::Keep-Downloaded-Packages=true \
+        install --yes --quiet --no-install-recommends \
+        ca-certificates \
+        curl \
+        git \
+        gcc g++ make cmake ninja-build \
+        libxrender1 libxext6 libsm6 \
+        gzip zstd \
+        bzip2 \
+        tzdata
+    rm -rf /var/lib/apt/lists/*
+
+    # Use the same Python minor as the proven ~/.gh_envs/gh environment. Keep
+    # command-only docking tools in this prefix too, avoiding a second Python
+    # and NumPy installation solely for OpenBabel/Vina/DSSP.
+    MICROMAMBA_VERSION=2.8.1
+    MICROMAMBA_SHA256=a934c3709c997feae403a27fd1e321c106d26ffa4f294800ffb11cbc9a3e8515
+    MICROMAMBA_ARCHIVE="/cache/bootstrap/micromamba-${MICROMAMBA_VERSION}-linux-64.tar.bz2"
+    mkdir -p /opt/micromamba/bin /cache/bootstrap /cache/mamba/pkgs
+    if [ ! -s "$MICROMAMBA_ARCHIVE" ]; then
+        curl --fail --location --retry 10 --retry-all-errors \
+            --output "$MICROMAMBA_ARCHIVE.part" \
+            "https://micro.mamba.pm/api/micromamba/linux-64/${MICROMAMBA_VERSION}"
+        mv "$MICROMAMBA_ARCHIVE.part" "$MICROMAMBA_ARCHIVE"
+    fi
+    echo "$MICROMAMBA_SHA256  $MICROMAMBA_ARCHIVE" | sha256sum --check -
+    tar -xvjf "$MICROMAMBA_ARCHIVE" -C /opt/micromamba/bin \
+        --strip-components=1 bin/micromamba
+    export MAMBA_ROOT_PREFIX=/cache/mamba
+    export CONDA_PKGS_DIRS=/cache/mamba/pkgs
+    /opt/micromamba/bin/micromamba create --no-rc -y \
+        --root-prefix /cache/mamba -p /alphafold3_venv \
+        --file /opt/Astrolabe/container/conda-linux-64.lock
+    export PATH="/alphafold3_venv/bin:$PATH"
+    export PIP_DISABLE_PIP_VERSION_CHECK=1
+    export PIP_DEFAULT_TIMEOUT=600
+    export PIP_RETRIES=10
+    export PIP_RESUME_RETRIES=10
+    if [ -d /cache/pip ]; then
+        export PIP_CACHE_DIR=/cache/pip
+    fi
+    # Pip 25.3 can resume interrupted large wheel downloads. Keep a bounded,
+    # visible retry because restarting an Apptainer %post section would
+    # otherwise discard all installation work from this attempt.
+    retry_large_pip_install() {
+        attempt=1
+        while ! pip3 install "$@"; do
+            if [ "$attempt" -ge 3 ]; then
+                echo "pip install failed after ${attempt} attempts: $*" >&2
+                return 1
+            fi
+            attempt=$((attempt + 1))
+            echo "pip install failed; retrying (${attempt}/3): $*" >&2
+        done
+    }
+
+    # Install one hash-locked runtime resolution. In particular, do not install
+    # AF3's development lock first: it pins NumPy 2.1, Triton 3.1, and older
+    # CUDA/NCCL wheels that Torch 2.7.1 would immediately replace.
+    export CMAKE_ARGS="-DBUILD_TESTING=OFF -DCMAKE_PREFIX_PATH=/alphafold3_venv;/opt/Astrolabe/vendor -DAF3_THIRD_PARTY_DIR=/opt/Astrolabe/vendor -DCIFPP_DOWNLOAD_CCD=OFF -DFETCHCONTENT_FULLY_DISCONNECTED=ON -DFETCHCONTENT_SOURCE_DIR_LIBMCFP=/opt/Astrolabe/vendor/libmcfp-source -DFETCHCONTENT_SOURCE_DIR_MY-EIGEN3=/opt/Astrolabe/vendor/eigen-source -DFETCHCONTENT_SOURCE_DIR_BOOST-RX=/opt/Astrolabe/vendor/boost-regex-source"
+    retry_large_pip_install --require-hashes \
+        -r /opt/Astrolabe/container/requirements.runtime.lock
+
+    # Build AF3 without isolation against the final unified NumPy/toolchain.
+    # Cache the compiled wheel by source/toolchain fingerprint so a later SIF
+    # retry does not rebuild the C++ extension after an unrelated failure.
+    AF3_WHEEL_KEY="$(python - <<'PY'
+import hashlib
+import os
+from pathlib import Path
+import platform
+import subprocess
+import sys
+
+roots = (
+    Path('/opt/Astrolabe/vendor/alphafold3'),
+    Path('/opt/Astrolabe/vendor/abseil-cpp-source'),
+    Path('/opt/Astrolabe/vendor/pybind11-source'),
+    Path('/opt/Astrolabe/vendor/pybind11-abseil-source'),
+    Path('/opt/Astrolabe/vendor/libcifpp-source'),
+    Path('/opt/Astrolabe/vendor/dssp-source'),
+    Path('/opt/Astrolabe/vendor/libmcfp-source'),
+    Path('/opt/Astrolabe/vendor/eigen-source'),
+    Path('/opt/Astrolabe/vendor/boost-regex-source'),
+    Path('/opt/Astrolabe/container/requirements.runtime.lock'),
+    Path('/opt/Astrolabe/container/conda-linux-64.lock'),
+)
+digest = hashlib.sha256()
+for root in roots:
+    files = [root] if root.is_file() else sorted(path for path in root.rglob('*') if path.is_file())
+    for path in files:
+        digest.update(path.as_posix().encode())
+        digest.update(b'\0')
+        if path.is_symlink():
+            digest.update(os.readlink(path).encode())
+        else:
+            with path.open('rb') as handle:
+                for chunk in iter(lambda: handle.read(1024 * 1024), b''):
+                    digest.update(chunk)
+        digest.update(b'\0')
+digest.update(os.environ['CMAKE_ARGS'].encode())
+digest.update(sys.version.encode())
+digest.update(platform.machine().encode())
+digest.update(subprocess.check_output(['g++', '--version']))
+digest.update(subprocess.check_output(['cmake', '--version']))
+digest.update(subprocess.check_output(['ninja', '--version']))
+digest.update(subprocess.check_output(['ldd', '--version'], stderr=subprocess.STDOUT))
+print(digest.hexdigest())
+PY
+)"
+    AF3_WHEEL_ROOT="/cache/wheels/alphafold3/$AF3_WHEEL_KEY"
+    AF3_CACHED_WHEEL="$(find "$AF3_WHEEL_ROOT" -maxdepth 1 -type f -name '*.whl' -print -quit 2>/dev/null || true)"
+    if [ -z "$AF3_CACHED_WHEEL" ]; then
+        AF3_WHEEL_TMP="$AF3_WHEEL_ROOT.tmp.$$"
+        rm -rf "$AF3_WHEEL_TMP"
+        mkdir -p "$AF3_WHEEL_TMP"
+        pip3 wheel --no-deps --no-build-isolation --wheel-dir "$AF3_WHEEL_TMP" \
+            /opt/Astrolabe/vendor/alphafold3
+        rm -rf "$AF3_WHEEL_ROOT"
+        mv "$AF3_WHEEL_TMP" "$AF3_WHEEL_ROOT"
+        AF3_CACHED_WHEEL="$(find "$AF3_WHEEL_ROOT" -maxdepth 1 -type f -name '*.whl' -print -quit)"
+    else
+        echo "Reusing cached AlphaFold3 wheel: $AF3_CACHED_WHEEL"
+    fi
+    test -n "$AF3_CACHED_WHEEL"
+    pip3 install --no-deps "$AF3_CACHED_WHEEL"
+    AF3_CONVERTERS_DIR="$(python -c 'import alphafold3.constants.converters as c; print(next(iter(c.__path__)))')"
+    AF3_BUILD_DATA_CACHE=/cache/af3-build-data
+    AF3_SITE_PACKAGES="$(python -c 'import site; print(site.getsitepackages()[0])')"
+    AF3_COMPONENTS_DIR="$AF3_SITE_PACKAGES/share/libcifpp"
+    mkdir -p "$AF3_COMPONENTS_DIR" "$AF3_BUILD_DATA_CACHE"
+    if [ -s "$AF3_BUILD_DATA_CACHE/components.cif" ]; then
+        install -m 0644 "$AF3_BUILD_DATA_CACHE/components.cif" \
+            "$AF3_COMPONENTS_DIR/components.cif"
+    else
+        AF3_COMPONENTS_GZ="$AF3_BUILD_DATA_CACHE/components.cif.gz"
+        if [ ! -s "$AF3_COMPONENTS_GZ" ]; then
+            curl --fail --location --retry 10 --retry-all-errors --continue-at - \
+                --output "$AF3_COMPONENTS_GZ.part" \
+                https://files.wwpdb.org/pub/pdb/data/monomers/components.cif.gz
+            mv "$AF3_COMPONENTS_GZ.part" "$AF3_COMPONENTS_GZ"
+        fi
+        gzip -t "$AF3_COMPONENTS_GZ"
+        gzip -dc "$AF3_COMPONENTS_GZ" >"$AF3_COMPONENTS_DIR/components.cif"
+    fi
+    if [ -s "$AF3_BUILD_DATA_CACHE/ccd.pickle" ] && \
+       [ -s "$AF3_BUILD_DATA_CACHE/chemical_component_sets.pickle" ]; then
+        install -m 0644 "$AF3_BUILD_DATA_CACHE/ccd.pickle" "$AF3_CONVERTERS_DIR/ccd.pickle"
+        install -m 0644 "$AF3_BUILD_DATA_CACHE/chemical_component_sets.pickle" \
+            "$AF3_CONVERTERS_DIR/chemical_component_sets.pickle"
+    else
+        build_data
+    fi
+
+    if [ '{{ GH_INSTALL_PYROSETTA }}' = '1' ]; then
+        # The host builder performs the explicit license gate and stages the
+        # exact wheel; the definition never downloads a replacement version.
+        PYROSETTA_VERSION='2026.3+releasequarterly.5e498f1409'
+        PYROSETTA_WHEEL_SIZE=1658972065
+        PYROSETTA_UPSTREAM_SHA256=fd1a9a51c1d7475b448e010926ed201446a55d20f4c5340455af148914d3cffe
+        PYROSETTA_WHEEL_NAME="pyrosetta-${PYROSETTA_VERSION}-cp311-cp311-linux_x86_64.whl"
+        PYROSETTA_WHEEL="/cache/wheels/pyrosetta/$PYROSETTA_WHEEL_NAME"
+        if [ ! -s "$PYROSETTA_WHEEL" ]; then
+            echo "Verified PyRosetta wheel was not staged at $PYROSETTA_WHEEL" >&2
+            exit 1
+        fi
+        test "$(stat -c %s "$PYROSETTA_WHEEL")" -eq "$PYROSETTA_WHEEL_SIZE"
+        PYROSETTA_ACTUAL_SHA256="$(sha256sum "$PYROSETTA_WHEEL" | awk '{print $1}')"
+        test "$PYROSETTA_ACTUAL_SHA256" = "$PYROSETTA_UPSTREAM_SHA256"
+        pip3 install --no-deps "$PYROSETTA_WHEEL"
+    fi
+
+    mkdir -p /opt/gh-build-features
+    if [ '{{ GH_INSTALL_PYROSETTA }}' = '1' ]; then
+        touch /opt/gh-build-features/pyrosetta
+    fi
+
+    if [ '{{ GH_INSTALL_ANANAS }}' = '1' ]; then
+        ANANAS_ARCHIVE=/cache/sources/ananas/ananas-linux-1.1.zip
+        ANANAS_SHA256=279a4163e42343599633db71ac2ecd5f20795fe80510ff5f2ec542de35701745
+        test -s "$ANANAS_ARCHIVE"
+        echo "$ANANAS_SHA256  $ANANAS_ARCHIVE" | sha256sum --check -
+        python - "$ANANAS_ARCHIVE" <<'PY'
+from pathlib import Path
+import sys
+import zipfile
+import hashlib
+
+archive_path = Path(sys.argv[1])
+with zipfile.ZipFile(archive_path) as archive:
+    regular = [info for info in archive.infolist() if not info.is_dir()]
+    if [info.filename for info in regular] != ['ananas']:
+        raise SystemExit(f'Unexpected AnAnaS archive members: {[x.filename for x in regular]}')
+    payload = archive.read(regular[0])
+if len(payload) != 2_508_152:
+    raise SystemExit(f'Unexpected AnAnaS binary size: {len(payload)}')
+expected_sha256 = '79f470f084f0e98c4e067104e32d879d41d68fc4935ced5c49102bb8666177ab'
+actual_sha256 = hashlib.sha256(payload).hexdigest()
+if actual_sha256 != expected_sha256:
+    raise SystemExit(f'Unexpected AnAnaS binary SHA256: {actual_sha256}')
+target = Path('/usr/local/bin/AnAnaS')
+target.write_bytes(payload)
+target.chmod(0o755)
+PY
+        ln -sf /usr/local/bin/AnAnaS /usr/local/bin/ananas
+        touch /opt/gh-build-features/ananas
+    fi
+
+    if [ '{{ GH_INSTALL_ROSETTA_TOOLS }}' = '1' ]; then
+        ROSETTA_TOOLS_COMMIT=80a0635615099e1b918474a63acba7b1de6fd107
+        ROSETTA_TOOLS_ARCHIVE="/cache/sources/rosetta/rosetta-tools-${ROSETTA_TOOLS_COMMIT}.tar.gz"
+        ROSETTA_TOOLS_ROOT=/opt/rosetta-tools
+        test -s "$ROSETTA_TOOLS_ARCHIVE"
+        rm -rf "$ROSETTA_TOOLS_ROOT"
+        mkdir -p "$ROSETTA_TOOLS_ROOT"
+        python - "$ROSETTA_TOOLS_ARCHIVE" "$ROSETTA_TOOLS_ROOT" \
+            /opt/Astrolabe/container/rosetta-tools.manifest.tsv <<'PY'
+from pathlib import Path, PurePosixPath
+import hashlib
+import sys
+import tarfile
+
+archive_path, output_root, manifest_path = map(Path, sys.argv[1:])
+expected = {}
+for line_number, line in enumerate(manifest_path.read_text().splitlines(), 1):
+    if line_number == 1:
+        if line != 'sha256\tsize_bytes\tpath':
+            raise SystemExit(f'Invalid Rosetta manifest header: {manifest_path}')
+        continue
+    checksum, size_text, rel_path = line.split('\t')
+    expected[rel_path] = (checksum, int(size_text))
+
+with tarfile.open(archive_path, mode='r:gz') as archive:
+    members = archive.getmembers()
+    names = [member.name for member in members]
+    unsafe = [
+        member.name
+        for member in members
+        if not member.isfile()
+        or PurePosixPath(member.name).is_absolute()
+        or any(part in ('', '.', '..') for part in PurePosixPath(member.name).parts)
+        or str(PurePosixPath(member.name)) != member.name
+    ]
+    if unsafe or len(names) != len(set(names)) or set(names) != set(expected):
+        raise SystemExit(
+            f'Unsafe/non-exact Rosetta archive: unsafe={unsafe}, members={names}'
+        )
+    for member in members:
+        checksum, expected_size = expected[member.name]
+        if member.size != expected_size:
+            raise SystemExit(f'Rosetta member size mismatch: {member.name}')
+        source = archive.extractfile(member)
+        if source is None:
+            raise SystemExit(f'Cannot read Rosetta member: {member.name}')
+        target = output_root.joinpath(*PurePosixPath(member.name).parts)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        digest = hashlib.sha256()
+        with target.open('wb') as handle:
+            while chunk := source.read(1024 * 1024):
+                digest.update(chunk)
+                handle.write(chunk)
+        if digest.hexdigest() != checksum:
+            raise SystemExit(f'Rosetta member checksum mismatch: {member.name}')
+        target.chmod(0o644)
+PY
+        while IFS="$(printf '\t')" read -r expected_sha256 expected_size rel_path; do
+            [ "$expected_sha256" = sha256 ] && continue
+            target="$ROSETTA_TOOLS_ROOT/$rel_path"
+            test -f "$target"
+            test "$(stat -c %s "$target")" -eq "$expected_size"
+            echo "$expected_sha256  $target" | sha256sum --check -
+        done </opt/Astrolabe/container/rosetta-tools.manifest.tsv
+        mkdir -p /rosetta
+        ln -sf "$ROSETTA_TOOLS_ROOT/source/scripts/python/public/molfile_to_params.py" \
+            /rosetta/molfile_to_params.py
+        ln -sf "$ROSETTA_TOOLS_ROOT/source/scripts/python/public/molfile_to_params_polymer.py" \
+            /rosetta/molfile_to_params_polymer.py
+        PYROSETTA_DATABASE=/alphafold3_venv/lib/python3.11/site-packages/pyrosetta/database
+        test -d "$PYROSETTA_DATABASE"
+        ln -sfn "$PYROSETTA_DATABASE" "$ROSETTA_TOOLS_ROOT/database"
+        ln -sfn "$PYROSETTA_DATABASE" /rosetta/database
+        touch /opt/gh-build-features/rosetta
+    fi
+
+    # Provide a stable DSSP path expected by this repo's defaults.
+    if [ -x /alphafold3_venv/bin/mkdssp ]; then \
+        ln -sf /alphafold3_venv/bin/mkdssp /usr/bin/dssp ; \
+    elif [ -x /alphafold3_venv/bin/dssp ]; then \
+        ln -sf /alphafold3_venv/bin/dssp /usr/bin/dssp ; \
+    else \
+        echo \"WARN: DSSP executable not found in dock env\" ; \
+    fi
+
+    # Provide stable paths for subprocess tools.
+    if [ -x /alphafold3_venv/bin/obabel ]; then ln -sf /alphafold3_venv/bin/obabel /usr/bin/obabel; fi
+    if [ -x /alphafold3_venv/bin/vina ]; then ln -sf /alphafold3_venv/bin/vina /usr/bin/vina; fi
+
+    # OpenBabel needs its plugin directory when not running inside an activated conda env.
+    # Wrap obabel so it can locate plugins (BABEL_LIBDIR).
+    mkdir -p /usr/local/bin
+    cat >/usr/local/bin/obabel <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+NEEDS_SET=0
+if [ -z "${BABEL_LIBDIR:-}" ] || [ ! -d "${BABEL_LIBDIR:-/nonexistent}" ]; then
+  NEEDS_SET=1
+else
+  # Some base images set BABEL_LIBDIR to a path without plugins; detect and override.
+  if ! ls "$BABEL_LIBDIR"/*format.so >/dev/null 2>&1; then
+    NEEDS_SET=1
+  fi
+fi
+
+if [ "$NEEDS_SET" -eq 1 ]; then
+  for d in /alphafold3_venv/lib/openbabel/*; do
+    if [ -d "$d" ] && ls "$d"/*format.so >/dev/null 2>&1; then
+      export BABEL_LIBDIR="$d"
+      break
+    fi
+  done
+fi
+exec /alphafold3_venv/bin/obabel "$@"
+EOF
+    chmod +x /usr/local/bin/obabel
+
+    # Provide USalign from vendored source (supports mmCIF + multimer; used by tmscore loss).
+    make -C /opt/Astrolabe/vendor/usalign USalign
+    cp /opt/Astrolabe/vendor/usalign/USalign /usr/bin/USalign
+
+    # Install vendored in-process packages from this checkout. Dependencies are
+    # installed explicitly above so upstream dependency metadata cannot silently
+    # upgrade Torch/JAX and break AF3 compatibility.
+    pip3 install --no-deps -e /opt/Astrolabe/vendor/protenix
+    pip3 install --no-deps -e /opt/Astrolabe/vendor/alphafold2
+    pip3 install --no-deps -e /opt/Astrolabe/vendor/rhofold
+    pip3 install --no-deps -e /opt/Astrolabe/vendor/chai_lab
+    pip3 install --no-deps -e /opt/Astrolabe/vendor/boltz
+    pip3 install --no-deps -e /opt/Astrolabe/vendor/esm2
+    pip3 install --no-deps -e /opt/Astrolabe/vendor/esm3
+
+    # The host-local env overlay is intentionally untracked. Inside the SIF,
+    # make the default Hydra env group resolve to the portable container paths.
+    mkdir -p /opt/Astrolabe/config/env
+    ln -sfn ../env_container.yaml \
+        /opt/Astrolabe/config/env/env_local.yaml
+    test "$(readlink /opt/Astrolabe/config/env/env_local.yaml)" = \
+        "../env_container.yaml"
+
+    # Create mount roots so bind-mounting is optional for some tools.
+    mkdir -p /models /tools /ext /rosetta
+    mkdir -p /ext/dplm
+
+    # Install this repo into the same venv (CLI entrypoint is `astrolabe`).
+    pip3 install --no-deps -e /opt/Astrolabe
+
+    # Build-only packages and internal caches do not belong in the runtime SIF.
+    rm -f /alphafold3_venv/share/libcifpp/components.cif.gz
+    apt-get purge --yes --auto-remove gcc g++ make cmake ninja-build
+    rm -rf /var/lib/apt/lists/* /opt/micromamba/pkgs
+    test ! -d /opt/micromamba/pkgs
+
+%files
+    ./ /opt/Astrolabe
+
+%environment
+    export PYTHONUNBUFFERED=1
+    export PYTHONPATH=/opt/Astrolabe:${PYTHONPATH}
+    export PATH="/alphafold3_venv/bin:/opt/micromamba/bin:${PATH}"
+    export GH_ANANAS=/usr/local/bin/AnAnaS
+    export GH_MOLFILE_TO_PARAMS=/rosetta/molfile_to_params.py
+    export MAMBA_ROOT_PREFIX=/opt/micromamba
+    export CUDA_DEVICE_ORDER=PCI_BUS_ID
+
+    # Per AlphaFold3 Dockerfile: mitigate known XLA compilation slowdowns.
+    export XLA_FLAGS="--xla_gpu_enable_triton_gemm=false"
+    export XLA_PYTHON_CLIENT_PREALLOCATE=true
+    export XLA_CLIENT_MEM_FRACTION=0.95
+
+%test
+    # Import the complete run graph, not just the lightweight CLI parser. This
+    # catches tracked modules that depend on a source file omitted from the
+    # staged build context before a SIF can be published.
+    python -c 'from astrolabe.app import _load_run_module; _load_run_module()'
+    if [ -f /opt/gh-build-features/pyrosetta ]; then
+        python -c "import pyrosetta; pyrosetta.init('-mute all'); assert pyrosetta.pose_from_sequence('AAAA').total_residue() == 4"
+    fi
+    if [ -f /opt/gh-build-features/ananas ]; then
+        /usr/local/bin/AnAnaS --version
+    fi
+    if [ -f /opt/gh-build-features/rosetta ]; then
+        python /rosetta/molfile_to_params.py --help >/dev/null
+        python /rosetta/molfile_to_params_polymer.py --help >/dev/null
+    fi
+
+%runscript
+    exec astrolabe "$@"

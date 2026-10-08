@@ -1,0 +1,53 @@
+target_name: hcar1
+task_name: hcar1_nanobody_v3_ep64_68_paratope
+
+# 5 rounds; each round runs 5 optimization steps (step=1..5).
+repeats: 5
+steps: 6
+
+out_dir: outputs/hcar1_paratope_ep64_68
+
+seqs:
+  # HCAR1 nanobody v3 paratope example.
+  # '+'-prefixed segments are fixed; non-'+' segments are mutable (CDR/paratope).
+  A: "+QVQLVESGGGSVQAGGSLRLSCTAS GGSEYSYSTF +SLGWFRQAPGQEREAVAAI ASMGGL +TYYADSVKGRFTISRDNAKNTVTLQMNNLKPEDTAIYYCAA VRGYFMRLPSSHNFRY +WGQGTQVTVSSRGR"
+  B: "+CCRIEGDTISQVMPPLLIVAFVLGALGNGVALCGFCFHMKTWKPSTVYLFNLAVADFLLMICLPFRTDYYLRRRHWAFGDIPCRVGLFTLAMNRAGSIVFLTVVAADRYFKVVHPHHAVNTISTRVAAGIVCTLWALVILGTVYLLLENHLCVQETAVSCESFIMESANGWHDIMFQLEFFMPLGIILFCSFKIVWSLRRRQQLARQARMKKATRFIMVVAIVFITCYLPSVSARLYFLWTVPSSACDPSVHGALHITLSFTYMNSMLDPLVYYFSSPS"
+
+homologies:
+  # Use AF3-style JSON (has `dialect:`); the old `*_homology.json` files are not compatible.
+  B: /path/to/hcar1/af3_unique_chains_part_1_data.json:A
+
+binding_site:
+  # target epitope fixed at 64-68 (1-indexed in chain B)
+  target: "B:64-68"
+  # paratope = mutable segments in seqs.A (CDR): 26-35, 55-60, 102-117
+  binder: ["A:26-35", "A:55-60", "A:102-117"]
+  mode: pocket
+  max_distance: 12.0
+
+mutator:
+  # keep it light; avoid esm3 OOM
+  names: ["dplm", "LigandMPNN_itf", "LigandMPNN_noitf"]
+
+stages:
+  # Run AB from the start (so binding_site + paratope losses are active in the 5-step smoke).
+  default:
+    oligo: ["AB"]
+    evaluator: Protenix
+    mutators: ["LigandMPNN_itf", "LigandMPNN_noitf"]
+    mutator_weights: [1.0, 1.0]
+    acceptance_threshold: null
+    weighted_score_expression: iptm + 0.4*ptm + plddt + interface_sc * 0.2 - 0.3 * (1 / (1 + exp(-((binder_rog - globin_rog) / 5.0)))) - min(binder_loop_frac,1) * 0.6 - 0.05 * binding_site_allowed_min_dist + 0.05 * binding_site_framework_min_dist
+  ligand:
+    _entrance: "False"
+    mutators: ["LigandMPNN_itf", "LigandMPNN_noitf"]
+    mutator_weights: [1.0, 1.0]
+    # Encourage CDR to approach epitope; discourage framework contact.
+    weighted_score_expression: iptm + 0.4*ptm + plddt + interface_sc * 0.2 - 0.3 * (1 / (1 + exp(-((binder_rog - globin_rog) / 5.0)))) - min(binder_loop_frac,1) * 0.6 - 0.05 * binding_site_allowed_min_dist + 0.05 * binding_site_framework_min_dist
+
+loss:
+  loss_terms:
+    binding_site_allowed_min_dist:
+      _type: binding_site_allowed_min_dist
+    binding_site_framework_min_dist:
+      _type: binding_site_framework_min_dist

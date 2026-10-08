@@ -1,0 +1,99 @@
+# @package _global_
+defaults:
+- /base
+- _self_
+task_name: protein_binder_af3
+out_dir: null
+repeats: 1
+steps: 100
+seed: 1
+enable_pyrosetta: true
+seqs:
+  A: 80-120
+  B: ???
+homologies:
+  B: null
+initializer:
+  mode: dplm
+initial_temperature: 0.03
+mutator:
+  selector_expression: null
+  mutator_terms:
+    LigandMPNN_itf:
+      _type: LigandMPNN
+      temperature: 0.5
+      position_selector: interface(interface_distance=10.0)
+      fallback_to_all_mutable_if_selector_empty: false
+    LigandMPNN_noitf:
+      _type: LigandMPNN
+      temperature: 0.3
+      position_selector: not interface(interface_distance=10.0)
+      fallback_to_all_mutable_if_selector_empty: false
+    dplm:
+      _type: DPLM
+      temperature: 1
+  DPLM:
+    max_iter: 400
+    model_name: airkingbd/dplm_650m
+    num_samples: 1
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+  alphafold3:
+    num_recycles: 10
+    num_samples: 5
+loss:
+  loss_terms:
+    binder_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    binder_loop_frac:
+      _type: secondary_structure_fraction
+      included_protomers: A
+      sse_type: L
+    interface_sc:
+      _type: protomer_shape_complementarity
+  expression_terms:
+    globin_rog: 0.395 * (A_length ** 0.6) + 7.257
+    shape_penalty: 0.3 * sigmoid((binder_rog - globin_rog) / 5.0) + 0.6 * min(binder_loop_frac, 1.0)
+stages:
+  default:
+    oligo:
+    - A
+    evaluator: Alphafold3
+    mutators:
+    - dplm
+    mutation_num: 100%
+    weighted_score_expression: -0.4 * sigmoid((binder_rog - globin_rog) / 5.0) - 0.6 * min(binder_loop_frac, 1.0)
+    acceptance_threshold: (binder_loop_frac < 0.4) and (binder_rog <= globin_rog + 3)
+    early_stopping: null
+  complex:
+    oligo:
+    - AB
+    evaluator: Alphafold3
+    mutators:
+    - LigandMPNN_itf
+    - LigandMPNN_noitf
+    mutation_num: 100%
+    weighted_score_expression: iptm + 0.4 * ptm + plddt + 0.2 * interface_sc - shape_penalty
+    acceptance_threshold: null
+    early_stopping: null
+    _entrance: (binder_loop_frac < 0.4) and (binder_rog <= globin_rog + 3)
+    mutator_weights:
+    - 1.0
+    - 1.0
+paper_protocol:
+  source:
+  - MainPaper 93-99 (2026-10-09 Methods snapshot)
+  - SI 16-20
+  representative: complex_max_iptm
+  notes:
+  - DPLM initializes and shapes the monomer; both complex-stage mutation routes use LigandMPNN as specified in MainPaper
+    95.
+  - LigandMPNN uses the retained 10 A interface neighborhoods and temperatures 0.5/0.3; the Methods do not specify
+    those sampling details.
+  - The initialized state is step 0.
+  required_input_paths:
+  - homologies.B
+use_metropolis_acceptance: true

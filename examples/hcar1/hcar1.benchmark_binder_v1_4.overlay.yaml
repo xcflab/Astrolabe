@@ -1,0 +1,26 @@
+target_name: hcar1
+task_name: hcar1_benchmark_binder_v1_4_protenix
+out_dir: outputs/hcar1_benchmark_binder_v1_4_protenix
+steps: 6  # run 5 optimization steps: step=1..5 (run.py loops while step < steps)
+seqs:
+  A: 80-120
+  B: +CCRIEGDTISQVMPPLLIVAFVLGALGNGVALCGFCFHMKTWKPSTVYLFNLAVADFLLMICLPFRTDYYLRRRHWAFGDIPCRVGLFTLAMNRAGSIVFLTVVAADRYFKVVHPHHAVNTISTRVAAGIVCTLWALVILGTVYLLLENHLCVQETAVSCESFIMESANGWHDIMFQLEFFMPLGIILFCSFKIVWSLRRRQQLARQARMKKATRFIMVVAIVFITCYLPSVSARLYFLWTVPSSACDPSVHGALHITLSFTYMNSMLDPLVYYFSSPS
+homologies:
+  B: /path/to/hcar1/af3_unique_chains_part_1_data.json:A
+binding_site:
+  # binder/target use "Chain" or "Chain:pos[,pos-range]" format (1-indexed).
+  binder: A
+  target: B:258
+loss:
+  loss_terms:
+    hotspot_dsasa:
+      _type: hotspot_dsasa
+      select_expression: A_1:1-10
+mutator:
+  # Avoid loading ESM3 (GPU OOM on this node); keep DPLM + LigandMPNN for this 5-step smoke.
+  names: ["dplm", "LigandMPNN_itf", "LigandMPNN_noitf"]
+stages:
+  ligand:
+    mutators: ["LigandMPNN_itf", "LigandMPNN_noitf"]
+    mutator_weights: [1.0, 1.0]
+    weighted_score_expression: iptm + 0.4*ptm + plddt + interface_sc * 0.2 + hotspot_dsasa * 0.1 - 0.3 * (1 / (1 + exp(-((binder_rog - globin_rog) / 5.0)))) - min(binder_loop_frac,1) * 0.6

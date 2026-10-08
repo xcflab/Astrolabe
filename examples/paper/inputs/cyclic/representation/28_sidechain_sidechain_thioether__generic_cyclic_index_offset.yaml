@@ -1,0 +1,34 @@
+# Input overlay for astrolabe paper run; see ../README.md.
+task_name: thioether_single__generic_cyclic_index_offset__s001
+seed: 639736
+seqs:
+  A: WYPCWNACMSPCDETQASAV
+cyclization:
+  bonds:
+  - a:
+      aa: C
+      atom: SG
+      pos: 4
+      proto: A
+      residue: CYS
+    b:
+      aa: A
+      atom: CB
+      pos: 17
+      proto: A
+      residue: ALA
+    chemistry: thioether
+    order: single
+    signal_mode: both
+    target_distance: 1.81
+    topology: sidechain_sidechain
+  encoding:
+    scope: all_bonds
+  signal_mode: bond_only
+paper_protocol:
+  topology: sidechain_sidechain_thioether
+  representation: generic_cyclic_index_offset
+  planned_runs: 40
+  example_source_sample: 1
+  source_task_id: 41
+  source_task_index: 012_cyclic_peptide_design/analysis/cyclic_v3/26_thioether_single_ring_config_benchmark__20260502/task_index.csv

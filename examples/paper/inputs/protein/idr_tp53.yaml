@@ -1,0 +1,5 @@
+# @package _global_
+seqs:
+  B: +SQETFSDLWKLLPENNVLSPLPSQAMDDLMLSPDDIEQWFTEDPGPD
+homologies:
+  B: ${oc.env:ASTROLABE_PAPER_DATA}/protein/idr/tp53_P04637_15_61.json:A

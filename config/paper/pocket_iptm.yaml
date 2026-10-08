@@ -1,0 +1,54 @@
+# @package _global_
+defaults:
+  - /base
+  - _self_
+
+paper_protocol:
+  source: MainPaper Methods 178-182; SI 65-69
+  representative: highest ipTM with occupancy > 0.8; highest ipTM if none pass
+  success: target_ligand_in_target_pocket > 0.8 and iptm > 0.8
+  planned_trajectories_per_target: 50
+task_name: ???
+out_dir: ???
+repeats: 1
+steps: 50
+seqs:
+  A: ???
+  B: ???
+types:
+  B: ???
+initializer:
+  mode: random
+mutator:
+  mutator_terms:
+    ligandmpnn:
+      _type: LigandMPNN
+      temperature: 0.3
+evaluator:
+  evaluator_terms:
+    af3:
+      _type: Alphafold3
+loss:
+  loss_terms:
+    target_ligand_in_target_pocket:
+      _type: ligand_aligned_reference_pocket_cb_alpha_shape_occupancy
+      _for: AB
+      reference_structure_path: ???
+      reference_structure_chain: ???
+      current_structure_chain: A
+      reference_pocket_positions: ???
+      ligand_targets: B
+      allow_length_mismatch: false
+      alpha_radius_scale: 1.8
+      alpha_min_radius: 3.0
+      alpha_max_radius: 8.0
+      alpha_tolerance: 1.0e-8
+stages:
+  default:
+    oligo: [AB]
+    evaluator: af3
+    mutators: [ligandmpnn]
+    mutation_num: 100%
+    weighted_score_expression: iptm
+    acceptance_threshold: null
+    early_stopping: null

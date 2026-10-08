@@ -1,0 +1,97 @@
+# @package _global_
+defaults:
+- /base
+- _self_
+task_name: dna_aptamer
+out_dir: null
+repeats: 1
+steps: 40
+seed: 1
+seqs:
+  A: 28-36
+  B: ???
+types:
+  A: dna
+  B: protein
+homologies:
+  B: ???
+initializer:
+  mode: random
+initial_temperature: 0.03
+mutator:
+  selector_expression: null
+  mutator_terms:
+    NAMPNN:
+      _type: NAMPNN
+      temperature: 0.3
+      design_na_only: 1
+  NAMPNN:
+    temperature: 0.3
+    batch_size: 1
+    number_of_batches: 1
+    design_na_only: 1
+    parse_na_only: 0
+    na_shared_tokens: 0
+    output_pdbs: 0
+    job_name: ${task_name}
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+  alphafold3:
+    num_seeds: 1
+    num_recycles: 10
+    num_samples: 5
+    run_data_pipeline: false
+    flash_attention_implementation: cudnn
+loss:
+  loss_terms:
+    aptamer_ptm:
+      _type: binder_ptm
+      binder_chain: A
+    aptamer_iptm:
+      _type: binder_iptm
+      binder_chain: A
+    aptamer_plddt:
+      _type: bindcraft_binder_plddt_norm
+      binder_chain: A
+    complex_ptm:
+      _type: ptm
+    complex_iptm:
+      _type: iptm
+    complex_plddt:
+      _type: plddt
+stages:
+  default:
+    oligo:
+    - AB
+    evaluator: Alphafold3
+    mutators:
+    - NAMPNN
+    mutation_num: 100%
+    weighted_score_expression: aptamer_iptm + aptamer_plddt + 0.4 * aptamer_ptm
+    acceptance_threshold: null
+    early_stopping: null
+paper_protocol:
+  source:
+  - MainPaper 201-203 (2026-10-08 revision; equation in block 202)
+  - SI 92-93
+  - 010_rna_aptamer_target_protein/config/001_dna_aptamer_benchmark/01_random_af3/01_additional_trajectories
+  representative: max_objective_first_20
+  planned_runs_per_target: 80
+  notes:
+  - Fixed target sequence and its exact archived template are supplied by a target input overlay.
+  - RNA and DNA are separate populations. Select each trajectory by maximum objective among steps 0..19; a 40-step
+    DNA run remains one trajectory.
+  - Native AF3 direct-input evaluation uses the bundled target template, 10 recycles and 5 samples; it does not
+    invoke the official MSA/data pipeline.
+  analysis_step_range:
+  - 0
+  - 19
+  required_input_paths:
+  - seqs.B
+  - homologies.B
+  target: null
+  input_source: null
+  variant: manuscript
+enable_pyrosetta: false

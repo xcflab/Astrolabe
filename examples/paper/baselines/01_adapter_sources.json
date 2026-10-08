@@ -1,0 +1,55 @@
+{
+  "description": "Original Astrolabe research adaptations. Native model sources and weights are external. Existing source headers are retained.",
+  "files": [
+    {
+      "file": "adapters/run_bindcraft_alt.py",
+      "source": "016_flexible_target_binder/30_method_benchmark/scripts/run_bindcraft_alt.py",
+      "source_sha256": "09f2ff675d63e5d16088c20fb7edc8bf995f8655db1586c8ca05c2741e823747",
+      "changes": [
+        "Resolve BindCraft source from ASTROLABE_BINDCRAFT_DIR when set."
+      ]
+    },
+    {
+      "file": "adapters/run_rfdiffusion_proteinmpnn_msd.py",
+      "source": "016_flexible_target_binder/30_method_benchmark/scripts/run_rfdiffusion_proteinmpnn_msd.py",
+      "source_sha256": "35ada51e8b579873dba2f194728d06e5d49908845df876606b206eb07659bef8",
+      "changes": []
+    },
+    {
+      "file": "adapters/complexdesign_afm.py",
+      "source": "016_flexible_target_binder/30_method_benchmark/scripts/complexdesign_afm.py",
+      "source_sha256": "945eb286ec1a2d3bcf4b80f6c32a93061836c3259242153ebfd773b4a9308b49",
+      "changes": []
+    },
+    {
+      "file": "adapters/complexdesign_contract.py",
+      "source": "016_flexible_target_binder/30_method_benchmark/scripts/complexdesign_contract.py",
+      "source_sha256": "351825d0b8f790ab45c649a5f2484f2771c26b17a5e0a7fba4784912c3e439a8",
+      "changes": []
+    },
+    {
+      "file": "sources/colabdesign_v1_1_3_target_pair_mask.patch",
+      "source": "016_flexible_target_binder/30_method_benchmark/sources/colabdesign_v1_1_3_target_pair_mask.patch",
+      "source_sha256": "ae4008c6b874201eec82dfd46aec7c91140d45f3a04cd629ab0d0464880da9ca",
+      "changes": []
+    },
+    {
+      "file": "adapters/protein_hunter_entry.py",
+      "source": "004_protein_binder/scripts/binder_missing_methods/protein_hunter_entry.py",
+      "source_sha256": "eff390b20131fdfca1abf4c5cc32213e0b689e434f4473e51d8a16931c655e98",
+      "changes": []
+    },
+    {
+      "file": "adapters/halludesign_protein_protenix_entry.py",
+      "source": "004_protein_binder/scripts/binder_missing_methods/halludesign_protenix_entry.py",
+      "source_sha256": "b2f221a5f8eca1aa7add6d5afee815ae4f4f9b9190f08e35919077a96ee4ec9c",
+      "changes": []
+    },
+    {
+      "file": "adapters/halludesign_ligand_protenix_entry.py",
+      "source": "007_halludesign_proteinhunter_bench/002_explore_ligand_binding_from_scratch/bench/halludesign_protenix_entry.py",
+      "source_sha256": "1977709a78ba2f4b7660067f763b94a3a5be171027d29f7fd261f613346738b9",
+      "changes": []
+    }
+  ]
+}

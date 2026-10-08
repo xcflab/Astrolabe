@@ -1,0 +1,54 @@
+Bootstrap: docker
+From: nvidia/cuda:12.6.2-cudnn-runtime-ubuntu22.04
+
+%labels
+    Name Astrolabe
+    Description Astrolabe CLI + runtime skeleton (mount external models/tools)
+
+%setup
+    mkdir -p "${APPTAINER_ROOTFS}/cache"
+
+%post
+    set -eux
+    export DEBIAN_FRONTEND=noninteractive
+
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        git \
+        python3 \
+        python3-venv \
+        bzip2 \
+        tzdata
+    rm -rf /var/lib/apt/lists/*
+
+    # Use micromamba so we can standardize on Python 3.11 regardless of base distro.
+    if [ -d /cache/pip ]; then
+        export PIP_CACHE_DIR=/cache/pip
+    fi
+    if [ -d /cache/mamba ]; then
+        export MAMBA_PKGS_DIRS=/cache/mamba/pkgs
+    fi
+    mkdir -p /opt/micromamba/bin
+    curl -L \
+      https://micro.mamba.pm/api/micromamba/linux-64/latest \
+      | tar -xvj -C /opt/micromamba/bin --strip-components=1 bin/micromamba
+
+    export MAMBA_ROOT_PREFIX=/opt/micromamba
+    /opt/micromamba/bin/micromamba create -y -n gh python=3.11 pip
+
+    # Install this repo + CLI dependencies (declared in setup.py).
+    /opt/micromamba/bin/micromamba run -n gh python -m pip install -e /opt/Astrolabe
+
+%files
+    ./ /opt/Astrolabe
+
+%environment
+    export PYTHONUNBUFFERED=1
+    export PYTHONPATH=/opt/Astrolabe:${PYTHONPATH}
+    export MAMBA_ROOT_PREFIX=/opt/micromamba
+    export PATH=/opt/micromamba/envs/gh/bin:/opt/micromamba/bin:${PATH}
+
+%runscript
+    exec astrolabe "$@"

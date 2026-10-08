@@ -1,0 +1,74 @@
+defaults:
+  - base
+
+task_name: test_autodock
+
+# Multiple oligomeric states
+types:
+  C: "s"
+#  B: "r"
+seqs:
+  A: "SMEEIQKKIKEELEEFLEEAPSLSDIERLTKFLELLTKILENAEYITDEILELLKKTVEELLKLLSPEYASLAKAAYEATLAALEKYKAA"
+  B: "EEELLNKLKEAFRKFVTALAKFFSPEMAKLVLELVDTIVEETKTIKDFIELATEFLERLLEVETLEELEELREEILRKLEERKAKE"
+  C: "CCCCCCCCCCCCCC(=O)O[C@H](CCCCCCCCCCC)CC(=O)O[C@@H]1[C@H]([C@@H](O[C@@H]([C@H]1OP(=O)(O)O)CO)OC[C@@H]2[C@H]([C@@H]([C@H]([C@H](O2)OP(=O)(O)O)NC(=O)C[C@@H](CCCCCCCCCCC)O)OC(=O)C[C@@H](CCCCCCCCCCC)O)O)NC(=O)C[C@@H](CCCCCCCCCCC)OC(=O)CCCCCCCCCCC"
+
+mutation_num: 10
+
+predocker:
+  predocker_terms:
+    all_alanine:
+      _type: all_alanine
+
+    autodock:
+      _type: autodock_gpu
+      exhaustiveness: 9
+
+mutator:
+  mutator_terms:
+    MCMC:
+      _type: MCMC
+    LMPNN_wo_center:
+      _type: LigandMPNN
+    LMPNN_wt_center:
+      _type: LigandMPNN
+      predocker: [
+        all_alanine,
+        autodock
+      ]
+
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+
+loss:
+  loss_terms:
+    bb_buried_frac:
+      _type: "buried_fraction_allala"
+      _for: ABC
+      buried_protomer: C
+    lig_com_dist:
+      _type: "com_distance"
+      _for: ABC
+      buried_protomer: C
+    sensor_rogs:
+      _type: "single_chain_rog"
+      included_protomers: AB
+    bsa_equality:
+      _type: "buried_contribution_diff"
+      _for: ABC
+      buried_protomer: C
+    packing_delta:
+      _type: "chain_holes_diff"
+      _for: ABC
+      buried_protomer: C
+
+
+stages:
+  default:
+    oligo: ["ABC"]
+    mutators: ["MCMC","LMPNN_wt_center"]
+    evaluator: "Alphafold3"
+    mutator_weights: [ 0.3, 0.7 ]
+    acceptance_threshold: "ABC.plddt > 0.8 and ABC.ptm > 0.8 and ABC.iptm > 0.6"
+    weighted_score_expression: "min(0.9,ABC.plddt) + min(0.9,ABC.ptm) + min(0.8,ABC.iptm)"

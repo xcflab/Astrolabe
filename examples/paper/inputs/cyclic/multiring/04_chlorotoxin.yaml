@@ -1,0 +1,65 @@
+# Input overlay for astrolabe paper run; see ../README.md.
+task_name: chlorotoxin
+seqs:
+  A: '36'
+cyclization:
+  bonds:
+  - a:
+      aa: C
+      atom: SG
+      pos: 2
+      proto: A
+    b:
+      aa: C
+      atom: SG
+      pos: 19
+      proto: A
+    order: single
+    target_distance: 2.03
+    signal_mode: both
+  - a:
+      aa: C
+      atom: SG
+      pos: 5
+      proto: A
+    b:
+      aa: C
+      atom: SG
+      pos: 28
+      proto: A
+    order: single
+    target_distance: 2.03
+    signal_mode: both
+  - a:
+      aa: C
+      atom: SG
+      pos: 16
+      proto: A
+    b:
+      aa: C
+      atom: SG
+      pos: 33
+      proto: A
+    order: single
+    target_distance: 2.03
+    signal_mode: both
+  - a:
+      aa: C
+      atom: SG
+      pos: 20
+      proto: A
+    b:
+      aa: C
+      atom: SG
+      pos: 35
+      proto: A
+    order: single
+    target_distance: 2.03
+    signal_mode: both
+  signal_mode: both
+  encoding:
+    scope: all_bonds
+paper_protocol:
+  topology: chlorotoxin
+  planned_runs: 40
+  source_manifest: 012_cyclic_peptide_design/manifests/cyclic_peptide_v3/04_multiring_patterns.json

@@ -1,0 +1,483 @@
+{
+  "source_project": "012_cyclic_peptide_design",
+  "inputs": [
+    {
+      "input": "multiring/01_plecanatide.yaml",
+      "source": "manifests/cyclic_peptide_v3/04_multiring_patterns.json"
+    },
+    {
+      "input": "multiring/02_linaclotide.yaml",
+      "source": "manifests/cyclic_peptide_v3/04_multiring_patterns.json"
+    },
+    {
+      "input": "multiring/03_ziconotide.yaml",
+      "source": "manifests/cyclic_peptide_v3/04_multiring_patterns.json"
+    },
+    {
+      "input": "multiring/04_chlorotoxin.yaml",
+      "source": "manifests/cyclic_peptide_v3/04_multiring_patterns.json"
+    },
+    {
+      "input": "multiring/05_kalata_b1.yaml",
+      "source": "manifests/cyclic_peptide_v3/04_multiring_patterns.json"
+    },
+    {
+      "input": "representation/01_head_tail__head_tail_index_offset.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/02_head_tail__bond_constraint_only.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/03_head_sidechain_lactam__bond_constraint_only.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/04_tail_sidechain_lactam__bond_constraint_only.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/05_sidechain_sidechain_lactam__bond_constraint_only.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/06_sidechain_sidechain_lactone__bond_constraint_only.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/07_sidechain_sidechain_thiolactone__bond_constraint_only.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/08_head_tail__generic_cyclic_index_offset.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/09_head_sidechain_lactam__generic_cyclic_index_offset.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/10_tail_sidechain_lactam__generic_cyclic_index_offset.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/11_sidechain_sidechain_lactam__generic_cyclic_index_offset.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/12_sidechain_sidechain_lactone__generic_cyclic_index_offset.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/13_sidechain_sidechain_thiolactone__generic_cyclic_index_offset.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/14_head_sidechain_lactam__chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/15_tail_sidechain_lactam__chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/16_tail_sidechain_lactone__chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/17_tail_sidechain_thiolactone__chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/18_sidechain_sidechain_lactam__chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/19_sidechain_sidechain_lactone__chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/20_sidechain_sidechain_thiolactone__chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/21_tail_sidechain_lactam__ptm_statements_plus_chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/22_tail_sidechain_lactone__ptm_statements_plus_chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/23_tail_sidechain_thiolactone__ptm_statements_plus_chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/24_sidechain_sidechain_lactam__ptm_statements_plus_chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/25_sidechain_sidechain_lactone__ptm_statements_plus_chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/26_sidechain_sidechain_thiolactone__ptm_statements_plus_chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv"
+    },
+    {
+      "input": "representation/27_sidechain_sidechain_thioether__bond_constraint_only.yaml",
+      "source": "analysis/cyclic_v3/26_thioether_single_ring_config_benchmark__20260502/task_index.csv"
+    },
+    {
+      "input": "representation/28_sidechain_sidechain_thioether__generic_cyclic_index_offset.yaml",
+      "source": "analysis/cyclic_v3/26_thioether_single_ring_config_benchmark__20260502/task_index.csv"
+    },
+    {
+      "input": "representation/29_sidechain_sidechain_thioether__chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/26_thioether_single_ring_config_benchmark__20260502/task_index.csv"
+    },
+    {
+      "input": "representation/30_sidechain_sidechain_thioether__ptm_statements_plus_chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/26_thioether_single_ring_config_benchmark__20260502/task_index.csv"
+    },
+    {
+      "input": "representation/31_stapled_i_i4__generic_cyclic_index_offset.yaml",
+      "source": "analysis/cyclic_v3/55_missing_ablation_cells__20260519/task_index.csv"
+    },
+    {
+      "input": "representation/32_stapled_i_i7__generic_cyclic_index_offset.yaml",
+      "source": "analysis/cyclic_v3/55_missing_ablation_cells__20260519/task_index.csv"
+    },
+    {
+      "input": "representation/33_sidechain_sidechain_disulfide__ptm_statements_plus_chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/55_missing_ablation_cells__20260519/task_index.csv"
+    },
+    {
+      "input": "representation/34_head_sidechain_lactam__bond_plus_chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/82_bond_modified_ablation__20260615/task_index.csv"
+    },
+    {
+      "input": "representation/35_tail_sidechain_lactam__bond_plus_chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/82_bond_modified_ablation__20260615/task_index.csv"
+    },
+    {
+      "input": "representation/36_tail_sidechain_lactone__bond_plus_chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/82_bond_modified_ablation__20260615/task_index.csv"
+    },
+    {
+      "input": "representation/37_tail_sidechain_thiolactone__bond_plus_chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/82_bond_modified_ablation__20260615/task_index.csv"
+    },
+    {
+      "input": "representation/38_sidechain_sidechain_lactam__bond_plus_chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/82_bond_modified_ablation__20260615/task_index.csv"
+    },
+    {
+      "input": "representation/39_sidechain_sidechain_lactone__bond_plus_chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/82_bond_modified_ablation__20260615/task_index.csv"
+    },
+    {
+      "input": "representation/40_sidechain_sidechain_thiolactone__bond_plus_chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/82_bond_modified_ablation__20260615/task_index.csv"
+    },
+    {
+      "input": "representation/41_tail_sidechain_lactam__bond_plus_ptm_statements_plus_chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/82_bond_modified_ablation__20260615/task_index.csv"
+    },
+    {
+      "input": "representation/42_tail_sidechain_lactone__bond_plus_ptm_statements_plus_chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/82_bond_modified_ablation__20260615/task_index.csv"
+    },
+    {
+      "input": "representation/43_tail_sidechain_thiolactone__bond_plus_ptm_statements_plus_chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/82_bond_modified_ablation__20260615/task_index.csv"
+    },
+    {
+      "input": "representation/44_sidechain_sidechain_lactam__bond_plus_ptm_statements_plus_chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/82_bond_modified_ablation__20260615/task_index.csv"
+    },
+    {
+      "input": "representation/45_sidechain_sidechain_lactone__bond_plus_ptm_statements_plus_chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/82_bond_modified_ablation__20260615/task_index.csv"
+    },
+    {
+      "input": "representation/46_sidechain_sidechain_thiolactone__bond_plus_ptm_statements_plus_chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/82_bond_modified_ablation__20260615/task_index.csv"
+    },
+    {
+      "input": "representation/47_sidechain_sidechain_thioether__bond_plus_chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/82_bond_modified_ablation__20260615/task_index.csv"
+    },
+    {
+      "input": "representation/48_sidechain_sidechain_thioether__bond_plus_ptm_statements_plus_chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/82_bond_modified_ablation__20260615/task_index.csv"
+    },
+    {
+      "input": "representation/49_stapled_i_i4__bond_plus_modified_residue_inputs.yaml",
+      "source": "analysis/cyclic_v3/82_bond_modified_ablation__20260615/task_index.csv"
+    },
+    {
+      "input": "representation/50_stapled_i_i7__bond_plus_modified_residue_inputs.yaml",
+      "source": "analysis/cyclic_v3/82_bond_modified_ablation__20260615/task_index.csv"
+    },
+    {
+      "input": "representation/51_sidechain_sidechain_disulfide__bond_plus_ptm_statements_plus_chemistry_prepare.yaml",
+      "source": "analysis/cyclic_v3/82_bond_modified_ablation__20260615/task_index.csv"
+    },
+    {
+      "input": "bound/01_MDM2_head_tail.yaml",
+      "source": "configs/cyclic_peptide_v3/02_against_target_cyclization/MDM2_head_tail.yaml"
+    },
+    {
+      "input": "bound/02_MDM2_sidechain_sidechain_disulfide.yaml",
+      "source": "configs/cyclic_peptide_v3/02_against_target_cyclization/MDM2_sidechain_sidechain_disulfide.yaml"
+    },
+    {
+      "input": "bound/03_MCL1_head_tail.yaml",
+      "source": "configs/cyclic_peptide_v3/02_against_target_cyclization/MCL1_head_tail.yaml"
+    },
+    {
+      "input": "bound/04_MCL1_sidechain_sidechain_disulfide.yaml",
+      "source": "configs/cyclic_peptide_v3/02_against_target_cyclization/MCL1_sidechain_sidechain_disulfide.yaml"
+    },
+    {
+      "input": "bound/05_KEAP1_head_tail.yaml",
+      "source": "configs/cyclic_peptide_v3/02_against_target_cyclization/KEAP1_head_tail.yaml"
+    },
+    {
+      "input": "bound/06_KEAP1_sidechain_sidechain_disulfide.yaml",
+      "source": "configs/cyclic_peptide_v3/02_against_target_cyclization/KEAP1_sidechain_sidechain_disulfide.yaml"
+    },
+    {
+      "input": "bound/07_PDL1_head_tail.yaml",
+      "source": "configs/cyclic_peptide_v3/02_against_target_cyclization/PDL1_head_tail.yaml"
+    },
+    {
+      "input": "bound/08_PDL1_sidechain_sidechain_disulfide.yaml",
+      "source": "configs/cyclic_peptide_v3/02_against_target_cyclization/PDL1_sidechain_sidechain_disulfide.yaml"
+    },
+    {
+      "input": "bound/09_MDM2_head_sidechain.yaml",
+      "source": "manifests/cyclic_peptide_v3/11_standard_donor_ptm_token_against_target.json"
+    },
+    {
+      "input": "bound/10_MDM2_tail_sidechain.yaml",
+      "source": "manifests/cyclic_peptide_v3/11_standard_donor_ptm_token_against_target.json"
+    },
+    {
+      "input": "bound/11_MDM2_sidechain_sidechain_lactam.yaml",
+      "source": "manifests/cyclic_peptide_v3/11_standard_donor_ptm_token_against_target.json"
+    },
+    {
+      "input": "bound/12_MDM2_sidechain_sidechain_lactone.yaml",
+      "source": "manifests/cyclic_peptide_v3/11_standard_donor_ptm_token_against_target.json"
+    },
+    {
+      "input": "bound/13_MDM2_sidechain_sidechain_thiolactone.yaml",
+      "source": "manifests/cyclic_peptide_v3/11_standard_donor_ptm_token_against_target.json"
+    },
+    {
+      "input": "bound/14_MCL1_head_sidechain.yaml",
+      "source": "manifests/cyclic_peptide_v3/11_standard_donor_ptm_token_against_target.json"
+    },
+    {
+      "input": "bound/15_MCL1_tail_sidechain.yaml",
+      "source": "manifests/cyclic_peptide_v3/11_standard_donor_ptm_token_against_target.json"
+    },
+    {
+      "input": "bound/16_MCL1_sidechain_sidechain_lactam.yaml",
+      "source": "manifests/cyclic_peptide_v3/11_standard_donor_ptm_token_against_target.json"
+    },
+    {
+      "input": "bound/17_MCL1_sidechain_sidechain_lactone.yaml",
+      "source": "manifests/cyclic_peptide_v3/11_standard_donor_ptm_token_against_target.json"
+    },
+    {
+      "input": "bound/18_MCL1_sidechain_sidechain_thiolactone.yaml",
+      "source": "manifests/cyclic_peptide_v3/11_standard_donor_ptm_token_against_target.json"
+    },
+    {
+      "input": "bound/19_KEAP1_head_sidechain.yaml",
+      "source": "manifests/cyclic_peptide_v3/11_standard_donor_ptm_token_against_target.json"
+    },
+    {
+      "input": "bound/20_KEAP1_tail_sidechain.yaml",
+      "source": "manifests/cyclic_peptide_v3/11_standard_donor_ptm_token_against_target.json"
+    },
+    {
+      "input": "bound/21_KEAP1_sidechain_sidechain_lactam.yaml",
+      "source": "manifests/cyclic_peptide_v3/11_standard_donor_ptm_token_against_target.json"
+    },
+    {
+      "input": "bound/22_KEAP1_sidechain_sidechain_lactone.yaml",
+      "source": "manifests/cyclic_peptide_v3/11_standard_donor_ptm_token_against_target.json"
+    },
+    {
+      "input": "bound/23_KEAP1_sidechain_sidechain_thiolactone.yaml",
+      "source": "manifests/cyclic_peptide_v3/11_standard_donor_ptm_token_against_target.json"
+    },
+    {
+      "input": "bound/24_PDL1_head_sidechain.yaml",
+      "source": "manifests/cyclic_peptide_v3/11_standard_donor_ptm_token_against_target.json"
+    },
+    {
+      "input": "bound/25_PDL1_tail_sidechain.yaml",
+      "source": "manifests/cyclic_peptide_v3/11_standard_donor_ptm_token_against_target.json"
+    },
+    {
+      "input": "bound/26_PDL1_sidechain_sidechain_lactam.yaml",
+      "source": "manifests/cyclic_peptide_v3/11_standard_donor_ptm_token_against_target.json"
+    },
+    {
+      "input": "bound/27_PDL1_sidechain_sidechain_lactone.yaml",
+      "source": "manifests/cyclic_peptide_v3/11_standard_donor_ptm_token_against_target.json"
+    },
+    {
+      "input": "bound/28_PDL1_sidechain_sidechain_thiolactone.yaml",
+      "source": "manifests/cyclic_peptide_v3/11_standard_donor_ptm_token_against_target.json"
+    },
+    {
+      "input": "bound/29_MDM2_sidechain_sidechain_lactam_long_gap.yaml",
+      "source": "manifests/cyclic_peptide_v3/16_priority_single_ring_latest_config__s041_s080.json"
+    },
+    {
+      "input": "bound/30_MDM2_tail_sidechain_lactone.yaml",
+      "source": "manifests/cyclic_peptide_v3/16_priority_single_ring_latest_config__s041_s080.json"
+    },
+    {
+      "input": "bound/31_MDM2_tail_sidechain_thiolactone.yaml",
+      "source": "manifests/cyclic_peptide_v3/16_priority_single_ring_latest_config__s041_s080.json"
+    },
+    {
+      "input": "bound/32_MCL1_sidechain_sidechain_lactam_long_gap.yaml",
+      "source": "manifests/cyclic_peptide_v3/16_priority_single_ring_latest_config__s041_s080.json"
+    },
+    {
+      "input": "bound/33_MCL1_tail_sidechain_lactone.yaml",
+      "source": "manifests/cyclic_peptide_v3/16_priority_single_ring_latest_config__s041_s080.json"
+    },
+    {
+      "input": "bound/34_MCL1_tail_sidechain_thiolactone.yaml",
+      "source": "manifests/cyclic_peptide_v3/16_priority_single_ring_latest_config__s041_s080.json"
+    },
+    {
+      "input": "bound/35_KEAP1_sidechain_sidechain_lactam_long_gap.yaml",
+      "source": "manifests/cyclic_peptide_v3/16_priority_single_ring_latest_config__s041_s080.json"
+    },
+    {
+      "input": "bound/36_KEAP1_tail_sidechain_lactone.yaml",
+      "source": "manifests/cyclic_peptide_v3/16_priority_single_ring_latest_config__s041_s080.json"
+    },
+    {
+      "input": "bound/37_KEAP1_tail_sidechain_thiolactone.yaml",
+      "source": "manifests/cyclic_peptide_v3/16_priority_single_ring_latest_config__s041_s080.json"
+    },
+    {
+      "input": "bound/38_PDL1_sidechain_sidechain_lactam_long_gap.yaml",
+      "source": "manifests/cyclic_peptide_v3/16_priority_single_ring_latest_config__s041_s080.json"
+    },
+    {
+      "input": "bound/39_PDL1_tail_sidechain_lactone.yaml",
+      "source": "manifests/cyclic_peptide_v3/16_priority_single_ring_latest_config__s041_s080.json"
+    },
+    {
+      "input": "bound/40_PDL1_tail_sidechain_thiolactone.yaml",
+      "source": "manifests/cyclic_peptide_v3/16_priority_single_ring_latest_config__s041_s080.json"
+    },
+    {
+      "input": "representation/52_targetfree_disulfide__bond_constraint_only__s001.yaml",
+      "source": "analysis/cyclic_v3/53_missing_single_ring_supplements__20260519/targetfree_disulfide/task_index.csv"
+    },
+    {
+      "input": "representation/53_targetfree_disulfide__generic_cyclic_index_offset__s001.yaml",
+      "source": "analysis/cyclic_v3/53_missing_single_ring_supplements__20260519/targetfree_disulfide/task_index.csv"
+    },
+    {
+      "input": "representation/54_targetfree_stapled__i_i4__s001.yaml",
+      "source": "analysis/cyclic_v3/53_missing_single_ring_supplements__20260519/targetfree_stapled/task_index.csv"
+    },
+    {
+      "input": "representation/55_targetfree_stapled__i_i7__s001.yaml",
+      "source": "analysis/cyclic_v3/53_missing_single_ring_supplements__20260519/targetfree_stapled/task_index.csv"
+    },
+    {
+      "input": "bound/41_thioether_with_target__mdm2__s001.yaml",
+      "source": "analysis/cyclic_v3/53_missing_single_ring_supplements__20260519/with_target_thioether/task_index.csv"
+    },
+    {
+      "input": "bound/42_thioether_with_target__mcl1__s001.yaml",
+      "source": "analysis/cyclic_v3/53_missing_single_ring_supplements__20260519/with_target_thioether/task_index.csv"
+    },
+    {
+      "input": "bound/43_thioether_with_target__keap1__s001.yaml",
+      "source": "analysis/cyclic_v3/53_missing_single_ring_supplements__20260519/with_target_thioether/task_index.csv"
+    },
+    {
+      "input": "bound/44_thioether_with_target__pdl1__s001.yaml",
+      "source": "analysis/cyclic_v3/53_missing_single_ring_supplements__20260519/with_target_thioether/task_index.csv"
+    },
+    {
+      "input": "bound/45_MDM2_stapled_i_i4.yaml",
+      "source": "manifests/cyclic_peptide_v3/05_nonstandard_stapled.json; peptide starter from analysis/cyclic_v3/53_missing_single_ring_supplements__20260519/targetfree_stapled/task_index.csv"
+    },
+    {
+      "input": "bound/46_MCL1_stapled_i_i4.yaml",
+      "source": "manifests/cyclic_peptide_v3/05_nonstandard_stapled.json; peptide starter from analysis/cyclic_v3/53_missing_single_ring_supplements__20260519/targetfree_stapled/task_index.csv"
+    },
+    {
+      "input": "bound/47_KEAP1_stapled_i_i4.yaml",
+      "source": "manifests/cyclic_peptide_v3/05_nonstandard_stapled.json; peptide starter from analysis/cyclic_v3/53_missing_single_ring_supplements__20260519/targetfree_stapled/task_index.csv"
+    },
+    {
+      "input": "bound/48_PDL1_stapled_i_i4.yaml",
+      "source": "manifests/cyclic_peptide_v3/05_nonstandard_stapled.json; peptide starter from analysis/cyclic_v3/53_missing_single_ring_supplements__20260519/targetfree_stapled/task_index.csv"
+    },
+    {
+      "input": "bound/49_MDM2_stapled_i_i7.yaml",
+      "source": "manifests/cyclic_peptide_v3/05_nonstandard_stapled.json; peptide starter from analysis/cyclic_v3/53_missing_single_ring_supplements__20260519/targetfree_stapled/task_index.csv"
+    },
+    {
+      "input": "bound/50_MCL1_stapled_i_i7.yaml",
+      "source": "manifests/cyclic_peptide_v3/05_nonstandard_stapled.json; peptide starter from analysis/cyclic_v3/53_missing_single_ring_supplements__20260519/targetfree_stapled/task_index.csv"
+    },
+    {
+      "input": "bound/51_KEAP1_stapled_i_i7.yaml",
+      "source": "manifests/cyclic_peptide_v3/05_nonstandard_stapled.json; peptide starter from analysis/cyclic_v3/53_missing_single_ring_supplements__20260519/targetfree_stapled/task_index.csv"
+    },
+    {
+      "input": "bound/52_PDL1_stapled_i_i7.yaml",
+      "source": "manifests/cyclic_peptide_v3/05_nonstandard_stapled.json; peptide starter from analysis/cyclic_v3/53_missing_single_ring_supplements__20260519/targetfree_stapled/task_index.csv"
+    }
+  ],
+  "excluded_chemically_invalid_controls": [
+    {
+      "family": "tail_sidechain_lactone",
+      "method": "bond_constraint_only",
+      "reason": "ordinary C terminus; CTM postbond chemistry absent",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv",
+      "source_task_id": 161
+    },
+    {
+      "family": "tail_sidechain_thiolactone",
+      "method": "bond_constraint_only",
+      "reason": "ordinary C terminus; CTM postbond chemistry absent",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv",
+      "source_task_id": 201
+    },
+    {
+      "family": "tail_sidechain_lactone",
+      "method": "generic_cyclic_index_offset",
+      "reason": "ordinary C terminus; CTM postbond chemistry absent",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv",
+      "source_task_id": 481
+    },
+    {
+      "family": "tail_sidechain_thiolactone",
+      "method": "generic_cyclic_index_offset",
+      "reason": "ordinary C terminus; CTM postbond chemistry absent",
+      "source": "analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv",
+      "source_task_id": 521
+    }
+  ]
+}

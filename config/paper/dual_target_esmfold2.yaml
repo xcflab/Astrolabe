@@ -1,0 +1,22 @@
+# @package _global_
+defaults:
+- /paper/dual_target_af3
+- _self_
+evaluator:
+  evaluator_terms:
+    ESMFold2:
+      _type: ESMFold2
+  esmfold2:
+    num_loops: 3
+    num_sampling_steps: 50
+    num_diffusion_samples: 1
+stages:
+  default:
+    evaluator: ESMFold2
+paper_protocol:
+  source:
+  - SI 45-46
+  planned_runs_per_pair: 50
+  required_input_paths:
+  - homologies.B
+  notes: []

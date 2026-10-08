@@ -1,0 +1,15 @@
+# @package _global_
+seqs:
+  B: +HKCDITLQEIIKTLNSLTEQKTLCTELTVTDIFAASKNTTEKETFCRAATVLRQFYSHHEKDTRCLGATAQQFHRHKQLIRFLKRLDRNLWGLAGLNSCPVKEANQSTLENFLERLKTIMREKYSKCSS
+  A: 100-120
+homologies:
+  B: ${oc.env:ASTROLABE_PAPER_DATA}/protein/targets/il4.json:A
+loss:
+  loss_terms:
+    target_hotspot:
+      _type: hotspot_dsasa
+      _for: AB
+      select_expression: B_1:5,6,9,92,88,89,85
+paper_protocol:
+  source:
+  - 40_control_native.tar.gz::configs/03_af3_only_hotspot2x_mono_ab_il4_steps100.yaml

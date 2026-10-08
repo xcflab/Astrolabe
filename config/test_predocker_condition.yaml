@@ -1,0 +1,69 @@
+defaults:
+  - base
+task_name: sandwich_v9.1
+out_dir: outputs
+steps: 100
+mutation_num: 10
+seqs:
+  A: "MATLEKILELLKKALEALKKGELEKALELLEEVIELLKTLDQSDELISELLEVVEELKELLEEVIKE"
+  B: "EMALLKEIALTLLEIALLLLEEIGAPEEVLERVEELKERLEKEPEKITEILKELKELLEEVIKE"
+  C: "MTX"
+types:
+  C: "c"
+
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+
+mutator:
+  mutator_terms:
+    MCMC:
+      _type: MCMC
+    LMPNN_wo_center:
+      _type: LigandMPNN
+    LMPNN_wt_center:
+      _type: LigandMPNN
+      predocker: [all_alanine, autodock]
+
+predocker:
+  predocker_terms:
+    all_alanine:
+      _type: all_alanine
+      _condition: ABC.bb_buried_frac < 0.6 or ABC.bsa_equality < 0.6
+
+    autodock:
+      _condition: ABC.bb_buried_frac < 0.6 or ABC.bsa_equality < 0.6
+      _type: autodock_vina
+      num_samples: 5
+
+loss:
+  loss_terms:
+    bb_buried_frac:
+      _type: "buried_fraction_allala"
+      _for: ABC
+      buried_protomer: C
+    lig_com_dist:
+      _type: "com_distance"
+      _for: ABC
+      buried_protomer: C
+    sensor_rogs:
+      _type: "single_chain_rog"
+      included_protomers: AB
+    bsa_equality:
+      _type: "buried_contribution_diff"
+      _for: ABC
+      buried_protomer: C
+    packing_delta:
+      _type: "chain_holes_diff"
+      _for: ABC
+      buried_protomer: C
+
+stages:
+  default:
+    evaluator: Alphafold3
+    oligo: ["ABC"]
+    mutators: ["MCMC", "LMPNN_wt_center"]
+    mutator_weights: [0.3, 0.7]
+    # acceptance_threshold: "ABC.plddt > 0.8 and ABC.ptm > 0.8 and ABC.iptm > 0.6 and ABC.bb_buried_frac > 0.6 and ABC.sensor_rogs < 14 and ABC.bsa_equality > 0.6"
+    weighted_score_expression: "min(0.7,ABC.plddt) + min(0.7,ABC.ptm) + min(0.5,ABC.iptm) + ABC.bb_buried_frac + min(max((16 - ABC.lig_com_dist)/8, 0),1) + max((20 - ABC.sensor_rogs)/10,0) + 0.5 * max(0, min(1,ABC.packing_delta)) + 0.3 * ABC.bsa_equality"

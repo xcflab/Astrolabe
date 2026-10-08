@@ -1,0 +1,101 @@
+defaults:
+  - base
+  - _self_
+
+# Binder benchmark template (v1.4).
+# Intended usage:
+#   - `gh run --task benchmark_binder_v1_4 --overlay /path/to/overlay.yaml`
+# Where overlay.yaml typically sets: target_name, seqs, homologies, and optionally weights.
+
+task_name: ???
+repeats: 1
+enable_pyrosetta: true
+
+out_dir: ???
+seqs:
+  A: "80-120"
+  # Target sequence (usually fixed, prefix with '+').
+  B: ???
+
+homologies:
+  # Optional; typical convention: inputs/homologies/${target_name}.json:A
+  B: ???
+
+steps: 50
+initializer:
+  mode: dplm
+initial_temperature: 0.03
+mutator:
+  # Required by `astrolabe/argparser.py` (used to build selector mappings).
+  # These are mutator *aliases* (keys under `mutator_terms`) for this template.
+  selector_expression: null
+  mutator_terms:
+    LigandMPNN_itf:
+      _type: LigandMPNN
+      temperature: 0.3
+      position_selector: interface(interface_distance=8.0)
+      ligand_mpnn_use_side_chain_context: 1
+    LigandMPNN_noitf:
+      _type: LigandMPNN
+      model_type: soluble_mpnn
+      temperature: 0.3
+      position_selector: not interface(interface_distance=8.0)
+    dplm:
+      _type: DPLM
+      temperature: 1
+    esm3:
+      _type: ESM3
+      model_name: esm3-open
+      temperature: 0.35
+      position_selector: "long_loop(min_length=8)"
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+    Protenix:
+      _type: Protenix
+    chai1:
+      _type: chai1
+
+loss:
+  loss_terms:
+    binder_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    binder_loop_frac:
+      _type: secondary_structure_fraction
+      included_protomers: A
+      sse_type: L
+    interface_sc:
+      _type: protomer_shape_complementarity
+
+  expression_terms:
+    globin_rog: 0.395 * (A_length ** 0.6) + 7.257
+
+stages:
+  default:
+    oligo: ["A"]
+    evaluator: Protenix
+    mutators: ["dplm"]
+    mutation_num: 100%
+    weighted_score_expression:
+      "-0.4 * (1 / (1 + exp(-((binder_rog - globin_rog) /
+      5.0)))) - min(binder_loop_frac,1) * 0.6 "
+    acceptance_threshold: "(binder_loop_frac < 0.4) and (binder_rog <= globin_rog + 3)"
+    early_stopping: null
+  ligand:
+    _entrance: "(binder_loop_frac < 0.4) and (binder_rog <= globin_rog + 3)"
+    oligo:
+      - AB
+    evaluator: Protenix
+    mutation_num: 100%
+    acceptance_threshold: null
+    mutators:
+      - LigandMPNN_itf
+      - LigandMPNN_noitf
+    mutator_weights:
+      - 1.0
+      - 1.0
+    weighted_score_expression: iptm - 0.3 *
+      (1 / (1 + exp(-((binder_rog - globin_rog) / 5.0)))) -
+      min(binder_loop_frac,1) * 0.6

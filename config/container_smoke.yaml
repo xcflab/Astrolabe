@@ -1,0 +1,41 @@
+defaults:
+  - base
+  - override env: env_container
+  - _self_
+
+task_name: sif_container_smoke
+out_dir: /tmp/gh_smoke_runs
+steps: 1
+mutation_num: 1
+
+# Keep this test fully open-source: no ligands/CCD/SMILES, no weights, no pyrosetta.
+types:
+  A: "p"
+seqs:
+  A: "ACDEFGHIKLMNPQRSTVWY"
+
+enable_pyrosetta: false
+skip_complex_poses: true
+
+evaluator:
+  evaluator_terms:
+    Dummy:
+      _type: Dummy
+
+mutator:
+  mutator_terms:
+    MCMC:
+      _type: MCMC
+
+loss:
+  loss_terms: {}
+
+stages:
+  default:
+    evaluator: Dummy
+    oligo: ["A"]
+    mutators: ["MCMC"]
+    mutation_num: 1
+    weighted_score_expression: "0"
+    acceptance_threshold: null
+    early_stopping: null

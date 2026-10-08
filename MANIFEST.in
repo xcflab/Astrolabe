@@ -1,0 +1,43 @@
+# Portable Hydra config resources shipped with the wheel (`setup.py` sets
+# include_package_data); exclude machine-local overlays and editor transients.
+recursive-include config *.yaml
+include CITATION.cff THIRD_PARTY_LICENSES.md
+include examples/01_cpu_reproduce.py examples/input/9TP_cid.cif
+exclude config/env_local*.yaml
+exclude config/env/env_local*.yaml
+exclude config/env.auto*.yaml
+exclude config/env.merged*.yaml
+exclude config/env/.gh_python_path
+exclude config/env/.astrolabe_python_path
+exclude config/d.*.overlay.yaml
+exclude config/*.un~
+
+# Publication distribution
+include LICENSE*
+include NOTICE*
+include README*
+include CITATION.cff
+include pyproject.toml
+include setup.py
+recursive-include astrolabe *.py *.json *.yaml *.yml *.toml *.txt *.j2 *.jinja *.md
+recursive-include config *.json *.yaml *.yml *.toml *.txt
+recursive-include examples *.py *.json *.yaml *.yml *.toml *.md
+recursive-include examples/paper *.csv *.tsv *.cif *.pdb
+recursive-include examples/paper/baselines *.patch
+recursive-include resources paper_inputs_*.tar.gz paper_inputs_*.json
+include resources/paper_sources.json
+graft data/framework_fastas
+graft data/framework_homologies
+recursive-include vendor LICENSE* COPYING* NOTICE*
+prune data/config_tobe_generalized
+prune .codex-tasks
+prune .beads
+prune build
+prune dist
+prune runs
+prune outputs
+prune logs
+prune datasets
+prune generated
+global-exclude *.py[cod] __pycache__ .DS_Store
+global-exclude d.*.overlay.yaml env_local.yaml .env

@@ -1,0 +1,127 @@
+# @package _global_
+defaults:
+- /base
+- _self_
+task_name: idr_binder
+out_dir: null
+repeats: 1
+seed: 1
+steps: 50
+seqs:
+  A: 80-120
+  B: ???
+homologies:
+  B: ???
+initializer:
+  mode: dplm
+use_metropolis_acceptance: true
+initial_temperature: 0.03
+enable_pyrosetta: true
+mutator:
+  selector_expression: null
+  mutator_terms:
+    dplm:
+      _type: DPLM
+      temperature: 1
+    LigandMPNN_itf:
+      _type: LigandMPNN
+      temperature: 0.3
+      position_selector: interface(interface_distance=8.0)
+      ligand_mpnn_use_side_chain_context: 1
+      fallback_to_all_mutable_if_selector_empty: false
+    LigandMPNN_noitf:
+      _type: LigandMPNN
+      model_type: soluble_mpnn
+      temperature: 0.3
+      position_selector: not interface(interface_distance=8.0)
+      fallback_to_all_mutable_if_selector_empty: false
+  DPLM:
+    max_iter: 500
+    num_samples: 10
+    model_name: airkingbd/dplm_150m
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+    Protenix:
+      _type: Protenix
+  alphafold3:
+    num_recycles: 10
+    num_samples: 5
+  protenix:
+    model_name: protenix_base_default_v0.5.0
+    load_checkpoint_path: null
+    use_template: false
+    model:
+      N_cycle: 4
+    sample_diffusion:
+      N_sample: 5
+      N_step: 200
+loss:
+  loss_terms:
+    binder_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    binder_loop_frac:
+      _type: secondary_structure_fraction
+      included_protomers: A
+      sse_type: L
+    interface_sc:
+      _type: protomer_shape_complementarity
+    binder_ptm:
+      _type: binder_ptm
+      binder_chain: A
+    ipsae:
+      _type: ipsae
+      chain_a: A
+      chain_b: B
+    target_loop_frac:
+      _type: secondary_structure_fraction
+      included_protomers: B
+      sse_type: L
+  expression_terms:
+    globin_rog: 0.395 * (A_length ** 0.6) + 7.257
+    target_non_loop_frac: max(0.0, 1.0 - target_loop_frac)
+stages:
+  default:
+    oligo:
+    - A
+    evaluator: Protenix
+    mutators:
+    - dplm
+    mutation_num: 100%
+    weighted_score_expression: '-0.4 * (1 / (1 + exp(-((binder_rog - globin_rog) / 5.0)))) - min(binder_loop_frac,1)
+      * 0.6 '
+    acceptance_threshold: (binder_loop_frac < 0.4) and (binder_rog <= globin_rog + 3)
+    early_stopping: null
+  ligand:
+    _entrance: (binder_loop_frac < 0.4) and (binder_rog <= globin_rog + 3)
+    oligo:
+    - AB
+    evaluator: Alphafold3
+    mutation_num: 100%
+    acceptance_threshold: null
+    mutators:
+    - LigandMPNN_itf
+    - LigandMPNN_noitf
+    mutator_weights:
+    - 1.0
+    - 1.0
+    weighted_score_expression: ipsae + binder_ptm + 0.5 * target_non_loop_frac + interface_sc * 0.2 - 0.3 * (1 /
+      (1 + exp(-((binder_rog - globin_rog) / 5.0)))) - min(binder_loop_frac, 1) * 0.6
+paper_protocol:
+  source:
+  - MainPaper 134-137
+  - SI 33-36
+  - 27_cre_idr_native.tar.gz::idr/Astrolabe/gh.hif1a_ctad_776_826.unconditioned.001/config.yaml
+  representative: max_objective
+  notes:
+  - MainPaper specifies 50 states; the archived cohort has 100 states (idr-binder-archived).
+  - Recovered implementation uses Protenix v0.5.0 for monomer shaping and AF3 for complexes, with 8 A interface
+    neighborhoods.
+  - The distributed source IDR homologies contain empty MSAs and no templates; they are supplied without silently
+    adding homologs.
+  required_input_paths:
+  - homologies.B
+  - evaluator.protenix.load_checkpoint_path
+  planned_runs_per_target: 30

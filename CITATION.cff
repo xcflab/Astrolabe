@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use Astrolabe, please cite this software. The accompanying manuscript is currently unpublished."
+title: "Astrolabe"
+type: software
+authors:
+  - family-names: "Zeng"
+    given-names: "Zhengpeng"
+  - family-names: "Xu"
+    given-names: "Chunfu"
+version: 0.1.0
+license: Apache-2.0
+repository-code: "https://github.com/Molaison/Astrolabe"
+url: "https://github.com/Molaison/Astrolabe"
+keywords:
+  - protein design
+  - structural biology
+  - scientific software
+abstract: "Programmable all-atom biomolecular design through cross-context coordination and structural intervention."

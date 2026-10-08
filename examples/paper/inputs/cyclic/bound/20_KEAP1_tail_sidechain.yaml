@@ -1,0 +1,62 @@
+# Input overlay for astrolabe paper run; see ../README.md.
+task_name: KEAP1_tail_sidechain
+seqs:
+  A: 4 +[KAM] 14 +[CTM]
+  B: +GSSHHHHHHSSGLVPRGSHAPKVGRLIYTAGGYFRQSLSYLEAYNPSDGTWLRLADLQVPRSGLAGCVVGGLLYAVGGRNNSPDGNTDSSALDCYNPMTNQWSPCAPMSVPRNRIGVGVIDGHIYAVGGSHGCIHHNSVERYEPERDEWHLVAPMLTRRIGVGVAVLNRLLYAVGGFDGTNRLNSAECYYPERNEWRMITAMNTIRSGAGVCVLHNCIYAAGGYDGQDQLNSVERYDVETETWTFVAPMKHRRSALGITVHQGRIYVLGGYDGHTFLDSVECYDPDTDTWSEVTRMTSGRSGVGVAVT
+homologies:
+  B: ${oc.env:ASTROLABE_PAPER_DATA}/cyclic/homologies/KEAP1.json:A
+cyclization:
+  bonds:
+  - a:
+      aa: K
+      atom: NZ
+      pos: nterm+4
+      proto: A
+    b:
+      atom: C
+      pos: -1
+      proto: A
+    order: single
+    target_distance: 1.33
+  encoding:
+    scope: all_bonds
+  signal_mode: both
+nonstandard_residues:
+  aliases:
+    CTM:
+      atom_names:
+        C: C
+        CA: CA
+        N: N
+        O: O
+      ccd_id: CYM
+      parent_aa: G
+      source:
+        format: mmcif
+        value: ${oc.env:ASTROLABE_PAPER_DATA}/cyclic/chemistry/CTM.cif
+    KAM:
+      atom_names:
+        C: C
+        CA: CA
+        CB: CB
+        CD: CD
+        CE: CE
+        CG: CG
+        N: N
+        NZ: NZ
+        O: O
+      ccd_id: KQM
+      parent_aa: K
+      source:
+        format: mmcif
+        value: ${oc.env:ASTROLABE_PAPER_DATA}/cyclic/chemistry/KAM.cif
+paper_protocol:
+  topology: tail_sidechain
+  target: KEAP1
+  example_peptide_length: 20
+  source_length_range:
+  - 9
+  - 20
+  source_manifest: 012_cyclic_peptide_design/manifests/cyclic_peptide_v3/11_standard_donor_ptm_token_against_target.json
+  chemical_state: Postbond aliases preserve endpoint residue chemistry; CTM has a
+    carbonyl C=O and no terminal OXT.

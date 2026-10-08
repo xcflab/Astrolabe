@@ -1,0 +1,127 @@
+# @package _global_
+defaults:
+- /base
+- _self_
+task_name: protein_binder_dna_archived
+out_dir: null
+repeats: 1
+steps: 20
+seed: 1
+initial_temperature: 0.03
+enable_pyrosetta: false
+stages:
+  default:
+    oligo:
+    - A
+    evaluator: ProtenixV1
+    mutators:
+    - dplm
+    mutation_num: 100%
+    weighted_score_expression: -0.4 * (1 / (1 + exp(-((binder_rog - globin_rog) / 5.0)))) - min(binder_loop_frac,1)
+      * 0.6 + plddt
+    acceptance_threshold: (binder_loop_frac < 0.4) and (binder_rog <= globin_rog + 3)
+    early_stopping: null
+  complex:
+    _entrance: (binder_loop_frac < 0.4) and (binder_rog <= globin_rog + 3)
+    oligo:
+    - ABC
+    evaluator: ProtenixV1
+    mutators:
+    - NAMPNN
+    mutation_num: 20%
+    weighted_score_expression: iptm
+    acceptance_threshold: null
+    early_stopping: null
+    acceptance_gate: null
+loss:
+  loss_terms:
+    binder_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    binder_loop_frac:
+      _type: secondary_structure_fraction
+      included_protomers: A
+      sse_type: L
+  expression_terms:
+    globin_rog: 0.395 * (A_length ** 0.6) + 7.257
+    shape_penalty: 0.25 * sigmoid((binder_rog - (0.395 * (A_length ** 0.6) + 7.257)) / 5.0) + 0.50 * min(binder_loop_frac,
+      1.0)
+seqs:
+  A: 60-80
+  B: ???
+  C: ???
+types:
+  A: protein
+  B: dna
+  C: dna
+homologies:
+  B: ???
+  C: ???
+initializer:
+  mode: random
+exclude_AA:
+- C
+dynamic_binding_site_enabled: false
+mutator:
+  selector_expression: null
+  DPLM:
+    temperature: 1.0
+  NAMPNN:
+    temperature: 0.1
+    batch_size: 1
+    number_of_batches: 1
+    design_na_only: 0
+    parse_na_only: 0
+    na_shared_tokens: 0
+    output_pdbs: 0
+    extra_args: {}
+    job_name: ${task_name}
+  mutator_terms:
+    dplm:
+      _type: DPLM
+      temperature: 1.0
+    NAMPNN:
+      _type: NAMPNN
+      temperature: 0.3
+evaluator:
+  evaluator_terms:
+    ProtenixV1:
+      _type: protenix
+  protenix:
+    model_name: protenix_base_default_v1.0.0
+    load_checkpoint_path: ${oc.env:GH_WEIGHT_PROTENIX_V1,???}
+    use_constraints: false
+    dynamic_binding_site: false
+    use_rna_msa: false
+    model:
+      N_cycle: 10
+      template_embedder:
+        n_blocks: 2
+    sample_diffusion:
+      N_sample: 5
+      N_step: 200
+paper_protocol:
+  source:
+  - MainPaper 205-207
+  - 009_rna_target_binder/config/001_nucleic_binder_design/01_protenix_initialization_comparison/04_selected_target_benchmark/06_base_1tup.yaml
+  - 009_rna_target_binder/config/001_nucleic_binder_design/01_protenix_initialization_comparison/04_selected_target_benchmark/01_run_compare.py
+  representative: accepted_complex_max_iptm
+  planned_runs_per_target: 80
+  required_input_paths:
+  - homologies.B
+  - homologies.C
+  initial_sequence_generator: python_random
+  initial_sequence_alphabet: ADEFGHIKLMNPQRSTVWY
+  initial_sequence_length:
+  - 60
+  - 80
+  notes:
+  - 'Archived six-target cohort: uniform Python-random 60..80-aa starting sequences, followed by DPLM monomer-stage
+    proposals; no HADDOCK predocker.'
+  - This preserves the original run configuration and differs from MainPaper 205-206, whose formal recipe uses DPLM
+    initialization and conditional HADDOCK3.
+  - Protenix v1, 20 total steps including the monomer stage, pure complex ipTM and the highest accepted-complex
+    representative are unchanged.
+  target: null
+  input_source: null
+  variant: archived

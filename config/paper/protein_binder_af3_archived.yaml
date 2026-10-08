@@ -1,0 +1,107 @@
+# @package _global_
+defaults:
+- /base
+- _self_
+task_name: protein_binder_af3_archived
+out_dir: null
+repeats: 1
+steps: 100
+seed: 1
+enable_pyrosetta: true
+seqs:
+  A: 80-120
+  B: ???
+homologies:
+  B: null
+initializer:
+  mode: dplm
+initial_temperature: 0.03
+mutator:
+  selector_expression: null
+  mutator_terms:
+    LigandMPNN_itf:
+      _type: LigandMPNN
+      temperature: 0.5
+      position_selector: interface(interface_distance=10.0)
+    LigandMPNN_noitf:
+      _type: LigandMPNN
+      temperature: 0.3
+      position_selector: not interface(interface_distance=10.0)
+    dplm:
+      _type: DPLM
+      temperature: 1
+    esm3:
+      _type: ESM3
+      model_name: esm3-open
+      temperature: 0.35
+      position_selector: long_loop(min_length=8)
+  DPLM:
+    max_iter: 400
+    model_name: airkingbd/dplm_650m
+    num_samples: 1
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+  alphafold3:
+    num_recycles: 10
+    num_samples: 5
+loss:
+  loss_terms:
+    binder_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    binder_loop_frac:
+      _type: secondary_structure_fraction
+      included_protomers: A
+      sse_type: L
+    interface_sc:
+      _type: protomer_shape_complementarity
+  expression_terms:
+    globin_rog: 0.395 * (A_length ** 0.6) + 7.257
+    shape_penalty: 0.3 * sigmoid((binder_rog - globin_rog) / 5.0) + 0.6 * min(binder_loop_frac, 1.0)
+stages:
+  default:
+    oligo:
+    - A
+    evaluator: Alphafold3
+    mutators:
+    - dplm
+    mutation_num: 100%
+    weighted_score_expression: -0.4 * sigmoid((binder_rog - globin_rog) / 5.0) - 0.6 * min(binder_loop_frac, 1.0)
+    acceptance_threshold: (binder_loop_frac < 0.4) and (binder_rog <= globin_rog + 3)
+    early_stopping: null
+  complex:
+    oligo:
+    - AB
+    evaluator: Alphafold3
+    mutators:
+    - LigandMPNN_itf
+    - LigandMPNN_noitf
+    - esm3
+    mutation_num: 100%
+    weighted_score_expression: iptm + 0.4 * ptm + plddt + 0.2 * interface_sc - shape_penalty
+    acceptance_threshold: null
+    early_stopping: null
+    _entrance: (binder_loop_frac < 0.4) and (binder_rog <= globin_rog + 3)
+    mutator_weights:
+    - 1.0
+    - 1.0
+    - 0.1
+paper_protocol:
+  source:
+  - MainPaper 93-100
+  - SI 7,16-20
+  - '2026-10-08 frozen protein source bindings: 17_protein_native.tar.gz::native/hallucination_v2/cbagoc_6qzk_201_run/config.yaml'
+  representative: complex_max_iptm
+  notes:
+  - 'Archived three-mutator benchmark setting: retains interface/non-interface LigandMPNN and the ESM3 long-loop
+    proposal at weight 0.1.'
+  - One invocation runs one trajectory. Use --num-runs for a cohort.
+  - steps includes initialized state 0.
+  - 'The frozen cohort also enabled a low-weight ESM3 long-loop mutator: LigandMPNN interface/non-interface/ESM3
+    weights 1/1/0.1.'
+  - LigandMPNN uses 10 A interface neighborhoods, temperatures 0.5 and 0.3; the initialized state is step 0.
+  required_input_paths:
+  - homologies.B
+use_metropolis_acceptance: true

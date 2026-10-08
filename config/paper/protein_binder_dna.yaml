@@ -1,0 +1,150 @@
+# @package _global_
+defaults:
+- /base
+- _self_
+task_name: protein_binder_dna
+out_dir: null
+repeats: 1
+steps: 20
+seed: 1
+initial_temperature: 0.03
+enable_pyrosetta: false
+stages:
+  default:
+    oligo:
+    - A
+    evaluator: ProtenixV1
+    mutators:
+    - dplm
+    mutation_num: 100%
+    weighted_score_expression: -0.4 * (1 / (1 + exp(-((binder_rog - globin_rog) / 5.0)))) - min(binder_loop_frac,1)
+      * 0.6 + plddt
+    acceptance_threshold: (binder_loop_frac < 0.4) and (binder_rog <= globin_rog + 3)
+    early_stopping: null
+  complex:
+    _entrance: (binder_loop_frac < 0.4) and (binder_rog <= globin_rog + 3)
+    oligo:
+    - ABC
+    evaluator: ProtenixV1
+    mutators:
+    - NAMPNN
+    mutation_num: 20%
+    weighted_score_expression: iptm
+    acceptance_threshold: null
+    early_stopping: null
+    acceptance_gate: null
+loss:
+  loss_terms:
+    binder_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    binder_loop_frac:
+      _type: secondary_structure_fraction
+      included_protomers: A
+      sse_type: L
+  expression_terms:
+    globin_rog: 0.395 * (A_length ** 0.6) + 7.257
+    shape_penalty: 0.25 * sigmoid((binder_rog - (0.395 * (A_length ** 0.6) + 7.257)) / 5.0) + 0.50 * min(binder_loop_frac,
+      1.0)
+seqs:
+  A: 60-80
+  B: ???
+  C: ???
+types:
+  A: protein
+  B: dna
+  C: dna
+homologies:
+  B: ???
+  C: ???
+initializer:
+  mode: dplm
+exclude_AA:
+- C
+dynamic_binding_site_enabled: false
+mutator:
+  selector_expression: null
+  DPLM:
+    temperature: 1.0
+  NAMPNN:
+    temperature: 0.1
+    batch_size: 1
+    number_of_batches: 1
+    design_na_only: 0
+    parse_na_only: 0
+    na_shared_tokens: 0
+    output_pdbs: 0
+    extra_args: {}
+    job_name: ${task_name}
+  mutator_terms:
+    dplm:
+      _type: DPLM
+      temperature: 1.0
+    NAMPNN:
+      _type: NAMPNN
+      temperature: 0.3
+      predocker:
+      - haddock_na
+evaluator:
+  evaluator_terms:
+    ProtenixV1:
+      _type: protenix
+  protenix:
+    model_name: protenix_base_default_v1.0.0
+    load_checkpoint_path: ${oc.env:GH_WEIGHT_PROTENIX_V1,???}
+    use_constraints: false
+    dynamic_binding_site: false
+    use_rna_msa: false
+    model:
+      N_cycle: 10
+      template_embedder:
+        n_blocks: 2
+    sample_diffusion:
+      N_sample: 5
+      N_step: 200
+paper_protocol:
+  source:
+  - MainPaper 205-206 (2026-10-08 revision)
+  - 009_rna_target_binder/config/001_nucleic_binder_design/01_protenix_initialization_comparison/04_selected_target_benchmark/06_base_1tup.yaml
+  - 009_rna_target_binder/config/001_nucleic_binder_design/01_protenix_initialization_comparison/04_selected_target_benchmark/01_run_compare.py
+  representative: accepted_complex_max_iptm
+  planned_runs_per_target: 80
+  required_input_paths:
+  - homologies.B
+  - homologies.C
+  initial_sequence_generator: null
+  initial_sequence_alphabet: null
+  initial_sequence_length: null
+  notes:
+  - 'MainPaper 205-206: DPLM initializes the 60..80-aa binder and proposes monomer-stage changes until the binder-shape/loop
+    entrance condition is met.'
+  - NA-MPNN proposes complex-stage protein changes; HADDOCK3 supplies a contacting arrangement only when the input
+    lacks contact within 4.0 A.
+  - Each target has 80 independent 20-step trajectories, including monomer optimization. Report the maximum ipTM
+    among accepted complex-stage predictions without AF3 re-evaluation.
+  - Use Protenix v1 through GH_WEIGHT_PROTENIX_V1. N_cycle=10, N_sample=5, N_step=200, 20% complex-stage mutation
+    and binder length 60..80 come from the archived implementation; Methods do not specify those details.
+  - The separate protein_binder_dna_archived recipe preserves the original Python-random initialization and omitted
+    HADDOCK module; its historical results are not relabelled as this manuscript protocol.
+  target: null
+  input_source: null
+  variant: manuscript
+predocker:
+  predocker_terms:
+    haddock_na:
+      _type: haddock3_nucleic
+      haddock3_bin: ${subprocess_envs.haddock3.haddock3_bin}
+      binder_chain: A
+      target_chains:
+      - B
+      - C
+      anchor_chains:
+      - B
+      max_anchor_chains: 1
+      sampling: 100
+      ncores: 10
+      max_restraints: 64
+      skip_if_contact: true
+      require_contact: true
+      update_dynamic_binding_site: false
+      contact_cutoff: 4.0

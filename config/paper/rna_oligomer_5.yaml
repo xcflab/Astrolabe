@@ -1,0 +1,57 @@
+# @package _global_
+defaults:
+- /base
+- _self_
+task_name: rna_oligomer_5
+out_dir: null
+repeats: 1
+steps: 1
+seed: 51404
+seqs:
+  A: UCUCCAGUAGCCUACCACAUCACUAGGGUGUGAAAGCUCGAUGUGGUGUGGGUAGGCCCUUAAGGUGUAGCACGCCUUAAGAAUAGU
+types:
+  A: rna
+oligo:
+- AAAAA
+homologies: {}
+initializer:
+  mode: random
+mutator:
+  selector_expression: null
+  mutator_terms:
+    NAMPNN:
+      _type: NAMPNN
+      temperature: 0.1
+      design_na_only: 1
+      parse_na_only: 1
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+  alphafold3:
+    num_samples: 5
+    num_seeds: 1
+    num_recycles: 10
+    run_data_pipeline: false
+    flash_attention_implementation: cudnn
+beam_search:
+  beam_width: 8
+  proposals_per_parent: 4
+  max_evaluations: 1000
+paper_protocol:
+  source:
+  - MainPaper 208-209 (2026-10-08 revision)
+  - 010_rna_aptamer_target_protein/scheduler/rna_af3_optimization_plddt_retry/beam_oligo5_original20309_20260915.yaml
+  engine: rna_beam
+  representative: final_beam
+  notes:
+  - Includes the archived 87nt starting candidate; all physical chains share it.
+  - Ranking averages pLDDT over 5 AF3 diffusion samples and residues; the retained CIF is selected separately by
+    AF3 ranking_score.
+  - NA-MPNN temperature 0.1; fixed AF3 run seed; derived proposal seeds; round-robin expansion and a 10x proposal
+    cap.
+  - Methods specify width 8, four proposals per parent and 1000 AF3 evaluations including the starting re-prediction.
+    The five-sample, temperature and seed implementation details are preserved from the archived code.
+  - Publication exemplars require post-search C4-prime single-cycle fits and 4.5 A interchain-contact review; the
+    two five-chain examples were additionally selected for distinct shapes.
+  variant: manuscript

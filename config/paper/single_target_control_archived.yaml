@@ -1,0 +1,101 @@
+# @package _global_
+defaults:
+- /base
+- _self_
+task_name: single_target_control_archived
+out_dir: null
+repeats: 1
+seed: 1
+steps: 100
+seqs:
+  A: 75-90
+  B: ???
+homologies:
+  B: ???
+initializer:
+  mode: dplm
+use_metropolis_acceptance: false
+enable_pyrosetta: true
+mutator:
+  selector_expression: null
+  mutator_terms:
+    dplm:
+      _type: DPLM
+      temperature: 1
+    LigandMPNN_itf:
+      _type: LigandMPNN
+      temperature: 0.3
+      position_selector: interface(interface_distance=5.0)
+      ligand_mpnn_use_side_chain_context: 1
+    LigandMPNN_noitf:
+      _type: LigandMPNN
+      temperature: 0.3
+      position_selector: not interface(interface_distance=5.0)
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+    Protenix:
+      _type: Protenix
+  alphafold3:
+    num_recycles: 10
+    num_samples: 5
+  protenix:
+    model_name: protenix-v2
+    load_checkpoint_path: null
+    model:
+      N_cycle: 4
+    sample_diffusion:
+      N_sample: 5
+      N_step: 200
+loss:
+  loss_terms:
+    binder_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    binder_loop_frac:
+      _type: secondary_structure_fraction
+      included_protomers: A
+      sse_type: L
+    target_hotspot:
+      _type: hotspot_dsasa
+      _for: AB
+      select_expression: ???
+  expression_terms:
+    globin_rog: 0.395 * (A_length ** 0.6) + 7.257
+    shape_penalty: 0.25 * sigmoid((binder_rog - globin_rog) / 5.0) + 0.50 * min(binder_loop_frac, 1.0)
+stages:
+  default:
+    oligo:
+    - A
+    evaluator: Protenix
+    mutators:
+    - dplm
+    mutation_num: 100%
+    acceptance_threshold: null
+    weighted_score_expression: plddt + ptm - shape_penalty
+    early_stopping: null
+  single_af3:
+    _entrance: plddt > 0.70 and ((binder_loop_frac < 0.4) and (binder_rog <= globin_rog + 3))
+    oligo:
+    - AB
+    evaluator: Alphafold3
+    mutators:
+    - LigandMPNN_itf
+    - LigandMPNN_noitf
+    mutator_weights:
+    - 1.0
+    - 1.0
+    mutation_num: 100%
+    acceptance_threshold: null
+    weighted_score_expression: 3.0 * AB.iptm + 2.0 * AB.target_hotspot - shape_penalty
+paper_protocol:
+  source:
+  - 40_control_native.tar.gz::controls/il12-il23__opt_il12__seed_29201__step_030/config.yaml
+  representative: last_accepted
+  notes:
+  - Frozen single-target cohort uses hotspot-weighted AF3 refinement after Protenix monomer shaping.
+  - This differs from the generic protein-binder control described in MainPaper 154.
+  required_input_paths:
+  - homologies.B
+  - evaluator.protenix.load_checkpoint_path

@@ -1,0 +1,76 @@
+defaults:
+  - base
+  - _self_
+
+# Oligomer refine template (v3).
+# Optimizes a homo-oligomeric assembly of protomer "A" (e.g. AAAAA).
+#
+# Intended usage:
+#   - Prefer the one-shot CLI:
+#       gh refine oligomer --task-name myjob --out-dir outputs --copies 5 --seq MKT... \
+#         --homology /path/to/af3.json:A
+#   - Or manual override:
+#       gh run --task benchmark_oligomer_v3_refine --overlay overlay.yaml
+
+task_name: ???
+out_dir: ???
+repeats: 1
+enable_pyrosetta: true
+
+seqs:
+  # Protein sequence (mutable) OR length range (e.g. "150-150") if starting from random.
+  A: ???
+
+homologies:
+  # Optional. Either:
+  #   - AF3 JSON: /path/to/af3.json:<chain_id>
+  #   - Or a dict with keys: unpairedMsa/pairedMsa/templates (templates is a list of AF3 template dicts)
+  A: null
+
+steps: 20
+
+initial_temperature: 0.01
+mutator:
+  # Required by `astrolabe/argparser.py` (used to build selector mappings).
+  # These are mutator *aliases* (keys under `mutator_terms`) for this template.
+  selector_expression: null
+  mutator_terms:
+    ligand_mpnn:
+      _type: LigandMPNN
+      model_type: protein_mpnn
+      temperature: 0.3
+    esm3:
+      _type: ESM3
+      model_name: esm3-open
+      position_selector: "long_loop(min_length=8)"
+      temperature: 0.35
+
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+
+loss:
+  loss_terms:
+    A_single_chain_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    separation_std:
+      _type: separation_std
+    A_loop_frac:
+      _type: secondary_structure_fraction
+      sse_type: L
+      included_protomers: A
+  expression_terms:
+    A_globular_target: 0.395 * (A_length ** 0.6) + 7.257
+
+stages:
+  default:
+    evaluator: Alphafold3
+    mutation_num: 100%
+    early_stopping: null
+    # CLI overrides this (e.g. ["AAAAA"] or ["AA","AAA"]).
+    oligo: ["AAAAA"]
+    weighted_score_expression: iptm + ptm + plddt - A_loop_frac/2 + exp(-separation_std-0.7) - 0.2 * (1 / (1 + exp(-((A_single_chain_rog - A_globular_target) / 5.0))))
+    mutators: ["ligand_mpnn", "esm3"]
+    mutator_weights: [0.9, 0.1]

@@ -1,0 +1,16 @@
+# MainPaper protein-binder recipe: no hotspots; eight sequences at T=0.3.
+# Fill the trimmed target dimensions and source asset paths from native inputs.
+rfdiffusion:
+  input_pdb: ../../../data/baselines/target.pdb
+  target_chain: A
+  target_length: 100
+  binder_length: 100
+  hotspots_1_based: []
+  checkpoint: ../../../vendor/RFdiffusion/models/Complex_base_ckpt.pt
+proteinmpnn:
+  tool_dir: ../../../vendor/ProteinMPNN
+  designed_chains: A
+  num_seq_per_target: 8
+  sampling_temp: 0.3
+  model_name: v_48_020
+  weights: ../../../vendor/ProteinMPNN/vanilla_model_weights

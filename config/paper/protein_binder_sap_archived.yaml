@@ -1,0 +1,82 @@
+# @package _global_
+defaults:
+- /base
+- _self_
+task_name: protein_binder_sap_archived
+out_dir: null
+repeats: 1
+seed: 1
+steps: 50
+seqs:
+  A: ???
+  B: ???
+homologies:
+  B: ???
+initializer:
+  mode: random
+use_metropolis_acceptance: true
+initial_temperature: 0.03
+enable_pyrosetta: true
+mutator:
+  selector_expression: null
+  mutator_terms:
+    LigandMPNN_itf:
+      _type: LigandMPNN
+      temperature: 0.3
+      position_selector: interface(mode='buried_sasa', buried_sasa_cutoff=10.0)
+      ligand_mpnn_use_side_chain_context: 1
+    LigandMPNN_noitf:
+      _type: LigandMPNN
+      model_type: soluble_mpnn
+      temperature: 0.3
+      position_selector: not interface(mode='buried_sasa', buried_sasa_cutoff=10.0)
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+  alphafold3:
+    num_recycles: 10
+    num_samples: 5
+loss:
+  loss_terms:
+    binder_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    binder_loop_frac:
+      _type: secondary_structure_fraction
+      included_protomers: A
+      sse_type: L
+    interface_sc:
+      _type: protomer_shape_complementarity
+    sap_score:
+      _type: sap_score
+      included_protomers: A
+  expression_terms:
+    globin_rog: 0.395 * (A_length ** 0.6) + 7.257
+    sap_norm: max(0, min(1, (70 - sap_score) / 35))
+stages:
+  default:
+    oligo:
+    - AB
+    evaluator: Alphafold3
+    mutators:
+    - LigandMPNN_itf
+    - LigandMPNN_noitf
+    mutation_num: 100%
+    weighted_score_expression: iptm + 0.4*ptm + plddt + interface_sc * 0.2 + 0.5 * sap_norm - 0.3 * (1 / (1 + exp(-((binder_rog
+      - globin_rog) / 5.0)))) - min(binder_loop_frac,1) * 0.6
+    acceptance_threshold: null
+    early_stopping: null
+    mutator_weights:
+    - 1.0
+    - 1.0
+paper_protocol:
+  source:
+  - 49_protein_recovered_native.tar.gz::native/sapoptimized_astrolabe_af3/cbagoc_6qzk/cbagoc_6qzk__201_run_95__entry001/config.yaml
+  representative: accepted_max_objective
+  notes:
+  - 'Frozen cohort continuation: supply the selected parent binder sequence as mutable literal seqs.A, not a new
+    random length.'
+  - Fifty states include parent reevaluation at step 0; objective retains pTM, pLDDT and shape complementarity.
+  required_input_paths:
+  - homologies.B

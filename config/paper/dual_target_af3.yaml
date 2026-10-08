@@ -1,0 +1,91 @@
+# @package _global_
+defaults:
+- /base
+- _self_
+task_name: dual_target_af3
+out_dir: null
+steps: 100
+seed: 1
+use_metropolis_acceptance: false
+seqs:
+  A: 100-120
+  B: ???
+  C: ???
+homologies:
+  B: ???
+  C: ???
+reinitialize_random_segments_with_dplm: false
+enable_pyrosetta: true
+initializer:
+  mode: dplm
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+mutator:
+  selector_expression: null
+  mutator_terms:
+    LigandMPNN_itf:
+      _type: LigandMPNN
+      temperature: 0.3
+      position_selector: interface(interface_distance=5.0)
+      ligand_mpnn_use_side_chain_context: 1
+      model_type: protein_mpnn
+      fallback_to_all_mutable_if_selector_empty: false
+    LigandMPNN_noitf:
+      _type: LigandMPNN
+      model_type: soluble_mpnn
+      temperature: 0.3
+      position_selector: not interface(interface_distance=5.0)
+      fallback_to_all_mutable_if_selector_empty: false
+loss:
+  loss_terms:
+    binder_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    binder_loop_frac:
+      _type: secondary_structure_fraction
+      included_protomers: A
+      sse_type: L
+    binder_pair_tmscore:
+      _type: binder_pair_tmscore
+      oligo_a: AB
+      oligo_b: AC
+      binder_chain: A
+  expression_terms:
+    globin_rog: 0.395 * (A_length ** 0.6) + 7.257
+    shape_penalty: 0.25 * sigmoid((binder_rog - globin_rog) / 5.0) + 0.50 * min(binder_loop_frac, 1.0)
+    pair_min_iptm: min(AB.iptm, AC.iptm)
+    pair_mean_iptm: (AB.iptm + AC.iptm)/2
+stages:
+  default:
+    oligo:
+    - AB
+    - AC
+    evaluator: Alphafold3
+    mutators:
+    - LigandMPNN_itf
+    - LigandMPNN_noitf
+    mutator_weights:
+    - 1.0
+    - 1.0
+    mutation_num: 100%
+    acceptance_threshold: null
+    weighted_score_expression: 2.0 * pair_min_iptm + pair_mean_iptm + 0.50 * binder_pair_tmscore - shape_penalty
+    early_stopping: null
+repeats: 1
+paper_protocol:
+  source:
+  - MainPaper 142-154
+  - SI 41-46
+  - 008_multitarget_binder/config/07_supporting_information/three_pair_unconstrained_direct_af3/06_three_pair_proteinmpnn_temp03_complete100/local/il4_il13.yaml
+  representative: last_accepted
+  notes:
+  - Each MPNN samples the two complexes separately and corresponding binder probabilities are averaged.
+  - The recovered cohort used greedy acceptance, 5 A interface neighborhoods and temperature 0.3.
+  - The frozen benchmark cohort used far-apart tied decoding instead; select dual-target-af3-archived for that source
+    protocol.
+  required_input_paths:
+  - homologies.B
+  - homologies.C
+  planned_runs_per_pair: 100

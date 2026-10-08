@@ -1,0 +1,65 @@
+defaults:
+  - base
+  - _self_
+
+target_name: hcar1
+task_name: hcar1_chai1_ep64_68_paratope_smoke
+
+out_dir: outputs/hcar1_paratope_ep64_68_chai1
+
+# One-shot evaluation only (no mutation); just to test whether Chai-1 respects binding_site restraints.
+steps: 1
+mutation_num: 0
+repeats: 1
+
+enable_pyrosetta: false
+skip_complex_poses: true
+
+types:
+  A: "p"
+  B: "p"
+
+seqs:
+  # Same sequence family as the HCAR1 nanobody v3 example.
+  A: "+QVQLVESGGGSVQAGGSLRLSCTAS GGSEYSYSTF +SLGWFRQAPGQEREAVAAI ASMGGL +TYYADSVKGRFTISRDNAKNTVTLQMNNLKPEDTAIYYCAA VRGYFMRLPSSHNFRY +WGQGTQVTVSSRGR"
+  B: "+CCRIEGDTISQVMPPLLIVAFVLGALGNGVALCGFCFHMKTWKPSTVYLFNLAVADFLLMICLPFRTDYYLRRRHWAFGDIPCRVGLFTLAMNRAGSIVFLTVVAADRYFKVVHPHHAVNTISTRVAAGIVCTLWALVILGTVYLLLENHLCVQETAVSCESFIMESANGWHDIMFQLEFFMPLGIILFCSFKIVWSLRRRQQLARQARMKKATRFIMVVAIVFITCYLPSVSARLYFLWTVPSSACDPSVHGALHITLSFTYMNSMLDPLVYYFSSPS"
+
+homologies:
+  B: /path/to/hcar1/af3_unique_chains_part_1_data.json:A
+
+binding_site:
+  target: "B:64-68"
+  binder: ["A:26-35", "A:55-60", "A:102-117"]
+  mode: pocket
+  max_distance: 12.0
+
+evaluator:
+  evaluator_terms:
+    Chai1:
+      _type: chai1
+  # Smoke stability: disable ESM embeddings (avoids downloading the ~3.5GB traced ESM2 model).
+  chai1:
+    use_esm_embeddings: false
+    num_diffn_samples: 1
+
+mutator:
+  mutator_terms:
+    MCMC:
+      _type: MCMC
+
+loss:
+  loss_terms:
+    binding_site_allowed_min_dist:
+      _type: binding_site_allowed_min_dist
+    binding_site_framework_min_dist:
+      _type: binding_site_framework_min_dist
+
+stages:
+  default:
+    evaluator: Chai1
+    oligo: ["AB"]
+    mutators: ["MCMC"]
+    mutation_num: 0
+    weighted_score_expression: "-binding_site_allowed_min_dist + 0.05 * binding_site_framework_min_dist"
+    acceptance_threshold: null
+    early_stopping: null

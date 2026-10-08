@@ -1,0 +1,17 @@
+defaults:
+  - base
+task_name: lxt_homooligo_test
+out_dir: outputs
+oligo: [ "AAA" ]
+steps: 300
+proto:
+  seqs:
+    A: "PEDPLEVLRRIALAAVLAAGAAAFALVAAAGLIALGQNPELLKNKGFLAILAYALALALALFALAVAFLLTP" # N#1-AB3
+
+mutator:
+#  selector_expression: "MCMC: bfactor(0,); LigandMPNN: interface()"
+
+loss:
+  names: [ "plddt","circle_dual_cyclic:9.3:5","separation_std","min_frac_dssp:None,0.9,None","ptm","iptm" ]
+#  early_stopping: "plddt > 0.9 and ptm > 0.9 and iptm > 0.9 and BD.tmscore > 0.5"
+  weighted_score_expression: "(1 - abs(circle_dual_cyclic-9.3)/3) + plddt/2 + ptm/2 + (1-separation_std)+ min_frac_dssp"

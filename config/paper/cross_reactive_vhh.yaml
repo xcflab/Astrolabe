@@ -1,0 +1,118 @@
+# @package _global_
+defaults:
+- /base
+- _self_
+task_name: cross_reactive_vhh
+out_dir: null
+seed: 1
+steps: 100
+repeats: 1
+enable_pyrosetta: true
+use_metropolis_acceptance: true
+initial_temperature: 0.03
+seqs:
+  A: +EVQLVESGGGLVQPGGSLRLSCAAS 7-11 +GWFRQAPGKGRELVAAI 6-10 +YPDSVEGRFTISRDNAKRMVYLQMNSLRAEDTAVYYCA 15-28 +GQGTQVTVSS
+  B: ???
+  C: ???
+homologies:
+  A:
+    _type: antibody_framework_homology
+    framework_name: vhh__boltzgen_7eow
+    source: ${oc.env:ASTROLABE_PAPER_DATA}/protein/frameworks/vhh__boltzgen_7eow.json:A
+    layout:
+      fixed_segments:
+      - EVQLVESGGGLVQPGGSLRLSCAAS
+      - GWFRQAPGKGRELVAAI
+      - YPDSVEGRFTISRDNAKRMVYLQMNSLRAEDTAVYYCA
+      - GQGTQVTVSS
+      loop_order:
+      - H1
+      - H2
+      - H3
+      source_loop_lengths:
+        H1: 9
+        H2: 8
+        H3: 21
+  B: ???
+  C: ???
+initializer:
+  mode: x_mix
+  x_fraction: 1.0
+  aa_set: null
+reinitialize_random_segments_with_dplm: false
+mutator:
+  selector_expression: null
+  mutator_terms:
+    mpnn:
+      _type: LigandMPNN
+      model_type: protein_mpnn
+      temperature: 0.15
+loss:
+  loss_terms: {}
+  expression_terms:
+    pair_min_iptm: min(AB.iptm, AC.iptm)
+    pair_mean_iptm: (AB.iptm + AC.iptm)/2
+stages:
+  default:
+    oligo:
+    - AB
+    - AC
+    evaluator: Alphafold3
+    mutators:
+    - mpnn
+    mutation_num: 100%
+    acceptance_threshold: null
+    weighted_score_expression: 2.0 * pair_min_iptm + pair_mean_iptm
+    early_stopping: null
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+pre_eval_hooks:
+  af3_antibody_msa_cache:
+    enabled: true
+    require_msa_payload: true
+    chain_ids:
+    - A
+    af3_turboab_db_subset: VHH
+    clear_paired_msa: true
+    preserve_existing_templates: true
+    expected_template_count: 4
+    minimum_unpaired_msa_sequences: 2
+    dump_final_input_json: true
+    af3_turboab_db_dir: ${oc.env:ASTROLABE_TURBOAB_DB}
+    data_pipeline_command:
+    - ${oc.env:ASTROLABE_AF3_PYTHON,python}
+    - ${oc.env:ASTROLABE_AF3_DATA_PIPELINE}
+    - --json_path
+    - '{json_path}'
+    - --output_dir
+    - '{output_dir}'
+    - --db_dir
+    - '{db_dir}'
+    - --norun_inference
+    - --force_output_dir
+    - --jackhmmer_n_cpu
+    - '8'
+    - --nhmmer_n_cpu
+    - '8'
+paper_protocol:
+  source:
+  - MainPaper 85,155-159 (2026-10-09 Methods snapshot)
+  - SI 11,51-57
+  representative: last_accepted
+  notes:
+  - ProteinMPNN evaluates each target-specific structure independently; corresponding shared-CDR probabilities are
+    averaged as required by the multi-context protocol.
+  - Fixed framework and mutable CDR ranges are copied from the formal cohort; all-X CDR initialization.
+  - The execution cohort uses Metropolis acceptance with initial temperature 0.03.
+  - The AF3-TurboAb hook requires ASTROLABE_TURBOAB_DB and an AF3 data-pipeline script via ASTROLABE_AF3_DATA_PIPELINE
+    (optional ASTROLABE_AF3_PYTHON).
+  required_input_paths:
+  - homologies.A.source
+  - homologies.B
+  - homologies.C
+  - pre_eval_hooks.af3_antibody_msa_cache.af3_turboab_db_dir
+  framework: vhh_7eow
+  cdr_initializer: all-x
+  planned_runs_per_pair: 50

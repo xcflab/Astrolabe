@@ -1,0 +1,8 @@
+# @package _global_
+seqs:
+  B: +IVGGQECKDGECPWQALLINEENEGFCGGTILSEFYILTAAHCLYQAKRFKVRVGDRNTEQEEGGEAVHEVEVVIKHNRFTKETYDFDIAVLRLKTPITFRMNVAPACLPERDWAESTLMTQKTGIVSGFGRTHERQSTRLKMLEVPYVDRNSCKLSSSFIITQNMFCAGYDTKQEDACQGDAGGPHVTRFKDTYFVTGIVSWGEGCARKGKYGIYTKVTAFLKWIDRSMK
+homologies:
+  B: ${oc.env:ASTROLABE_PAPER_DATA}/nucleic/aptamer_target_5voe_fxa.json:B
+paper_protocol:
+  target: 5voe_fxa
+  input_source: 010_rna_aptamer_target_protein/config/001_dna_aptamer_benchmark/01_random_af3/01_additional_trajectories/07_base_5voe_fxa.yaml

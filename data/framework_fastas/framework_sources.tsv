@@ -1,0 +1,7 @@
+framework_name	source_repo	source_file	source_pdbid	source_chain	sequence_length	note
+scfv_vh_linker_vl__rfantibody_4d5	RosettaCommons/RFantibody	hu-4D5-8_Fv.pdb	1FVC (best public match)	H+L	238	Full preset sequence built as heavy-chain + (GGGGS)3 linker + light-chain from RFantibody source file; RFantibody file itself is a processed Fv example rather than a raw RCSB entry.
+scfv_vl_linker_vh__rfantibody_4d5	RosettaCommons/RFantibody	hu-4D5-8_Fv.pdb	1FVC (best public match)	L+H	238	Full preset sequence built as light-chain + (GGGGS)3 linker + heavy-chain from RFantibody source file; RFantibody file itself is a processed Fv example rather than a raw RCSB entry.
+vhh__boltzgen_7eow	HannesStark/boltzgen	7eow.cif	7EOW	B	128	Started from RCSB chain B FASTA; removed the N-terminal leading M and the C-terminal LEHHHHHH tag to match the preset scaffold sequence.
+vhh__boltzgen_7xl0	HannesStark/boltzgen	7xl0.cif	7XL0	A	121	Started from RCSB chain A FASTA; removed the trailing AAAHHHHHH tag to match the preset scaffold sequence.
+vhh__boltzgen_8coh	HannesStark/boltzgen	8coh.cif	8COH	A	132	RCSB chain A FASTA already matches the preset scaffold sequence.
+vhh__boltzgen_8z8v	HannesStark/boltzgen	8z8v.cif	8Z8V	B	115	Started from RCSB chain B FASTA; removed the trailing TSHHHHHH tail to match the preset scaffold sequence.

@@ -1,0 +1,979 @@
+defaults:
+  - env: env_local
+  - override hydra/hydra_logging: disabled
+  - override hydra/job_logging: disabled
+  - _self_
+
+task_name: null
+out_dir: null
+# Decision-layer Metropolis acceptance is opt-in compatibility behavior. This
+# is separate from backend model sampling temperatures under mutator/evaluator
+# configs.
+initial_temperature: 0.05
+# Legacy compatibility mirror. Runtime mutation budgets are owned by
+# stages.*.mutation_num; new templates should set the stage field directly.
+mutation_num: 10
+homologies: {}
+# Optional mapping for ligand params residue names.
+# Keys can be protomer ids (`B`), protomer names, CCD codes (`9TP`),
+# or per-entity CCD keys (`B:9TP`). Values are Rosetta params names.
+ligand_resnames: {}
+dynamic_binding_site_enabled: false
+use_metropolis_acceptance: false
+# Optional: enable PyRosetta-based losses/selectors (proprietary).
+enable_pyrosetta: false
+# Optional: if PyRosetta cannot load an mmCIF directly, convert through a
+# centered PDB fallback before failing.
+allow_mmcif_pdb_fallback: false
+per_residue_scores:
+  enabled: false
+  terms: {}
+  mutator_score_terms: {}
+  allow_missing_mutator_score_terms: false
+
+debug: False
+logging:
+  console_level: INFO
+  info_file_level: INFO
+  debug_file_level: DEBUG
+  color:
+    console: auto # auto | always | never
+    file: strip # strip | ansi
+    dump: strip # strip | ansi
+steps: 200
+seed: null
+types: null
+selector:
+  selector_terms: {}
+# per oligomer
+exclude_AA: [C]
+covalent_bonds: []
+aa_bias: null
+named_files: null
+structure_start: null
+initializer:
+  # random | dplm | aa_set | pssm | all_a | mask_mix | x_mix | structure | rfd3
+  mode: random
+  # Used when mode=aa_set; examples: "AGST" or ["A","G","S","T"].
+  aa_set: null
+  # Used when mode=pssm; accepts:
+  #   - inline mapping: {A: [row0, row1, ...]}
+  #   - or file path / mapping with `path` and optional `protomers`.
+  pssm: null
+  # Optional: when multiple DPLM mutator aliases exist, select one for initializer.
+  dplm_alias: null
+  # Mutator alias used by structure and RFD3 initializers for inverse folding.
+  sequence_designer: null
+  structure:
+    source: null
+    # Scalar form maps a complete structure chain. Mapping form supports
+    # structure_residues -> protomer_positions for longer/partial chains.
+    chain_map: {}
+    allow_partial_mapping: false
+  rfd3:
+    repo_path: ${rfd3.repo_path}
+    ckpt_path: ${rfd3.ckpt_path}
+    python_bin: ${subprocess_envs.rf3.python_bin}
+    specification: null
+    chain_map: {}
+    # Optional fixed seqs segment map, keyed by protomer then 1-based segment.
+    # Example: {A: {2: "M45-48"}} for seqs.A: "20-20 +CDEF 20-20".
+    motif_map: {}
+    allow_partial_mapping: false
+    n_batches: 1
+    sample_index: 0
+    diffusion_batch_size: 1
+    low_memory_mode: false
+    skip_existing: false
+    prevalidate_inputs: true
+    read_sequence_from_sequence_head: true
+    seed: ${seed}
+# runtime fullfillment
+raw_model_results_dir: null
+loss:
+  loss_terms: {}
+predocker:
+  predocker_terms: {}
+  symmetry_canonicalizer:
+    rpxdock_python_bin: ${oc.select:subprocess_envs.rpxdock.python_bin,null}
+    rpxdock_vendor_repo: ${oc.select:subprocess_envs.rpxdock.repo_path,null}
+    rpxdock_willutil_repo: ${oc.select:subprocess_envs.rpxdock.willutil_repo_path,null}
+    rpxdock_failure_fallback: rfdiffusion
+  autodock_gpu:
+    autodock_gpu_path: ${autodock.autodock_gpu_path}
+    obabel_path: ${obabel_path}
+    autogrid4_path: ${autodock.autogrid4_path}
+    mk_prepare_receptor: ${autodock.mk_prepare_receptor}
+    mk_prepare_ligand: ${autodock.mk_prepare_ligand}
+    mk_prepare_python_bin: ${subprocess_envs.meeko.python_bin}
+    mk_prepare_pythonpath: ${oc.select:subprocess_envs.meeko.pythonpath,null}
+    exhaustiveness: 8
+    num_samples: 20
+  autodock_vina:
+    vina_path: ${autodock.vina_path}
+    obabel_path: ${obabel_path}
+    mk_prepare_ligand: ${autodock.mk_prepare_ligand}
+    mk_prepare_python_bin: ${subprocess_envs.meeko.python_bin}
+    mk_prepare_pythonpath: ${oc.select:subprocess_envs.meeko.pythonpath,null}
+    exhaustiveness: 8
+    num_samples: 20
+  RAPiDock:
+    python_bin: ${subprocess_envs.rapidock.python_bin}
+    repo_path: ${subprocess_envs.rapidock.repo_path}
+    model_dir: ${weight_path.rapidock}
+    ckpt: "rapidock_global.pt"
+    daemon: true
+    response_cache: true
+    response_cache_dir: "~/.cache/gh/rapidock_runner"
+    num_samples_bank: 5
+    batch_size: 4
+    inference_steps: 20
+    actual_steps: null
+    no_final_step_noise: false
+    scoring_function: null
+    fastrelax: false
+    save_visualisation: false
+    cpu: 1
+    conformation_type: E
+    conformation_partial: null
+  haddock3:
+    haddock3_bin: ${oc.select:subprocess_envs.haddock3.haddock3_bin,null}
+    binder_chain: A
+    target_chains: null
+    anchor_chains: null
+    max_anchor_chains: 1
+    nucleic_only: true
+    contact_cutoff: 4.0
+    skip_if_contact: true
+    require_contact: true
+    sampling: 100
+    ncores: 1
+    restraint_distance: [2.0, 4.0, 8.0]
+    max_restraints: 64
+    update_dynamic_binding_site: true
+    binding_site_mode: both
+    binding_site_max_distance: 6.0
+    binding_site_min_distance: 0.0
+    max_binding_site_pairs: 16
+  haddock3_nucleic:
+    haddock3_bin: ${oc.select:subprocess_envs.haddock3.haddock3_bin,null}
+    binder_chain: A
+    target_chains: null
+    anchor_chains: null
+    max_anchor_chains: 1
+    nucleic_only: true
+    contact_cutoff: 4.0
+    skip_if_contact: true
+    require_contact: true
+    sampling: 100
+    ncores: 1
+    restraint_distance: [2.0, 4.0, 8.0]
+    max_restraints: 64
+    update_dynamic_binding_site: true
+    binding_site_mode: both
+    binding_site_max_distance: 6.0
+    binding_site_min_distance: 0.0
+    max_binding_site_pairs: 16
+
+evaluator:
+  scheduling:
+    # Default-off main-loop scheduling hook. When enabled, per-oligomer
+    # incremental evaluations keep backend/GPU calls serial but finalize
+    # CPU-side post-eval hooks for completed oligomers in worker thread(s) while
+    # the next oligomer is evaluated. This preserves result order and is useful
+    # only when post_eval_hooks/per-residue finalization is CPU-heavy.
+    overlap_cpu_postprocess: false
+    cpu_postprocess_workers: 1
+  alphafold2:
+    model_id: 3
+    suffix: multimer_v3 # or ptm
+    data_dir: ${weight_path.alphafold}
+    recycles: 3
+    msa_clusters: 1
+    # AF2 true initial guess: injects external coordinates as recycle-0 prev_pos.
+    # Keep disabled by default; enable with a PDB/mmCIF path and optional chain_map.
+    # For target-only starts, set the designed binder chain to null in chain_map
+    # and enable allow_missing_chains to zero-fill that chain.
+    # Incomplete crystal targets can also set allow_missing_residues to
+    # sequence-align available residues and zero-fill unresolved positions.
+    initial_guess:
+      enabled: false
+      path: null
+      source: null
+      chain_map: null
+      allow_missing_chains: false
+      allow_missing_residues: false
+  rf3:
+    repo_path: ${rf3.repo_path}
+    ckpt_path: ${rf3.ckpt_path}
+    python_bin: ${subprocess_envs.rf3.python_bin}
+    template_selection: null
+    ground_truth_conformer_selection: null
+    fixed_ligands: {}
+    n_recycles: 10
+    diffusion_batch_size: 5
+    num_steps: 50
+    template_noise_scale: 1.0e-05
+    fallback_conformer_to_input_coords: true
+    early_stopping_plddt_threshold: null
+    compress_outputs: false
+  rhofold:
+    checkpoint: ${rhofold.checkpoint}
+    binary_dpath: ${rhofold.binary_dpath}
+    database_dpath: ${rhofold.database_dpath}
+    device: cuda
+    relax_steps: 200
+  alphafold3:
+    json_path: None
+    input_dir: None
+    # construct inputs from astrolabe seqs
+    num_seeds: 1
+    num_recycles: 10
+    num_samples: 5
+    save_embeddings: False
+    output_dir: None
+    model_dir: ${weight_path.alphafold3}
+    flash_attention_implementation: cudnn
+    # GH constructs AF3 folding inputs directly and does not run the official
+    # AF3 MSA/data pipeline during mutation-loop inference. Enable this only
+    # for explicit official-data-pipeline workflows with HMMER/database paths.
+    run_data_pipeline: False
+    run_inference: True
+    # Prefer a persistent cache to reduce recompilation between runs.
+    # NOTE: `~` must be quoted in YAML (otherwise it's parsed as null).
+    jax_compilation_cache_dir: "~/.cache/jax_cache"
+    # If padding to the next default bucket is small, use the default bucket list
+    # (enables higher cache reuse). Otherwise, use exact token length (no padding).
+    bucket_pad_tolerance: 50
+    # Optional override for bucket list (strictly increasing). Default is 256..5120.
+    buckets: null
+    # Optional RefStructure featurisation acceleration knobs (protein-only mutants).
+    # When set, these are applied via env vars consumed by the vendored AF3 code:
+    # - ALPHAFOLD3_REFSTRUCTURE_WORKERS
+    # - ALPHAFOLD3_REFSTRUCTURE_CACHE
+    # - ALPHAFOLD3_REFSTRUCTURE_CACHE_MAX_ENTRIES
+    refstructure_workers: 8
+    refstructure_cache: 1
+    # NOTE: To be effective for mutation loops, this should be >= the typical
+    # number of tokens in the complex (otherwise the LRU thrashes and hits go to 0).
+    refstructure_cache_max_entries: 20000
+    # Optional MSA featurisation cache knobs.
+    # These cache the expensive A3M parsing + extract_msa_features work across
+    # repeated evaluations (e.g., when only one chain mutates but other chains'
+    # MSAs stay fixed).
+    # Env vars consumed by vendored AF3:
+    # - ALPHAFOLD3_MSA_CACHE
+    # - ALPHAFOLD3_MSA_CACHE_MAX_ENTRIES
+    msa_cache: 1
+    msa_cache_max_entries: 8
+    # Optional official AF3 data-pipeline settings. These are not required by
+    # the maintained GH inference path and default to null in env_container.
+    datapipeline:
+      jackhmmer_binary_path: ${hmmer.jackhmmer}
+      nhmmer_binary_path: ${hmmer.nhmmer}
+      hmmalign_binary_path: ${hmmer.hmmalign}
+      hmmsearch_binary_path: ${hmmer.hmmsearch}
+      hmmbuild_binary_path: ${hmmer.hmmbuild}
+      db_dir: null
+      small_bfd_database_path: null
+      mgnify_database_path: null
+      uniprot_cluster_annot_database_path: null
+      uniref90_database_path: null
+      ntrna_database_path: null
+      rfam_database_path: null
+      rna_central_database_path: null
+      pdb_database_path: null
+      seqres_database_path: null
+      jackhmmer_n_cpu: 8
+      nhmmer_n_cpu: 8
+  chai1:
+    use_esm_embeddings: True
+    num_trunk_recycles: 3
+    num_diffn_timesteps: 200
+  boltz:
+    cache: ${weight_path.boltz}
+    checkpoint: null
+    devices: 1
+    accelerator: "auto"
+    recycling_steps: 3
+    sampling_steps: 200
+    diffusion_samples: 5
+    write_full_pae: True
+    write_full_pde: False
+    output_format: mmcif # mmcif | pdb
+    num_workers: 2 # number of workers for data loading
+    override: False
+    use_msa_server: False
+    msa_server_url: null
+    msa_pairing_strategy: greedy
+  opendde:
+    # OpenDDE runs through a subprocess. By default it uses the current GH
+    # interpreter when python_bin is null; set GH_OPENDDE_PYTHON only when a
+    # separate OpenDDE environment is required.
+    python_bin: ${subprocess_envs.opendde.python_bin}
+    repo_path: ${subprocess_envs.opendde.repo_path}
+    opendde_root_dir: ${weight_path.opendde}
+    model_name: opendde_v1
+    load_checkpoint_path: null
+    num_cycles: 10
+    num_steps: 200
+    num_samples: 5
+    dtype: fp32
+    use_msa: false
+    use_template: false
+    use_rna_msa: false
+    need_atom_confidence: false
+    triangle_multiplicative: auto
+    triangle_attention: auto
+    enable_cache: true
+    enable_fusion: true
+    enable_tf32: true
+    deterministic: false
+    use_tfg_guidance: false
+    kalign_binary_path: null
+    hmmsearch_binary_path: ${oc.select:hmmer.hmmsearch,null}
+    hmmbuild_binary_path: ${oc.select:hmmer.hmmbuild,null}
+    seqres_database_path: null
+    nhmmer_binary_path: ${oc.select:hmmer.nhmmer,null}
+    hmmalign_binary_path: ${oc.select:hmmer.hmmalign,null}
+    hmmbuild_rna_binary_path: null
+    ntrna_database_path: null
+    rfam_database_path: null
+    rna_central_database_path: null
+    nhmmer_n_cpu: null
+    foldcp_mode: single
+    foldcp_size_dp: 1
+    foldcp_size_cp: 1
+    foldcp_devices: ""
+    foldcp_metrics_jsonl: ""
+    timeout_seconds: null
+  esmfold2:
+    # Independent Biohub ESMFold2 backend. It runs in a subprocess because the
+    # Biohub ESMFold2 stack requires a newer/forked transformers package.
+    python_bin: ${subprocess_envs.esmfold2.python_bin}
+    esm_repo_path: ${subprocess_envs.esmfold2.esm_repo_path}
+    transformers_repo_path: ${subprocess_envs.esmfold2.transformers_repo_path}
+    model_name: biohub/ESMFold2
+    cache_dir: null
+    device: null
+    esmc_precision: bf16
+    num_loops: 3
+    num_sampling_steps: 50
+    num_diffusion_samples: 1
+    seed: null
+    lm_dropout: 0.0
+    msa_max_depth: 1024
+    msa_column_mask_rate: 0.1
+    chunk_size: 64
+    local_files_only: false
+    timeout_seconds: null
+  protenix:
+    model_name: protenix-v2
+    # When true, load the constraint-capable Protenix checkpoint even if
+    # binding_site is filled dynamically later by a predocker.
+    dynamic_binding_site: false
+    enable_tf32: true
+    enable_diffusion_shared_vars_cache: false
+    enable_efficient_fusion: false
+    msa_pair_as_unpair: true
+    use_template: false
+    use_rna_msa: false
+    use_seeds_in_json: false
+    triangle_multiplicative: torch
+    triangle_attention: torch
+    mc_dropout_rate: 0.4
+    mc_dropout_apply_rate: 0.4
+    adam:
+      beta1: 0.9
+      beta2: 0.95
+      lr: 0.0018
+      use_adamw: false
+      weight_decay: 1.0e-08
+    af3_lr_scheduler:
+      decay_every_n_steps: 50000
+      decay_factor: 0.95
+      lr: 0.0018
+      warmup_steps: 10
+    atom_permutation:
+      global_align_wo_symmetric_atom: false
+      permute_by_pocket: true
+      test:
+        diffusion_sample: true
+      train:
+        diffusion_sample: false
+        mini_rollout: true
+    base_dir: null
+    blocks_per_ckpt: 1
+    c_atom: 128
+    c_atompair: 16
+    c_s: 384
+    c_s_inputs: 449
+    c_token: 384
+    c_z: 128
+    chain_permutation:
+      configs:
+        accept_it_as_it_is: false
+        enumerate_all_anchor_pairs: false
+        find_gt_anchor_first: false
+        selection_metric: aligned_rmsd
+        use_center_rmsd: false
+      permute_by_pocket: true
+      test:
+        diffusion_sample: true
+      train:
+        diffusion_sample: false
+        mini_rollout: true
+    checkpoint_interval: -1
+    data:
+      ccd_components_file: ${protenix.ccd_components_file}
+      ccd_components_rdkit_mol_file: ${protenix.ccd_components_rdkit_mol_file}
+      epoch_size: 10000
+      msa:
+        enable: true
+        enable_rna_msa: false
+        max_size:
+          test: 16384
+          train: 16384
+        merge_method: dense_max
+        min_size:
+          test: 2048
+          train: 1
+        prot:
+          indexing_method: sequence
+          non_pairing_db: mmseqs_other
+          pairing_db: uniref100
+          pdb_mmseqs_dir: /af3-dev/release_data/mmcif_msa
+          seq_to_pdb_idx_path: /af3-dev/release_data/seq_to_pdb_index.json
+        rna:
+          indexing_method: sequence
+          rna_msa_dir: ""
+          seq_to_pdb_idx_path: ""
+        sample_cutoff:
+          test: 2048
+          train: 2048
+        strategy: random
+      num_dl_workers: 16
+      posebusters_0925:
+        base_info:
+          bioassembly_dict_dir: /af3-dev/release_data/posebusters_bioassembly
+          find_all_pockets: false
+          find_pocket: true
+          indices_fpath: /af3-dev/release_data/indices/posebusters_indices_mainchain_interface.csv
+          max_n_token: -1
+          mmcif_dir: /af3-dev/release_data/posebusters_mmcif
+          pdb_list: ""
+        cropping_configs:
+          crop_size: -1
+          method_weights:
+            - 0.0
+            - 0.0
+            - 1.0
+        lig_atom_rename: false
+        sampler_configs:
+          sampler_type: uniform
+        shuffle_mols: false
+        shuffle_sym_ids: false
+      recentPDB_1536_sample384_0925:
+        base_info:
+          bioassembly_dict_dir: /af3-dev/release_data/recentPDB_bioassembly
+          find_eval_chain_interface: true
+          group_by_pdb_id: true
+          indices_fpath: /af3-dev/release_data/indices/recentPDB_low_homology_maxtoken1536.csv
+          max_n_token: -1
+          mmcif_dir: /af3-dev/release_data/mmcif
+          pdb_list: /af3-dev/release_data/indices/recentPDB_low_homology_maxtoken1024_sample384_pdb_id.txt
+          sort_by_n_token: false
+        cropping_configs:
+          crop_size: -1
+          method_weights:
+            - 0.0
+            - 0.0
+            - 1.0
+        lig_atom_rename: false
+        sampler_configs:
+          sampler_type: uniform
+        shuffle_mols: false
+        shuffle_sym_ids: false
+      template:
+        enable: false
+      test_ref_pos_augment: true
+      test_sets:
+        - recentPDB_1536_sample384_0925
+      train_ref_pos_augment: true
+      train_sampler:
+        sampler_type: weighted
+        train_sample_weights:
+          - 1.0
+      train_sets:
+        - weightedPDB_before2109_wopb_nometalc_0925
+      weightedPDB_before2109_wopb_nometalc_0925:
+        base_info:
+          bioassembly_dict_dir: /af3-dev/release_data/mmcif_bioassembly
+          exclusion:
+            mol_1_type:
+              - ions
+            mol_2_type:
+              - ions
+          indices_fpath: /af3-dev/release_data/indices/weightedPDB_indices_before_2021-09-30_wo_posebusters_resolution_below_9.csv.gz
+          max_n_token: -1
+          mmcif_dir: /af3-dev/release_data/mmcif
+          pdb_list: ""
+          random_sample_if_failed: true
+          use_reference_chains_only: false
+        cropping_configs:
+          crop_size: 256
+          method_weights:
+            - 0.2
+            - 0.4
+            - 0.4
+        lig_atom_rename: false
+        limits: -1
+        sample_weight: 0.5
+        sampler_configs:
+          alpha_dict:
+            ligand: 1
+            nuc: 3
+            prot: 3
+          beta_dict:
+            chain: 0.5
+            interface: 1
+          force_recompute_weight: true
+          sampler_type: weighted
+        shuffle_mols: false
+        shuffle_sym_ids: false
+    decay_every_n_steps: 50000
+    deterministic: false
+    diffusion_batch_size: 48
+    diffusion_chunk_size: 4
+    dtype: bf16
+    dump_dir: ./output
+    ema_decay: -1.0
+    ema_mutable_param_keywords:
+      - ""
+    eval_ema_only: false
+    eval_first: false
+    eval_interval: null
+    eval_only: false
+    find_unused_parameters: false
+    grad_clip_norm: 10
+    infer_setting:
+      chunk_size: 64
+      lddt_metrics_chunk_size: 1
+      lddt_metrics_sparse_enable: true
+      sample_diffusion_chunk_size: 1
+    inference_noise_scheduler:
+      rho: 7
+      s_max: 160.0
+      s_min: 0.0004
+      sigma_data: 16.0
+    input_json_path: examples/example.json
+    load_checkpoint_dir: null
+    iters_to_accumulate: 1
+    load_checkpoint_path: ${weight_path.protenix}
+    load_ema_checkpoint_path: ""
+    load_params_only: true
+    load_strict: true
+    log_interval: null
+    loss:
+      diffusion:
+        bond:
+          eps: 1.0e-06
+        mse:
+          eps: 1.0e-06
+          weight_dna: 5.0
+          weight_ligand: 10.0
+          weight_mse: 0.3333333333333333
+          weight_rna: 5.0
+        smooth_lddt:
+          eps: 1.0e-06
+      diffusion_bond_chunk_size: 1
+      diffusion_chunk_size_outer: -1
+      diffusion_lddt_chunk_size: 1
+      diffusion_lddt_loss_dense: true
+      diffusion_sparse_loss_enable: true
+      distogram:
+        eps: 1.0e-06
+        max_bin: 21.6875
+        min_bin: 2.3125
+        no_bins: 64
+      pae:
+        eps: 1.0e-06
+        max_bin: 32
+        min_bin: 0
+        no_bins: 64
+      pde:
+        eps: 1.0e-06
+        max_bin: 32
+        min_bin: 0
+        no_bins: 64
+      plddt:
+        eps: 1.0e-06
+        max_bin: 1.0
+        min_bin: 0
+        no_bins: 50
+        normalize: true
+      resolution:
+        max: 4.0
+        min: 0.1
+      resolved:
+        eps: 1.0e-06
+      weight:
+        alpha_bond: 0.0
+        alpha_confidence: 0.0001
+        alpha_diffusion: 4.0
+        alpha_distogram: 0.03
+        alpha_except_pae: 1.0
+        alpha_pae: 0.0
+        smooth_lddt: 1.0
+    loss_metrics_sparse_enable: true
+    lr: 0.0018
+    lr_scheduler: af3
+    max_atoms_per_token: 24
+    max_steps: null
+    metrics:
+      chain_ranker_keys:
+        - chain_ptm
+        - chain_plddt
+      clash:
+        af3_clash_threshold: 1.1
+        vdw_clash_threshold: 0.75
+      complex_ranker_keys:
+        - plddt
+        - gpde
+        - ranking_score
+      interface_ranker_keys:
+        - chain_pair_iptm
+        - chain_pair_iptm_global
+        - chain_pair_plddt
+      lddt:
+        eps: 1.0e-06
+    min_lr_ratio: 0.1
+    model:
+      N_cycle: 4
+      N_model_seed: 1
+      confidence_head:
+        blocks_per_ckpt: 1
+        c_s: 384
+        c_s_inputs: 449
+        c_z: 128
+        distance_bin_end: 52.0
+        distance_bin_start: 3.25
+        distance_bin_step: 1.25
+        max_atoms_per_token: 24
+        n_blocks: 4
+        pairformer_dropout: 0.0
+        stop_gradient: true
+      diffusion_module:
+        atom_decoder:
+          n_blocks: 3
+          n_heads: 4
+        atom_encoder:
+          n_blocks: 3
+          n_heads: 4
+        blocks_per_ckpt: 1
+        c_atom: 128
+        c_atompair: 16
+        c_s: 384
+        c_s_inputs: 449
+        c_token: 768
+        c_z: 128
+        sigma_data: 16.0
+        transformer:
+          n_blocks: 24
+          n_heads: 16
+        use_fine_grained_checkpoint: true
+      distogram_head:
+        c_z: 128
+        no_bins: 64
+      input_embedder:
+        c_atom: 128
+        c_atompair: 16
+        c_token: 384
+      msa_module:
+        blocks_per_ckpt: 1
+        c_m: 64
+        c_s_inputs: 449
+        c_z: 128
+        msa_dropout: 0.15
+        n_blocks: 4
+        pair_dropout: 0.25
+      constraint_embedder:
+        pocket_embedder:
+          enable: false
+          c_s_input: 3
+          c_z_input: 1
+        contact_embedder:
+          enable: false
+          c_z_input: 2
+        substructure_embedder:
+          enable: false
+          n_classes: 4
+          architecture: transformer
+          hidden_dim: 128
+          n_layers: 1
+        contact_atom_embedder:
+          enable: false
+          c_z_input: 2
+        c_constraint_z: 128
+        c_constraint_s: 449
+        c_constraint_atom_pair: 16
+        initialize_method: zero
+      pairformer:
+        blocks_per_ckpt: 1
+        c_s: 384
+        c_z: 128
+        dropout: 0.25
+        n_blocks: 48
+        n_heads: 16
+      relative_position_encoding:
+        c_z: 128
+        r_max: 32
+        s_max: 2
+      template_embedder:
+        blocks_per_ckpt: 1
+        c: 64
+        c_z: 128
+        dropout: 0.25
+        n_blocks: 0
+    n_blocks: 48
+    need_atom_confidence: false
+    no_bins: 64
+    num_workers: 16
+    project: null
+    run_name: null
+    sample_diffusion:
+      N_sample: 5
+      N_sample_mini_rollout: 1
+      N_step: 200
+      N_step_mini_rollout: 20
+      guidance:
+        enable: false
+        log_last_step_energy: true
+        rho: 0.0
+        mu: 0.1
+        mc:
+          std: 0.0
+          batch: 1
+        steps:
+          tfg_outer: 1
+          tfg_inner: 20
+          projection_outer: 2
+          projection_inner: 10
+        terms:
+          VinaStericPotential:
+            interval: 1
+            weight: 0.1
+            buffer: 0.225
+          ExperimentalTorsionPotential:
+            interval: 1
+            weight: 0.0015
+          InterchainBondPotential:
+            interval: 1
+            weight: 0.15
+            buffer: 2.0
+          PairwiseDistancePotential:
+            interval: 1
+            weight: 0.5
+            enable_projection: true
+            bond_buffer: 0.0
+            angle_buffer: 0.0
+            clash_buffer: 0.0
+          ChiralAtomPotential:
+            interval: 1
+            weight: 0.0
+            enable_projection: true
+            buffer: 0.6155
+          StereoBondPotential:
+            interval: 1
+            weight: 0.25
+            buffer: 0.52360
+          PlanarImproperPotential:
+            interval: 1
+            weight: 0.12
+          LinearBondPotential:
+            interval: 1
+            weight: 0.25
+            buffer: 0.08726646259
+      gamma0: 0.8
+      gamma_min: 1.0
+      noise_scale_lambda: 1.003
+      step_scale_eta: 1.5
+    seed: ${seed}
+    seeds:
+      - 101
+    sigma_data: 16.0
+    skip_amp:
+      confidence_head: true
+      loss: true
+      sample_diffusion: true
+      sample_diffusion_training: true
+    skip_load_optimizer: false
+    skip_load_scheduler: false
+    skip_load_step: false
+    sorted_by_ranking_score: true
+    test_lig_atom_rename: false
+    test_max_n_token: -1
+    test_shuffle_mols: false
+    test_shuffle_sym_ids: false
+    train_confidence_only: false
+    train_crop_size: 256
+    train_lig_atom_rename: false
+    train_noise_sampler:
+      p_mean: -1.2
+      p_std: 1.5
+      sigma_data: 16.0
+    train_shuffle_mols: false
+    train_shuffle_sym_ids: false
+    use_deepspeed_evo_attention: false
+    use_flash: false
+    use_lma: false
+    use_memory_efficient_kernel: false
+    use_msa: true
+    use_wandb: true
+    use_xformer: false
+    wandb_id: ""
+    warmup_steps: 10
+
+mutator:
+  selector_expression: null
+  mutation_num: null
+  state_conflict_diagnostics:
+    enabled: false
+    output_dir: null
+  # When true, each mutator in a stage can expose its queued low-entropy
+  # mutations as the working sequence for later mutators. The full step still
+  # rolls back if the decision rejects it.
+  stack_pre_update: false
+  stack_pre_update_max_entropy: null
+  MCMC:
+    mutation_method: frequency_adjusted
+    select_positions: plddt
+  LigandMPNN:
+    batch_size: 1
+    bias_AA: ${oc.select:aa_bias.bias_AA,""}
+    chains_to_design: null
+    checkpoint_global_label_membrane_mpnn: ${weight_path.ligandmpnn}/global_label_membrane_mpnn_v_48_020.pt
+    checkpoint_ligand_mpnn: ${weight_path.ligandmpnn}/ligandmpnn_v_32_020_25.pt
+    checkpoint_per_residue_label_membrane_mpnn: ${weight_path.ligandmpnn}/per_residue_label_membrane_mpnn_v_48_020.pt
+    checkpoint_protein_mpnn: ${weight_path.ligandmpnn}/proteinmpnn_v_48_020.pt
+    checkpoint_soluble_mpnn: ${weight_path.ligandmpnn}/solublempnn_v_48_020.pt
+    design_pattern: ""
+    design_pattern_range: ""
+    fasta_seq_separation: ":"
+    file_ending: ""
+
+    global_transmembrane_label: 0
+    homo_oligomer: 0
+    ligand_mpnn_cutoff_for_score: 8.0
+    ligand_mpnn_use_atom_context: 1
+    ligand_mpnn_use_side_chain_context: 1
+    model_type: ligand_mpnn
+    number_of_batches: 1
+    omit_AA: ${exclude_AA}
+
+    out_folder: null
+    parse_atoms_with_zero_occupancy: 1
+    save_stats: 0
+    seed: ${seed}
+    temperature: 0.3
+    verbose: 0
+    zero_indexed: 0
+
+    fixed_residues: ""
+    fixed_residues_multi: ""
+    bias_mode: ${oc.select:aa_bias.mode,"additive"}
+    omit_AA_per_residue: ${oc.select:aa_bias.omit_AA_per_residue,""}
+    omit_AA_per_residue_multi: ${oc.select:aa_bias.omit_AA_per_residue_multi,""}
+    bias_AA_per_residue: ${oc.select:aa_bias.bias_AA_per_residue,""}
+    bias_AA_per_residue_multi: ${oc.select:aa_bias.bias_AA_per_residue_multi,""}
+    parse_these_chains_only: ""
+    pdb_path: null
+    pdb_path_multi: ""
+    redesigned_residues: ""
+    redesigned_residues_multi: ""
+    symmetry_residues: ""
+    symmetry_weights: ""
+    transmembrane_buried: ""
+    transmembrane_interface: ""
+  DynamicMPNN:
+    # Real Alex-Abrudan/DynamicMPNN backend. This is intentionally separate from
+    # LigandMPNN/ProteinMPNN. Prefer backend_callable for in-process probability
+    # transfer; command_template is only for isolated external installs.
+    repo_path: null
+    checkpoint: null
+    backend_callable: null
+    command_template: null
+    temperature: 0.3
+    num_samples: 1
+    probabilities_path: probabilities.npy
+    probabilities_key: probabilities
+    timeout: null
+    output_dir: null
+    env: {}
+  SurfDesign:
+    python_bin: ${subprocess_envs.surfdesign.python_bin}
+    repo_path: ${subprocess_envs.surfdesign.repo_path}
+    experiment_path: ${weight_path.surfdesign}
+    checkpoint: best.ckpt
+    device: cuda
+    max_iter: 5
+    strategy: denoise
+    temperature: 0.0
+    logit_temperature: 1.0
+    seed: ${seed}
+    surface_mode: pymol
+    daemon: true
+    startup_timeout: 600
+    request_timeout: null
+    output_dir: null
+  SurfPro:
+    python_bin: ${subprocess_envs.surfpro.python_bin}
+    repo_path: ${subprocess_envs.surfpro.repo_path}
+    checkpoint_dir: ${weight_path.surfpro}
+    checkpoint: checkpoint_best.pt
+    msms_bin: ${subprocess_envs.surfpro.msms_bin}
+    pdb_to_xyzrn_bin: ${subprocess_envs.surfpro.pdb_to_xyzrn_bin}
+    device: cuda
+    logit_temperature: 1.0
+    max_surface_vertices: 5000
+    seed: ${seed}
+    daemon: true
+    startup_timeout: 600
+    request_timeout: null
+    output_dir: null
+  CarbonDesign:
+    repo_path: ${carbondesign.repo_path}
+    model_ckpt: ${carbondesign.model_ckpt}
+    model_config: ${carbondesign.model_config}
+    model_features: ${carbondesign.model_features}
+    device: cuda
+    batch_size: 1
+    temperature: 1.0
+    max_seq_len: 1000
+    output_dir: null
+  NAMPNN:
+    repo_path: ${subprocess_envs.nampnn.repo_path}
+    python_bin: ${subprocess_envs.nampnn.python_bin}
+    checkpoint: null
+    temperature: 0.1
+    batch_size: 1
+    number_of_batches: 1
+    design_na_only: 0
+    parse_na_only: 0
+    na_shared_tokens: 0
+    output_pdbs: 0
+    extra_args: {}
+  DPLM:
+    python_bin: ${subprocess_envs.dplm.python_bin}
+    repo_path: ${subprocess_envs.dplm.repo_path}
+    model_name: airkingbd/dplm_150m
+    device: auto
+    sampling_strategy: gumbel_argmax
+    max_iter: 500
+    num_samples: 10
+    temperature: 1.0
+
+hydra:
+  run:
+    dir: .
+  output_subdir: null

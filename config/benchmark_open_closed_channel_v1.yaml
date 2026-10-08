@@ -1,0 +1,140 @@
+defaults:
+  - base
+  - _self_
+
+# Open/closed mechanosensitive channel template.
+# The open and closed oligomers use different state protomers but share one
+# segment alias, so sequence mutations stay synchronized across states.
+
+task_name: ???
+out_dir: ???
+repeats: 1
+
+named_files:
+  open_state: ???
+  closed_state: ???
+  hole_radius_file: ???
+
+seqs:
+  A: ???
+  B: "channel_core"
+
+homologies:
+  A: null
+  B: null
+
+steps: 40
+initial_temperature: 0.01
+
+mutator:
+  names: ["membrane_ligand_mpnn"]
+  selector_expression: null
+  mutator_terms:
+    membrane_ligand_mpnn:
+      _type: LigandMPNN
+      model_type: per_residue_label_membrane_mpnn
+      temperature: 0.3
+      membrane_label_selectors:
+        buried: membrane_outer_surface(membrane_thickness=30.0)
+        interface: >-
+          membrane_outer_surface(membrane_thickness=30.0)
+          and not membrane_outer_surface(membrane_thickness=24.0)
+
+evaluator:
+  alphafold2:
+    model_id: 1
+    suffix: ptm
+    recycles: 1
+    msa_clusters: 1
+  evaluator_terms:
+    AF2_initial_guess_model1:
+      _type: alphafold2
+      model_id: 1
+      suffix: ptm
+      recycles: 1
+      msa_clusters: 1
+      initial_guess:
+        enabled: true
+        use_initial_prev_pos: true
+        use_template_features: true
+        references:
+          AAAAA:
+            path: ${named_files.open_state}
+            chain_map: {A: A, B: B, C: C, D: D, E: E}
+          BBBBB:
+            path: ${named_files.closed_state}
+            chain_map: {A: A, B: B, C: C, D: D, E: E}
+          AAAAAAAA:
+            path: ${named_files.open_state}
+            chain_map: {A: A, B: B, C: C, D: D, E: E, F: F, G: G, H: H}
+          BBBBBBBB:
+            path: ${named_files.closed_state}
+            chain_map: {A: A, B: B, C: C, D: D, E: E, F: F, G: G, H: H}
+    AF2_initial_guess_model2:
+      _type: alphafold2
+      model_id: 2
+      suffix: ptm
+      recycles: 1
+      msa_clusters: 1
+      initial_guess:
+        enabled: true
+        use_initial_prev_pos: true
+        use_template_features: true
+        references:
+          AAAAA:
+            path: ${named_files.open_state}
+            chain_map: {A: A, B: B, C: C, D: D, E: E}
+          BBBBB:
+            path: ${named_files.closed_state}
+            chain_map: {A: A, B: B, C: C, D: D, E: E}
+          AAAAAAAA:
+            path: ${named_files.open_state}
+            chain_map: {A: A, B: B, C: C, D: D, E: E, F: F, G: G, H: H}
+          BBBBBBBB:
+            path: ${named_files.closed_state}
+            chain_map: {A: A, B: B, C: C, D: D, E: E, F: F, G: G, H: H}
+
+loss:
+  loss_terms:
+    open_channel_min_radius:
+      _type: best_channel_min_radius
+      _for: AAAAA
+      frame_source: exact_cyclic
+      hole_radius_file: ${named_files.hole_radius_file}
+      end_radius: 15.0
+    closed_channel_min_radius:
+      _type: best_channel_min_radius
+      _for: BBBBB
+      frame_source: exact_cyclic
+      hole_radius_file: ${named_files.hole_radius_file}
+      end_radius: 15.0
+    open_source_tmscore:
+      _type: tmscore
+      _for: AAAAA
+      template_files:
+        - ${named_files.open_state}
+    closed_source_tmscore:
+      _type: tmscore
+      _for: BBBBB
+      template_files:
+        - ${named_files.closed_state}
+  expression_terms:
+    source_tmscore_score: 0.5 * (AAAAA.open_source_tmscore + BBBBB.closed_source_tmscore)
+    open_radius_10a_score: max(0, min(1, AAAAA.open_channel_min_radius / 10.0))
+    closed_relative_radius_score: >-
+      max(0, min(1,
+      (AAAAA.open_channel_min_radius - BBBBB.closed_channel_min_radius) / 10.0
+      ))
+
+stages:
+  default:
+    oligo: ["AAAAA", "BBBBB"]
+    evaluator: AF2_initial_guess_model1
+    mutation_num: 100%
+    mutators: ["membrane_ligand_mpnn"]
+    weighted_score_expression: >-
+      AAAAA.plddt + BBBBB.plddt + AAAAA.iptm + BBBBB.iptm
+      + 0.5 * open_radius_10a_score + 0.5 * closed_relative_radius_score
+      + source_tmscore_score
+    early_stopping: null
+    acceptance_threshold: null

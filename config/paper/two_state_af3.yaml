@@ -1,0 +1,118 @@
+# @package _global_
+defaults:
+  - /base
+  - _self_
+
+paper_protocol:
+  source: MainPaper Methods, Ligand-associated two-state design; SI, Optimization predictors and final ensemble evaluation
+  representative: last accepted sequence
+  historical_protenix_checkpoint: ???
+  required_input_paths: [paper_protocol.historical_protenix_checkpoint]
+  planned_trajectories_per_ligand: 100
+  author_clarification: 2026-10-09; holo-only refinement maximizes the holo confidence, burial and compactness terms of the first-stage objective.
+  notes:
+    - Protenix predicts apo and holo; -A excludes apo from sequence proposals. The second stage predicts only holo.
+    - Optimization uses all-atom Rg as defined by the Methods compactness descriptor; final ensemble analysis separately uses C-alpha Rg.
+    - The apo compactness penalty and entrance condition use A.binder_rog, never the mean over apo and holo.
+    - two-state-af3-archived retains the different frozen-cohort settings and is not changed by this manuscript recipe.
+    - Supply the local protenix_base_default_v0.5.0.pt path in paper_protocol.historical_protenix_checkpoint; this is distinct from Protenix v2 final evaluation.
+task_name: ???
+out_dir: ???
+repeats: 1
+steps: 25
+initial_temperature: 0.03
+use_metropolis_acceptance: false
+enable_pyrosetta: true
+allow_mmcif_pdb_fallback: true
+skip_complex_poses: false
+exclude_AA: [C]
+seqs:
+  A: 120-140
+  B: ???
+types:
+  A: protein
+  B: ???
+homologies:
+  A: null
+  B: null
+initializer:
+  mode: random
+mutator:
+  mutator_terms:
+    ligandmpnn:
+      _type: LigandMPNN
+      model_type: ligand_mpnn
+      temperature: 0.3
+      chains_to_design: A
+evaluator:
+  alphafold3:
+    num_recycles: 10
+    num_samples: 5
+  protenix:
+    model_name: protenix_base_default_v0.5.0
+    load_checkpoint_path: ${paper_protocol.historical_protenix_checkpoint}
+    use_msa: false
+    use_template: false
+    model:
+      N_cycle: 4
+    sample_diffusion:
+      N_step: 200
+      N_sample: 5
+  evaluator_terms:
+    historical_protenix:
+      _type: Protenix
+      use_constraints: false
+    holo_predictor:
+      _type: Alphafold3
+      flash_attention_implementation: xla
+loss:
+  loss_terms:
+    apo_bound_tmscore:
+      _type: binder_pair_tmscore
+      oligo_a: A
+      oligo_b: AB
+      binder_chain: A
+    binder_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    ligand_burial:
+      _type: ligand_delta_sasa_fraction
+      _for: AB
+      ligand_targets: [B]
+    binder_x_fraction:
+      _type: sequence_residue_fraction
+      included_protomers: A
+      residues: X
+  expression_terms:
+    bound_confidence: (AB.plddt + AB.ptm + AB.iptm) / 3
+    state_divergence: 1 - apo_bound_tmscore
+    ideal_rog: 2.2 * A_length ** 0.38
+    apo_rog_ratio: A.binder_rog / ideal_rog
+    bound_rog_ratio: AB.binder_rog / ideal_rog
+    stage_entry_ready: state_divergence >= 0.30 and state_divergence <= 0.60 and apo_rog_ratio <= 1.30
+    sweet_divergence_penalty: max(0, 0.30 - state_divergence) + max(0, state_divergence - 0.50)
+    apo_rog_penalty: 0.0875 * sigmoid((apo_rog_ratio - 1.00) / 0.06)
+    bound_rog_penalty: 0.45 * sigmoid((bound_rog_ratio - 1.10) / 0.08)
+    final_bound_score: bound_confidence + 0.35 * AB.ligand_burial - bound_rog_penalty
+stages:
+  default:
+    oligo: [-A, AB]
+    evaluator: historical_protenix
+    mutators: [ligandmpnn]
+    mutator_weights: [1.0]
+    mutation_num: 100%
+    weighted_score_expression: >-
+      final_bound_score - 2.00 * sweet_divergence_penalty
+      - apo_rog_penalty - 0.50 * binder_x_fraction
+    acceptance_threshold: null
+    early_stopping: null
+  af3_refine:
+    _entrance: stage_entry_ready
+    oligo: [AB]
+    evaluator: holo_predictor
+    mutators: [ligandmpnn]
+    mutator_weights: [1.0]
+    mutation_num: 100%
+    weighted_score_expression: final_bound_score
+    acceptance_threshold: null
+    early_stopping: null

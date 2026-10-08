@@ -1,0 +1,39 @@
+# @package _global_
+defaults:
+- /paper/protein_binder_af3
+- _self_
+evaluator:
+  evaluator_terms:
+    Protenix:
+      _type: Protenix
+  protenix:
+    model_name: protenix_base_default_v0.5.0
+    load_checkpoint_path: null
+    use_template: false
+    model:
+      N_cycle: 4
+    sample_diffusion:
+      N_sample: 5
+      N_step: 200
+stages:
+  default:
+    evaluator: Protenix
+  complex:
+    evaluator: Protenix
+paper_protocol:
+  source:
+  - MainPaper 93-100
+  - 17_protein_native.tar.gz::native/protenix_af3/cbagoc_6qzk_001_run_568445_2/config.yaml
+  representative: complex_max_iptm
+  notes:
+  - Historical Protenix v0.5.0, four cycles, 200 diffusion steps and five samples.
+  - Supply the v0.5.0 checkpoint explicitly; a v2 checkpoint is not a replacement.
+  required_input_paths:
+  - homologies.B
+  - evaluator.protenix.load_checkpoint_path
+task_name: protein_binder_protenix
+mutator:
+  DPLM:
+    model_name: airkingbd/dplm_150m
+    max_iter: 500
+    num_samples: 10

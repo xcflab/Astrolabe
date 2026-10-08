@@ -1,0 +1,29 @@
+defaults:
+  - benchmark_ligand_omni_optimize_refine
+  - _self_
+
+# Conditional AutoDock arm for ligand omni refinement.
+# This is paired with `benchmark_ligand_omni_optimize_refine` as the no-dock
+# arm; it does not replace the baseline config.
+
+predocker:
+  predocker_terms:
+    autodock_vina_box:
+      _type: autodock_vina
+      _condition: ligand_burial < 0.7
+      binding_site_strategy: residue
+      binding_site_coverage: 90
+      binding_site_padding: 1.0
+      rank_vina_order: false
+      rank_buried_fraction: true
+      rank_alpha_shape_occupancy: false
+      rank_alpha_shape_retry_attempts: 0
+
+mutator:
+  mutator_terms:
+    LigandMPNN_pocket_unsat_repair:
+      predocker:
+        - autodock_vina_box
+    LigandMPNN_quality_repair:
+      predocker:
+        - autodock_vina_box

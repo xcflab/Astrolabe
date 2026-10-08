@@ -1,0 +1,51 @@
+defaults:
+  - base
+  - _self_
+
+# Monomer template.
+# Intended usage:
+#   - `gh run --task monomer --overlay /path/to/overlay.yaml`
+
+task_name: monomer
+repeats: 1
+
+out_dir: /tmp
+seqs:
+  A: "80-120"
+  # Target sequence (usually fixed, prefix with '+').
+
+
+steps: 100
+initializer:
+  mode: dplm
+initial_temperature: 0.03
+mutator:
+  # NOTE: `mutator.names` is deprecated/ignored; stages reference aliases under `mutator_terms`.
+  # Keep it for backward compatibility only.
+  selector_expression: null
+  mutator_terms:
+    dplm:
+      _type: DPLM
+      prefetch_invalidate_on_sequence_change: false
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+
+loss:
+  loss_terms:
+    binder_rog:
+      _type: single_chain_rog
+      included_protomers: A
+
+  expression_terms:
+    globin_rog: 0.395 * (A_length ** 0.6) + 7.257
+
+stages:
+  default:
+    oligo: ["A"]
+    evaluator: Alphafold3
+    mutators: ["dplm"]
+    mutation_num: 100%
+    weighted_score_expression: "-0.4 * (1 / (1 + exp(-((binder_rog - globin_rog) / 5.0))))"
+    early_stopping: null

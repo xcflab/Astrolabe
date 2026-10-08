@@ -1,0 +1,57 @@
+defaults:
+  - base
+  - _self_
+
+# Heterooligomer refine template (v1).
+# Shared core segments are tied across protomers via segment aliases; interface segments are unique per protomer.
+
+task_name: ???
+out_dir: ???
+repeats: 1
+
+seqs:
+  A: ???
+  B: ???
+
+homologies:
+  A: null
+  B: null
+
+steps: 20
+initial_temperature: 0.01
+
+mutator:
+  names: ["ligand_mpnn", "dplm"]
+  selector_expression: null
+  mutator_terms:
+    ligand_mpnn:
+      _type: LigandMPNN
+      model_type: protein_mpnn
+      temperature: 0.3
+    dplm:
+      _type: DPLM
+      temperature: 1.0
+
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+    Alphafold2:
+      _type: alphafold2
+
+loss:
+  loss_terms:
+    protomer_rmsd_raw:
+      _type: protomer_rmsd_raw
+    protomer_rmsd_norm:
+      _type: protomer_rmsd_norm
+
+stages:
+  default:
+    oligo: ["AB"]
+    evaluator: Alphafold3
+    mutation_num: 100%
+    mutators: ["ligand_mpnn", "dplm"]
+    mutator_weights: [1.0, 0.2]
+    weighted_score_expression: iptm + ptm + plddt + protomer_rmsd_norm
+    early_stopping: null

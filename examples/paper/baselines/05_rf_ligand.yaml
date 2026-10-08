@@ -1,0 +1,10 @@
+# Use with rfaa or rfdiffusion2. Supply your original ligand-containing PDB.
+input_pdb: ../../../data/baselines/fad.pdb
+ligand_code: FAD
+length: 140-180
+checkpoint: ../../../data/baselines/rf_ligand_checkpoint.pt
+ligandmpnn:
+  tool_dir: ../../../vendor/LigandMPNN
+  python: /path/to/ligandmpnn/environment/bin/python
+  checkpoint: ../../../data/baselines/ligandmpnn_v_32_010_25.pt
+  chains_to_design: A

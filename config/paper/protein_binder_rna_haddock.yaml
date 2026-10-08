@@ -1,0 +1,11 @@
+# @package _global_
+defaults:
+- /paper/protein_binder_rna
+- _self_
+task_name: protein_binder_rna_haddock
+paper_protocol:
+  variant: manuscript
+  notes:
+  - Explicit HADDOCK alias of protein_binder_rna; both use the MainPaper 205-206 DPLM initialization and conditional
+    contact generation.
+  - Use protein_binder_rna_archived for the historical cohort without HADDOCK.

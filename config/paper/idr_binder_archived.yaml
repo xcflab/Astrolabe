@@ -1,0 +1,21 @@
+# @package _global_
+defaults:
+- /paper/idr_binder
+- _self_
+task_name: idr_binder_archived
+steps: 100
+paper_protocol:
+  source:
+  - 27_cre_idr_native.tar.gz::idr/Astrolabe/gh.hif1a_ctad_776_826.unconditioned.001/config.yaml
+  notes:
+  - Recovered 100-state cohort, distinct from the manuscript 50-state description.
+  representative: max_objective
+  required_input_paths:
+  - homologies.B
+  - evaluator.protenix.load_checkpoint_path
+mutator:
+  mutator_terms:
+    LigandMPNN_itf:
+      fallback_to_all_mutable_if_selector_empty: true
+    LigandMPNN_noitf:
+      fallback_to_all_mutable_if_selector_empty: true

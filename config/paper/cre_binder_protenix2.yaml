@@ -1,0 +1,32 @@
+# @package _global_
+defaults:
+- /paper/cre_binder_af3
+- _self_
+evaluator:
+  evaluator_terms:
+    Protenix:
+      _type: Protenix
+  protenix:
+    model_name: protenix-v2
+    use_template: true
+    load_checkpoint_path: null
+    model:
+      N_cycle: 10
+    sample_diffusion:
+      N_sample: 1
+      N_step: 200
+    use_msa: false
+stages:
+  default:
+    evaluator: Protenix
+  complex:
+    evaluator: Protenix
+paper_protocol:
+  source:
+  - SI 40
+  planned_runs: 100
+  required_input_paths:
+  - homologies.B
+  - evaluator.protenix.load_checkpoint_path
+  notes:
+  - Protenix v2 checkpoint must be selected explicitly; legacy Protenix weights are not interchangeable.

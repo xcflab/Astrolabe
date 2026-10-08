@@ -1,0 +1,146 @@
+defaults:
+  - base
+  - _self_
+
+# Ligand/protein omni refinement template.
+# Intended usage:
+#   gh run --task benchmark_ligand_omni_optimize_refine --overlay overlay.yaml
+# Overlay must set task_name, out_dir, seqs.A, seqs.B, and types.B.
+# The numeric weights below are starting candidates for refinement batches, not
+# ligand-specific final parameters.
+
+task_name: ???
+repeats: 1
+
+out_dir: ???
+seqs:
+  A: ???
+  B: ???
+types:
+  B: ???
+ligand_resnames: {}
+
+homologies:
+  A: null
+
+steps: 20
+initial_temperature: 0.02
+enable_pyrosetta: true
+allow_mmcif_pdb_fallback: true
+use_metropolis_acceptance: true
+
+mutator:
+  selector_expression: null
+  stack_pre_update: false
+  stack_pre_update_max_entropy: null
+  mutator_terms:
+    LigandMPNN_pocket_unsat_repair:
+      _type: LigandMPNN
+      temperature: 0.30
+      predocker: null
+      position_selector: >-
+        ligand_unsat(ligand_targets=['B'], distance_min=3.5, distance_max=7.5)
+        or ligand_contact(ligand_targets=['B'], distance_min=4.5, distance_max=7.0)
+    LigandMPNN_quality_repair:
+      _type: LigandMPNN
+      model_type: soluble_mpnn
+      temperature: 0.22
+      predocker: null
+      position_selector: >-
+        (buried_unsat(threshold=1.0, ignore_surface_res=True, method='buried_polar_proxy')
+        or cavity_neighbor(holes_threshold=40.0, neighbor_distance=5.0, method='packstat'))
+        and not ligand_contact(ligand_targets=['B'], distance_max=4.5)
+    LigandMPNN_surface_cleanup:
+      _type: LigandMPNN
+      model_type: soluble_mpnn
+      temperature: 0.30
+      predocker: null
+      position_selector: >-
+        (surface_high_sap(threshold=2.5)
+        or (surface() and not ligand_contact(ligand_targets=['B'], distance_max=6.0)))
+        and not ligand_contact(ligand_targets=['B'], distance_max=4.5)
+
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+    Protenix:
+      _type: Protenix
+    chai1:
+      _type: chai1
+
+post_eval_hooks:
+  rosetta_minimize:
+    enabled: true
+    mode: repack
+    only_if_energy_above: null
+    relax_repeats: 3
+    cartesian: false
+
+loss:
+  loss_terms:
+    A_single_chain_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    A_loop_frac:
+      _type: secondary_structure_fraction
+      included_protomers: A
+      sse_type: L
+    sap_score:
+      _type: sap_score
+      included_protomers: A
+    hbonds:
+      _type: ligand_protein_hbond
+      ligand_targets:
+        - B
+      saturation_constant: 4.0
+    ligand_burial:
+      _type: ligand_delta_sasa_fraction
+      ligand_targets:
+        - B
+    holes:
+      _type: ligand_local_holes
+      ligand_targets:
+        - B
+      neighbor_distance: 8.0
+      saturation_constant: 10.0
+  expression_terms:
+    A_globular_target: >-
+      0.395 * (A_length ** 0.6) + 7.257
+    binder_rg_ratio: >-
+      A_single_chain_rog / max(2.2 * (A_length ** 0.38), 1)
+    sap_per_residue: >-
+      sap_score / max(A_length, 1)
+    confidence_quality: >-
+      0.58*iptm + 0.18*ptm + 0.24*plddt
+    pocket_quality: >-
+      0.38*ligand_burial + 0.34*hbonds + 0.28*(1 - holes)
+    protein_quality_penalty: >-
+      0.15*sigmoid((binder_rg_ratio - 1.20) / 0.08)
+      + 0.12*sigmoid((A_loop_frac - 0.32) / 0.08)
+      + 0.13*sigmoid((sap_per_residue - 0.75) / 0.18)
+    pocket_quality_penalty: >-
+      0.12*sigmoid((0.72 - ligand_burial) / 0.12)
+      + 0.10*holes
+      + 0.08*sigmoid((0.30 - hbonds) / 0.10)
+
+stages:
+  default:
+    oligo:
+      - AB
+    evaluator: Alphafold3
+    mutation_num: 50%
+    acceptance_threshold: null
+    acceptance_gate: null
+    early_stopping: null
+    mutators:
+      - LigandMPNN_pocket_unsat_repair
+      - LigandMPNN_quality_repair
+      - LigandMPNN_surface_cleanup
+    mutator_weights:
+      - 0.35
+      - 0.45
+      - 0.20
+    weighted_score_expression: >-
+      0.34*confidence_quality + 0.36*pocket_quality
+      - 0.18*protein_quality_penalty - 0.12*pocket_quality_penalty

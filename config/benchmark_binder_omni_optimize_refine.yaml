@@ -1,0 +1,177 @@
+defaults:
+  - base
+  - _self_
+
+# Reference-locked binder refinement template.
+#
+# Intended usage:
+#   gh run --task benchmark_binder_omni_optimize_refine --overlay overlay.yaml
+# Overlay must set task_name, out_dir, seqs, homologies.B, named_files.structure_start_ref,
+# and structure_start.references for the concrete input complex.
+
+task_name: ???
+out_dir: ???
+repeats: 1
+steps: 20
+initial_temperature: 0.02
+enable_pyrosetta: true
+allow_mmcif_pdb_fallback: true
+use_metropolis_acceptance: true
+
+seqs:
+  A: ???
+  B: ???
+
+homologies:
+  B: ???
+
+named_files: null
+
+structure_start:
+  mode: soft_select
+  gate_timing:
+    - step0
+    - pre_accept
+  aggregate: min
+  references: ???
+  reference_tmscore:
+    enabled: true
+    threshold: 0.87
+  hotspot_gate:
+    enabled: false
+    expression: pair_hotspot_support
+    floor: 0.25
+    reference_fraction: 0.8
+
+mutator:
+  selector_expression: null
+  stack_pre_update: true
+  stack_pre_update_max_entropy: 0.35
+  mutator_terms:
+    LigandMPNN_interface_polish:
+      _type: LigandMPNN
+      temperature: 0.30
+      position_selector: >-
+        interface(interface_distance=8.0)
+        and not surface_high_sap(threshold=2.5)
+        and not buried_unsat(threshold=1.0, ignore_surface_res=True)
+        and not cavity_neighbor(holes_threshold=40.0, neighbor_distance=5.0)
+    LigandMPNN_surface_cleanup:
+      _type: LigandMPNN
+      model_type: soluble_mpnn
+      temperature: 0.30
+      position_selector: >-
+        surface_high_sap(threshold=2.5)
+        or (surface() and not interface(interface_distance=8.0))
+    LigandMPNN_quality_repair:
+      _type: LigandMPNN
+      model_type: soluble_mpnn
+      temperature: 0.25
+      position_selector: >-
+        buried_unsat(threshold=1.0, ignore_surface_res=True)
+        or cavity_neighbor(holes_threshold=40.0, neighbor_distance=5.0)
+
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+    Protenix:
+      _type: Protenix
+    chai1:
+      _type: chai1
+
+post_eval_hooks:
+  rosetta_minimize:
+    enabled: true
+    mode: repack
+    only_if_energy_above: null
+    relax_repeats: 3
+    cartesian: false
+
+loss:
+  loss_terms:
+    sap_score:
+      _type: sap_score
+      included_protomers: A
+    binder_ptm:
+      _type: binder_ptm
+      binder_chain: A
+    ipae_min:
+      _type: pae_min
+      chain_a: A
+      chain_b: B
+    ipsae:
+      _type: ipsae
+      chain_a: A
+      chain_b: B
+    interface_sc:
+      _type: bindcraft_interface_sc
+      chain_a: B
+      chain_b: A
+    interface_dg:
+      _type: bindcraft_interface_dG
+      chain_a: B
+      chain_b: A
+    interface_unsat:
+      _type: bindcraft_interface_delta_unsat_hbonds
+      chain_a: B
+      chain_b: A
+    interface_hbonds:
+      _type: bindcraft_interface_interface_hbonds
+      chain_a: B
+      chain_b: A
+    interface_dSASA:
+      _type: bindcraft_interface_dSASA
+      chain_a: B
+      chain_b: A
+    binder_energy:
+      _type: bindcraft_binder_score
+      chain_a: B
+      chain_b: A
+    surface_hydrophobicity:
+      _type: bindcraft_surface_hydrophobicity
+      chain_a: B
+      chain_b: A
+  expression_terms:
+    sap_per_residue: >-
+      sap_score / max(A_length, 1)
+    binder_energy_per_residue: >-
+      binder_energy / max(A_length, 1)
+    quality_confidence: >-
+      0.30*iptm + 0.20*ptm + 0.25*plddt + 0.25*binder_ptm
+    interface_geometry: >-
+      0.30*interface_sc + 0.30*ipsae + 0.15*max(0, min(1, (10 - ipae_min) / 10))
+      + 0.15*sigmoid((interface_dSASA - 900) / 250)
+      + 0.10*sigmoid((interface_hbonds - 2) / 2)
+    bindcraft_energy_gate: >-
+      0.06*sigmoid((2200 - interface_dg) / 600)
+      + 0.04*sigmoid((1.50 - binder_energy_per_residue) / 0.80)
+    stability_penalty: >-
+      0.14*sigmoid((sap_per_residue - 0.75) / 0.18)
+      + 0.08*sigmoid((surface_hydrophobicity - 0.42) / 0.10)
+      + 0.12*sigmoid((interface_unsat - 16) / 6)
+      + 0.06*sigmoid((binder_energy_per_residue - 1.50) / 0.80)
+    reference_penalty: >-
+      0.40*(max(0, min(1, (reference_tmscore_threshold - reference_tmscore) / 0.10)) ** 2)
+
+stages:
+  default:
+    oligo:
+      - AB
+    evaluator: Alphafold3
+    mutation_num: 50%
+    acceptance_threshold: null
+    acceptance_gate: null
+    early_stopping: null
+    mutators:
+      - LigandMPNN_quality_repair
+      - LigandMPNN_surface_cleanup
+      - LigandMPNN_interface_polish
+    mutator_weights:
+      - 0.45
+      - 0.35
+      - 0.20
+    weighted_score_expression: >-
+      0.40*quality_confidence + 0.40*interface_geometry
+      + 0.20*bindcraft_energy_gate - 0.40*stability_penalty
+      - reference_penalty

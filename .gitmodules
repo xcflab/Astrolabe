@@ -1,0 +1,108 @@
+[submodule "vendor/alphafold3"]
+	path = vendor/alphafold3
+	url = https://github.com/Molaison/alphafold3.git
+	ignore = dirty
+[submodule "vendor/alphafold2"]
+	path = vendor/alphafold2
+	url = https://github.com/google-deepmind/alphafold.git
+	ignore = dirty
+[submodule "vendor/boltz"]
+	path = vendor/boltz
+	url = https://github.com/jwohlwend/boltz.git
+	ignore = dirty
+[submodule "vendor/esm2"]
+	path = vendor/esm2
+	url = https://github.com/Molaison/gh-esm2.git
+	ignore = dirty
+	branch = gh-package-rename
+[submodule "vendor/chai_lab"]
+	path = vendor/chai_lab
+	url = https://github.com/chaidiscovery/chai-lab.git
+	ignore = dirty
+[submodule "vendor/dplm"]
+	path = vendor/dplm
+	url = https://github.com/Molaison/dplm.git
+[submodule "vendor/openfold_esm2"]
+	path = vendor/openfold_esm2
+	url = https://github.com/Molaison/openfold.git
+	branch = gh-esmfold-cpu-fallback
+	ignore = untracked
+[submodule "vendor/protenix"]
+	path = vendor/protenix
+	url = https://github.com/bytedance/Protenix.git
+	ignore = untracked
+[submodule "vendor/esm3"]
+	path = vendor/esm3
+	url = https://github.com/Molaison/gh-esm3.git
+	ignore = dirty
+	branch = gh-package-rename
+[submodule "vendor/rhofold"]
+	path = vendor/rhofold
+	url = https://github.com/ml4bio/RhoFold.git
+[submodule "vendor/na_mpnn"]
+	path = vendor/na_mpnn
+	url = https://github.com/baker-laboratory/NA-MPNN.git
+	ignore = untracked
+[submodule "vendor/rhodesign"]
+	path = vendor/rhodesign
+	url = https://github.com/ml4bio/RhoDesign.git
+[submodule "vendor/rpxdock"]
+	path = vendor/rpxdock
+	url = https://github.com/Molaison/gh-rpxdock.git
+	ignore = dirty
+	branch = gh-cyclic-executor-fixes
+[submodule "vendor/willutil"]
+	path = vendor/willutil
+	url = https://github.com/willsheffler/willutil.git
+[submodule "vendor/opendde"]
+	path = vendor/opendde
+	url = https://github.com/aurekaresearch/OpenDDE.git
+[submodule "vendor/biohub_esm"]
+	path = vendor/biohub_esm
+	url = https://github.com/Biohub/esm.git
+[submodule "vendor/biohub_transformers"]
+	path = vendor/biohub_transformers
+	url = https://github.com/Biohub/transformers.git
+[submodule "vendor/surfdesign"]
+	path = vendor/surfdesign
+	url = https://github.com/smiles724/SurfDesign.git
+[submodule "vendor/surfpro"]
+	path = vendor/surfpro
+	url = https://github.com/JocelynSong/SurfPro.git
+[submodule "vendor/sru"]
+	path = vendor/sru
+	url = https://github.com/asappresearch/sru.git
+	branch = 3.0.0-dev
+[submodule "vendor/protein_sequence_models"]
+	path = vendor/protein_sequence_models
+	url = https://github.com/microsoft/protein-sequence-models.git
+[submodule "vendor/fakeroot"]
+	path = vendor/fakeroot
+	url = https://salsa.debian.org/clint/fakeroot.git
+[submodule "vendor/dssp-source"]
+	path = vendor/dssp-source
+	url = https://github.com/PDB-REDO/dssp.git
+[submodule "vendor/abseil-cpp-source"]
+	path = vendor/abseil-cpp-source
+	url = https://github.com/abseil/abseil-cpp.git
+[submodule "vendor/pybind11-source"]
+	path = vendor/pybind11-source
+	url = https://github.com/pybind/pybind11.git
+[submodule "vendor/pybind11-abseil-source"]
+	path = vendor/pybind11-abseil-source
+	url = https://github.com/pybind/pybind11_abseil.git
+[submodule "vendor/libcifpp-source"]
+	path = vendor/libcifpp-source
+	url = https://github.com/PDB-REDO/libcifpp.git
+[submodule "vendor/libmcfp-source"]
+	path = vendor/libmcfp-source
+	url = https://github.com/mhekkel/libmcfp.git
+[submodule "vendor/eigen-source"]
+	path = vendor/eigen-source
+	url = https://gitlab.com/libeigen/eigen.git
+[submodule "vendor/boost-regex-source"]
+	path = vendor/boost-regex-source
+	url = https://github.com/boostorg/regex.git
+[submodule "vendor/uplifting-biomolecular-modeling"]
+	path = vendor/uplifting-biomolecular-modeling
+	url = https://github.com/anthropics/uplifting-biomolecular-modeling.git

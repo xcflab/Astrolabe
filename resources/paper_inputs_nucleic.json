@@ -1,0 +1,91 @@
+{
+  "archive": "paper_inputs_nucleic.tar.gz",
+  "size_bytes": 1143585,
+  "sha256": "2e9b4551e2e96e7b97588bb140fc49ea43ec4bf227e088d5a808233648d640dd",
+  "files": [
+    {
+      "path": "nucleic/01_1URN_u1a_hairpin_complex.cif",
+      "size_bytes": 476630,
+      "sha256": "1a67298472bcfec6ff13f571251531f4c5ef133c68b5ccb725c1b5f41d683227",
+      "source": "010_rna_aptamer_target_protein/inputs/01_aptamer_reference_structures/01_1URN_u1a_hairpin_complex.cif"
+    },
+    {
+      "path": "nucleic/02_5VOE_factor_xa_11F7t_complex.cif",
+      "size_bytes": 699810,
+      "sha256": "71ce8cb26cec04a7d50113d9881cf273651e51a34e0ab9850528bba2ce314532",
+      "source": "010_rna_aptamer_target_protein/inputs/01_aptamer_reference_structures/02_5VOE_factor_xa_11F7t_complex.cif"
+    },
+    {
+      "path": "nucleic/03_6RTI_psma_A9g_complex.cif",
+      "size_bytes": 906947,
+      "sha256": "d07e43df6da681dbd21681421139c5181a8d138515058bac3d6c9fded6914404",
+      "source": "010_rna_aptamer_target_protein/inputs/01_aptamer_reference_structures/03_6RTI_psma_A9g_complex.cif"
+    },
+    {
+      "path": "nucleic/04_8EPK_factor_ixa_DTRI-177_complex.cif",
+      "size_bytes": 1243384,
+      "sha256": "ebb40f534790692c03f72ea9c6c958f41743eb0a5b816f4132ab964a7b7fdd7f",
+      "source": "010_rna_aptamer_target_protein/inputs/01_aptamer_reference_structures/04_8EPK_factor_ixa_DTRI-177_complex.cif"
+    },
+    {
+      "path": "nucleic/aptamer_target_1urn_u1a.json",
+      "size_bytes": 66634,
+      "sha256": "8392472018443b7c0b916f9fc76dd06dfd78c45cf75ea80cbeedcfd2f102ab16",
+      "source": "010_rna_aptamer_target_protein/scheduler/bench_20260325_nampnn20_r40_t03_chainA_plddt_ptm_iptm/overlays/1urn_u1a.yaml"
+    },
+    {
+      "path": "nucleic/aptamer_target_5voe_fxa.json",
+      "size_bytes": 164095,
+      "sha256": "37dff41e1e348394eae1530f1798d8cf543442cfadd66aeba8756de0012fad4a",
+      "source": "010_rna_aptamer_target_protein/scheduler/bench_20260325_nampnn20_r40_t03_chainA_plddt_ptm_iptm/overlays/5voe_fxa.yaml"
+    },
+    {
+      "path": "nucleic/aptamer_target_6rti_psma.json",
+      "size_bytes": 520900,
+      "sha256": "51f189bc0b2f0e2dda57bd6c23252b58ee3a9354b693a3e0af4d9398f961444b",
+      "source": "010_rna_aptamer_target_protein/scheduler/bench_20260325_nampnn20_r40_t03_chainA_plddt_ptm_iptm/overlays/6rti_psma.yaml"
+    },
+    {
+      "path": "nucleic/aptamer_target_8epk_fixa.json",
+      "size_bytes": 157372,
+      "sha256": "da6ed19882e89be5d6c552c68488199f8d0e0d25d7796ee4d5b42dcd5d457ae3",
+      "source": "010_rna_aptamer_target_protein/scheduler/bench_20260325_nampnn20_r40_t03_chainA_plddt_ptm_iptm/overlays/8epk_fixa.yaml"
+    },
+    {
+      "path": "nucleic/binder_target_1tup.json",
+      "size_bytes": 358,
+      "sha256": "80c426604614c95d3f15c91e385d8f906b8c0175c17b0eb621767a5d7e3b5cc1",
+      "source": "009_rna_target_binder/config/001_nucleic_binder_design/01_protenix_initialization_comparison/02_iptm_only/homology_inputs/1TUP_E_F_tumor_suppressor_p53_complexed_with_dna.json"
+    },
+    {
+      "path": "nucleic/binder_target_3mxh.json",
+      "size_bytes": 18813,
+      "sha256": "c37c33d92bb64c442c413e1d2c0c9e858d92f7f1048f458d17230ddf8e06ee95",
+      "source": "009_rna_target_binder/config/001_nucleic_binder_design/01_protenix_initialization_comparison/03_rna_target_expansion/homology_inputs/3MXH_R_cdigmp_riboswitch.json"
+    },
+    {
+      "path": "nucleic/binder_target_4kqy.json",
+      "size_bytes": 253874,
+      "sha256": "027136df4c248c12e1ebe47f14bbbf3538b611585fa672b07070d178a34e2d19",
+      "source": "009_rna_target_binder/config/001_nucleic_binder_design/01_protenix_initialization_comparison/03_rna_target_expansion/homology_inputs/4KQY_A_sam1_riboswitch.json"
+    },
+    {
+      "path": "nucleic/binder_target_5t83.json",
+      "size_bytes": 45305,
+      "sha256": "a33411e26bedf246a3c0f0b888622c6caa21ebc9dc3877b8e3c90f49f645d0ae",
+      "source": "009_rna_target_binder/config/001_nucleic_binder_design/01_protenix_initialization_comparison/03_rna_target_expansion/homology_inputs/5T83_A_guanidine1_riboswitch.json"
+    },
+    {
+      "path": "nucleic/binder_target_7yuk.json",
+      "size_bytes": 350,
+      "sha256": "e3226e3de6f51aea3aa5a3e2f04263459f1cc4c02e62506b9a930cc8d4139468",
+      "source": "009_rna_target_binder/config/001_nucleic_binder_design/01_protenix_initialization_comparison/02_iptm_only/homology_inputs/7YUK_C_D_complex_structure_of_banp_ben_domain_bound_to_dna.json"
+    },
+    {
+      "path": "nucleic/binder_target_8pmf.json",
+      "size_bytes": 351,
+      "sha256": "dc45d09b4bbc251742bac61f36238efc8e194cc2f3951e433135dac135f1fc2a",
+      "source": "009_rna_target_binder/config/001_nucleic_binder_design/01_protenix_initialization_comparison/02_iptm_only/homology_inputs/8PMF_B_D_transcription_factor_barhl2_bound_to_dna_sequences.json"
+    }
+  ]
+}

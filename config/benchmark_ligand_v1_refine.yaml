@@ -1,0 +1,99 @@
+defaults:
+  - base
+  - _self_
+
+# Ligand refine template (v1).
+# Refines/designs the protein sequence starting from an existing structure-derived sequence.
+# Intended usage:
+#   - Prefer the one-shot CLI:
+#       gh refine ligand --task-name myjob --out-dir outputs --structure complex.cif --protein-chain A --ligand FAD --ligand-type ccd
+#   - Or manual override:
+#       gh run --task benchmark_ligand_v1_refine --overlay overlay.yaml
+
+task_name: ???
+repeats: 1
+enable_pyrosetta: true
+
+out_dir: ???
+seqs:
+  # Protein sequence (mutable) extracted from the input structure via CLI / overlay.
+  A: ???
+  # Ligand identifier (CCD code or SMILES literal depending on types.B).
+  B: ???
+types:
+  # "c" = CCD, "s" = SMILES
+  B: ???
+# Optional Rosetta params name mapping.
+# Example:
+# ligand_resnames:
+#   B: LIG
+ligand_resnames: {}
+
+homologies:
+  # Optional. Either:
+  #   - AF3 JSON: /path/to/af3.json:<chain_id>
+  #   - Or a dict with keys: unpairedMsa/pairedMsa/templates (templates is a list of AF3 template dicts)
+  A: null
+
+steps: 20
+initial_temperature: 0.03
+
+predocker:
+  predocker_terms:
+    alanine_relax:
+      _type: all_alanine
+      _for: A
+    autodock_vina_box:
+      _type: autodock_vina
+      _condition: ligand_burial < 0.7
+      binding_site_strategy: residue
+      binding_site_coverage: 90
+      binding_site_padding: 1.0
+
+mutator:
+  # Required by `astrolabe/argparser.py` (used to build selector mappings).
+  # These are mutator *aliases* (keys under `mutator_terms`) for this template.
+  selector_expression: null
+  mutator_terms:
+    LMPNN_allala_vina:
+      _type: LigandMPNN
+      temperature: 0.5
+      predocker:
+        - autodock_vina_box
+    dplm:
+      _type: DPLM
+      temperature: 1
+
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+
+loss:
+  loss_terms:
+    A_single_chain_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    A_loop_frac:
+      _type: secondary_structure_fraction
+      included_protomers: A
+      sse_type: L
+    hbonds:
+      _type: ligand_protein_hbond
+    ligand_burial:
+      _type: ligand_delta_sasa_fraction
+    holes:
+      _type: ligand_local_holes
+  expression_terms:
+    A_globular_target: 0.395 * (A_length ** 0.6) + 7.257
+
+stages:
+  default:
+    # Always evaluate/design the protein+ligand complex in refine mode.
+    oligo: ["AB"]
+    evaluator: Alphafold3
+    mutation_num: 100%
+    acceptance_threshold: null
+    mutators: ["LMPNN_allala_vina"]
+    mutator_weights: [1.0]
+    weighted_score_expression: iptm + ptm + plddt + ligand_burial - holes

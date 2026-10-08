@@ -1,0 +1,68 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 959eae3..bf67ed5 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -32,6 +32,8 @@ unset(CMAKE_CXX_SCANDEP_SOURCE)
+ 
+ if(EXISTS "${AF3_THIRD_PARTY_DIR}/abseil-cpp/CMakeLists.txt")
+   FetchContent_Declare(abseil-cpp SOURCE_DIR "${AF3_THIRD_PARTY_DIR}/abseil-cpp" EXCLUDE_FROM_ALL)
++elseif(EXISTS "${AF3_THIRD_PARTY_DIR}/abseil-cpp-source/CMakeLists.txt")
++  FetchContent_Declare(abseil-cpp SOURCE_DIR "${AF3_THIRD_PARTY_DIR}/abseil-cpp-source" EXCLUDE_FROM_ALL)
+ else()
+   FetchContent_Declare(
+     abseil-cpp
+@@ -40,8 +42,11 @@ else()
+     EXCLUDE_FROM_ALL)
+ endif()
+ 
+-if(EXISTS "${AF3_THIRD_PARTY_DIR}/pybind11/CMakeLists.txt")
++if(EXISTS "${AF3_THIRD_PARTY_DIR}/pybind11/CMakeLists.txt"
++   AND EXISTS "${AF3_THIRD_PARTY_DIR}/pybind11/include/pybind11/detail/common.h")
+   FetchContent_Declare(pybind11 SOURCE_DIR "${AF3_THIRD_PARTY_DIR}/pybind11" EXCLUDE_FROM_ALL)
++elseif(EXISTS "${AF3_THIRD_PARTY_DIR}/pybind11-source/include/pybind11/detail/common.h")
++  FetchContent_Declare(pybind11 SOURCE_DIR "${AF3_THIRD_PARTY_DIR}/pybind11-source" EXCLUDE_FROM_ALL)
+ else()
+   FetchContent_Declare(
+     pybind11
+@@ -52,6 +57,8 @@ endif()
+ 
+ if(EXISTS "${AF3_THIRD_PARTY_DIR}/pybind11_abseil/CMakeLists.txt")
+   FetchContent_Declare(pybind11_abseil SOURCE_DIR "${AF3_THIRD_PARTY_DIR}/pybind11_abseil" EXCLUDE_FROM_ALL)
++elseif(EXISTS "${AF3_THIRD_PARTY_DIR}/pybind11-abseil-source/CMakeLists.txt")
++  FetchContent_Declare(pybind11_abseil SOURCE_DIR "${AF3_THIRD_PARTY_DIR}/pybind11-abseil-source" EXCLUDE_FROM_ALL)
+ else()
+   FetchContent_Declare(
+     pybind11_abseil
+@@ -64,6 +71,8 @@ if(EXISTS "${AF3_THIRD_PARTY_DIR}/cifpp/CMakeLists.txt")
+   set(AF3_CIFPP_SOURCE_DIR "${AF3_THIRD_PARTY_DIR}/cifpp")
+ elseif(EXISTS "${AF3_THIRD_PARTY_DIR}/libcifpp/CMakeLists.txt")
+   set(AF3_CIFPP_SOURCE_DIR "${AF3_THIRD_PARTY_DIR}/libcifpp")
++elseif(EXISTS "${AF3_THIRD_PARTY_DIR}/libcifpp-source/CMakeLists.txt")
++  set(AF3_CIFPP_SOURCE_DIR "${AF3_THIRD_PARTY_DIR}/libcifpp-source")
+ else()
+   set(AF3_CIFPP_SOURCE_DIR "")
+ endif()
+@@ -82,6 +91,8 @@ endif()
+ 
+ if(EXISTS "${AF3_THIRD_PARTY_DIR}/dssp/CMakeLists.txt")
+   FetchContent_Declare(dssp SOURCE_DIR "${AF3_THIRD_PARTY_DIR}/dssp" EXCLUDE_FROM_ALL)
++elseif(EXISTS "${AF3_THIRD_PARTY_DIR}/dssp-source/CMakeLists.txt")
++  FetchContent_Declare(dssp SOURCE_DIR "${AF3_THIRD_PARTY_DIR}/dssp-source" EXCLUDE_FROM_ALL)
+ else()
+   FetchContent_Declare(
+     dssp
+@@ -90,9 +101,11 @@ else()
+     EXCLUDE_FROM_ALL)
+ endif()
+ 
+-# AlphaFold3 build_data requires libcifpp's installed components.cif, but
+-# libcifpp disables that download when embedded as a subproject by default.
+-set(CIFPP_DOWNLOAD_CCD ON CACHE BOOL "Download libcifpp components.cif required by AlphaFold3" FORCE)
++# AlphaFold3 build_data requires libcifpp's components.cif by default. Container
++# builds may instead inject a pre-generated, gold-standard ccd.pickle.
++if(NOT DEFINED CIFPP_DOWNLOAD_CCD)
++  set(CIFPP_DOWNLOAD_CCD ON CACHE BOOL "Download libcifpp components.cif required by AlphaFold3")
++endif()
+ FetchContent_MakeAvailable(pybind11 abseil-cpp pybind11_abseil cifpp)
+ if(NOT DEFINED CIFPP_SHARE_DIR)
+   if(AF3_CIFPP_SOURCE_DIR AND EXISTS "${AF3_CIFPP_SOURCE_DIR}/rsrc")

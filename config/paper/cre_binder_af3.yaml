@@ -1,0 +1,37 @@
+# @package _global_
+defaults:
+- /paper/protein_binder_af3
+- _self_
+seqs:
+  A: 120-160
+mutator:
+  DPLM:
+    model_name: airkingbd/dplm_650m
+  mutator_terms:
+    dplm:
+      model_name: airkingbd/dplm_650m
+    mpnn:
+      temperature: 0.5
+      _type: LigandMPNN
+stages:
+  complex:
+    weighted_score_expression: iptm + 0.4 * ptm + plddt + 0.2 * interface_sc
+    mutators:
+    - mpnn
+    mutator_weights:
+    - 1.0
+paper_protocol:
+  source:
+  - MainPaper 138-141
+  - SI 37-40
+  - hallucination_cre_recombinase_binder/002_mk_target_flex/config/benchmark_binder_v1.2_cre.yaml
+  representative: complex_max_iptm_plddt
+  notes:
+  - Cre chain B, length 343; split templates cover residues 1-128 and 139-343, empty MSAs. Supply the frozen split-template
+    homology JSON.
+  planned_runs: 300
+  required_input_paths:
+  - homologies.B
+steps: 50
+task_name: cre_binder_af3
+use_metropolis_acceptance: true

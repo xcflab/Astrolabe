@@ -1,0 +1,64 @@
+cases:
+  cyclic_peptide:
+    sequence: ACDEFGHIK
+    cyclization:
+      head_to_tail: true
+    expected:
+      bonded_atom_pairs:
+        - [["A", 1, "N"], ["A", 9, "C"]]
+      cyclic_chain_ids: ["A"]
+      relative_patches: false
+
+  stapled_peptide:
+    sequence: AAAAAAAA
+    cyclization:
+      signal_mode: both
+      bonds:
+        - a: {proto: A, pos: 2, atom: CB}
+          b: {proto: A, pos: 7, atom: CB}
+          order: single
+          target_distance: 1.54
+          offset_window: 1
+    expected:
+      bonded_atom_pairs:
+        - [["A", 2, "CB"], ["A", 7, "CB"]]
+      cyclic_chain_ids: []
+      relative_patches: true
+
+  lactone:
+    sequence: ASAAAADAA
+    cyclization:
+      signal_mode: both
+      bonds:
+        - a: {proto: A, pos: 2, atom: OG, aa: S}
+          b: {proto: A, pos: 7, atom: CG, aa: D}
+          order: single
+          target_distance: 1.36
+          offset_window: 1
+    expected:
+      bonded_atom_pairs:
+        - [["A", 2, "OG"], ["A", 7, "CG"]]
+      cyclic_chain_ids: []
+      relative_patches: true
+
+  thiolactone:
+    sequence: ACAAAAEAA
+    cyclization:
+      signal_mode: both
+      bonds:
+        - a: {proto: A, pos: 2, atom: SG, aa: C}
+          b: {proto: A, pos: 7, atom: CD, aa: E}
+          order: single
+          target_distance: 1.82
+          offset_window: 1
+    expected:
+      bonded_atom_pairs:
+        - [["A", 2, "SG"], ["A", 7, "CD"]]
+      cyclic_chain_ids: []
+      relative_patches: true
+
+  csd_direct_ccd_ligand:
+    ccd_ids: ["MLU"]
+    expected:
+      ligand_ccd_ids: ["MLU"]
+

@@ -1,0 +1,298 @@
+diff --git a/chai_lab/chai1.py b/chai_lab/chai1.py
+index 9170a17..971820c 100644
+--- a/chai_lab/chai1.py
++++ b/chai_lab/chai1.py
+@@ -10,7 +10,7 @@ from collections import Counter
+ from contextlib import contextmanager
+ from dataclasses import dataclass
+ from pathlib import Path
+-from typing import Generator, Sequence
++from typing import Any, Generator, Sequence
+ 
+ import numpy as np
+ import torch
+@@ -74,7 +74,10 @@ from chai_lab.data.features.generators.msa import (
+ from chai_lab.data.features.generators.ref_pos import RefPos
+ from chai_lab.data.features.generators.relative_chain import RelativeChain
+ from chai_lab.data.features.generators.relative_entity import RelativeEntity
+-from chai_lab.data.features.generators.relative_sep import RelativeSequenceSeparation
++from chai_lab.data.features.generators.relative_sep import (
++    RelativeSequenceSeparation,
++    SMALL_SEP_BINS,
++)
+ from chai_lab.data.features.generators.relative_token import RelativeTokenSeparation
+ from chai_lab.data.features.generators.residue_type import ResidueType
+ from chai_lab.data.features.generators.structure_metadata import (
+@@ -95,11 +98,11 @@ from chai_lab.data.features.generators.token_dist_restraint import (
+ from chai_lab.data.features.generators.token_pair_pocket_restraint import (
+     TokenPairPocketRestraint,
+ )
+-from chai_lab.data.io.cif_utils import get_chain_letter, save_to_cif
++from chai_lab.data.io.cif_utils import _CHAIN_VOCAB, get_chain_letter, save_to_cif
+ from chai_lab.data.parsing.restraints import parse_pairwise_table
+ from chai_lab.data.parsing.structure.entity_type import EntityType
+ from chai_lab.model.diffusion_schedules import InferenceNoiseSchedule
+-from chai_lab.model.utils import center_random_augmentation
++from chai_lab.model.utils import center_random_augmentation, get_asym_id_from_subchain_id
+ from chai_lab.ranking.frames import get_frames_and_mask
+ from chai_lab.ranking.rank import SampleRanking, get_scores, rank
+ from chai_lab.utils.paths import chai1_component
+@@ -506,6 +509,8 @@ def run_inference(
+     msa_server_url: str = "https://api.colabfold.com",
+     msa_directory: Path | None = None,
+     constraint_path: Path | None = None,
++    cyclic_subchains: list[str] | tuple[str, ...] | None = None,
++    cyclic_relative_patches: list[dict[str, Any]] | tuple[dict[str, Any], ...] | None = None,
+     use_templates_server: bool = False,
+     template_hits_path: Path | None = None,
+     # Parameters controlling how we do inference
+@@ -559,6 +564,8 @@ def run_inference(
+                 if num_trunk_samples > 1
+                 else output_dir
+             ),
++            cyclic_subchains=cyclic_subchains,
++            cyclic_relative_patches=cyclic_relative_patches,
+             num_trunk_recycles=num_trunk_recycles,
+             num_diffn_timesteps=num_diffn_timesteps,
+             num_diffn_samples=num_diffn_samples,
+@@ -576,11 +583,86 @@ def _bin_centers(min_bin: float, max_bin: float, no_bins: int) -> Tensor:
+     return torch.linspace(min_bin, max_bin, 2 * no_bins + 1)[1::2]
+ 
+ 
++def _apply_cyclic_relative_separation(
++    batch: dict[str, Any],
++    cyclic_subchains: list[str] | tuple[str, ...] | None,
++    cyclic_relative_patches: list[dict[str, Any]] | tuple[dict[str, Any], ...] | None = None,
++) -> None:
++    if not cyclic_subchains and not cyclic_relative_patches:
++        return
++
++    rel_sep_feat = batch["features"].get("RelativeSequenceSeparation")
++    if rel_sep_feat is None:
++        return
++
++    token_asym_id = batch["inputs"]["token_asym_id"][0].long()
++    token_exists = batch["inputs"]["token_exists_mask"][0].bool()
++    token_subchain_id = batch["inputs"]["subchain_id"][0]
++    rel_sep_data = rel_sep_feat[..., 0]
++    sep_bins = torch.tensor(
++        SMALL_SEP_BINS, device=rel_sep_data.device, dtype=torch.float32
++    )
++
++    cyclic_asym_ids: list[int] = []
++    for subchain_id in cyclic_subchains or ():
++        asym_id = get_asym_id_from_subchain_id(
++            subchain_id=str(subchain_id),
++            source_pdb_chain_id=token_subchain_id,
++            token_asym_id=token_asym_id,
++        )
++        if asym_id not in cyclic_asym_ids:
++            cyclic_asym_ids.append(int(asym_id))
++
++    for asym_id in cyclic_asym_ids:
++        chain_mask = (token_asym_id == asym_id) & token_exists
++        indices = torch.where(chain_mask)[0]
++        length = int(indices.numel())
++        if length <= 2:
++            continue
++
++        local = torch.arange(length, device=rel_sep_data.device, dtype=torch.int64)
++        wrapped = local[:, None] - local[None, :]
++        half = length // 2
++        wrapped = torch.where(wrapped > half, wrapped - length, wrapped)
++        wrapped = torch.where(wrapped < -half, wrapped + length, wrapped)
++        encoded = torch.searchsorted(sep_bins, wrapped.float() + 1e-4).to(
++            rel_sep_data.dtype
++        )
++        rel_sep_data[0, indices[:, None], indices[None, :]] = encoded
++
++    if not cyclic_relative_patches:
++        return
++
++    for patch in cyclic_relative_patches:
++        chain_id = str(patch["chain_id"])
++        asym_id = get_asym_id_from_subchain_id(
++            subchain_id=chain_id,
++            source_pdb_chain_id=token_subchain_id,
++            token_asym_id=token_asym_id,
++        )
++        for residue_i, residue_j, patch_offset in patch.get("offsets", ()):
++            pair_mask = (
++                (token_asym_id == int(asym_id))[:, None]
++                & (token_asym_id == int(asym_id))[None, :]
++                & token_exists[:, None]
++                & token_exists[None, :]
++                & (batch["inputs"]["token_residue_index"][0] == int(residue_i) - 1)[:, None]
++                & (batch["inputs"]["token_residue_index"][0] == int(residue_j) - 1)[None, :]
++            )
++            encoded = torch.searchsorted(
++                sep_bins,
++                torch.tensor(float(patch_offset), device=rel_sep_data.device) + 1e-4,
++            ).to(rel_sep_data.dtype)
++            rel_sep_data[0] = torch.where(pair_mask, encoded, rel_sep_data[0])
++
++
+ @torch.no_grad()
+ def run_folding_on_context(
+     feature_context: AllAtomFeatureContext,
+     *,
+     output_dir: Path,
++    cyclic_subchains: list[str] | tuple[str, ...] | None = None,
++    cyclic_relative_patches: list[dict[str, Any]] | tuple[dict[str, Any], ...] | None = None,
+     # expose some params for easy tweaking
+     recycle_msa_subsample: int = 0,
+     num_trunk_recycles: int = 3,
+@@ -625,10 +707,10 @@ def run_folding_on_context(
+         assert len(set(entity_names)) == len(
+             entity_names
+         ), f"Using entity names for cif chains, but got duplicates: {entity_names}"
+-        # assert all(e in _CHAIN_VOCAB for e in entity_names), (
+-        #     "Using entity names for cif chains, but got invalid names "
+-        #     f"{entity_names}; must be in {_CHAIN_VOCAB}"
+-        # )
++        assert all(e in _CHAIN_VOCAB for e in entity_names), (
++            "Using entity names for cif chains, but got invalid names "
++            f"{entity_names}; must be in {_CHAIN_VOCAB}"
++        )
+ 
+     ##
+     ## Prepare batch
+@@ -644,6 +726,11 @@ def run_folding_on_context(
+     feature_contexts = [feature_context]
+     batch_size = len(feature_contexts)
+     batch = collator(feature_contexts)
++    _apply_cyclic_relative_separation(
++        batch,
++        cyclic_subchains,
++        cyclic_relative_patches=cyclic_relative_patches,
++    )
+ 
+     if not low_memory:
+         batch = move_data_to_device(batch, device=device)
+@@ -711,6 +798,12 @@ def run_folding_on_context(
+             crop_size=model_size,
+             input=bond_ft,
+         ).chunk(2, dim=-1)
++    if trunk_bond_feat.dtype != token_pair_input_feats.dtype:
++        trunk_bond_feat = trunk_bond_feat.to(dtype=token_pair_input_feats.dtype)
++    if structure_bond_feat.dtype != token_pair_structure_input_feats.dtype:
++        structure_bond_feat = structure_bond_feat.to(
++            dtype=token_pair_structure_input_feats.dtype
++        )
+     token_pair_input_feats += trunk_bond_feat
+     token_pair_structure_input_feats += structure_bond_feat
+ 
+diff --git a/chai_lab/data/dataset/inference_dataset.py b/chai_lab/data/dataset/inference_dataset.py
+index 7db1fad..094f95e 100644
+--- a/chai_lab/data/dataset/inference_dataset.py
++++ b/chai_lab/data/dataset/inference_dataset.py
+@@ -115,7 +115,7 @@ def raw_inputs_to_entitites_data(
+                 )
+                 assert (
+                     parsed_sequence is not None
+-                ), f"incorrect FASTA: {input.sequence=} "
++                ), f"incorrect FASTA: {parsed_sequence=} "
+                 expanded_sequence = [
+                     get_residue_name(r, entity_type=entity_type) if len(r) == 1 else r
+                     for r in parsed_sequence
+diff --git a/chai_lab/data/parsing/input_validation.py b/chai_lab/data/parsing/input_validation.py
+index 6c537d6..c1de044 100644
+--- a/chai_lab/data/parsing/input_validation.py
++++ b/chai_lab/data/parsing/input_validation.py
+@@ -20,7 +20,7 @@ def constituents_of_modified_fasta(x: str) -> list[str] | None:
+     """
+     x = x.strip().upper()
+     # it is a bit strange that digits are here, but [NH2] was in one protein
+-    allowed_chars = ascii_letters + "()[]" + string.digits
++    allowed_chars = ascii_letters + "()" + string.digits
+     if not all(letter in allowed_chars for letter in x):
+         return None
+ 
+@@ -28,11 +28,11 @@ def constituents_of_modified_fasta(x: str) -> list[str] | None:
+ 
+     constituents = []
+     for letter in x:
+-        if letter == "(" or letter == "[":
++        if letter == "(":
+             if current_modified is not None:
+                 return None  # double open bracket
+             current_modified = ""
+-        elif letter == ")" or letter == "]":
++        elif letter == ")":
+             if current_modified is None:
+                 return None  # closed without opening
+             if len(current_modified) <= 1:
+diff --git a/chai_lab/data/parsing/structure/all_atom_entity_data.py b/chai_lab/data/parsing/structure/all_atom_entity_data.py
+index bc6b5ce..51ed93b 100644
+--- a/chai_lab/data/parsing/structure/all_atom_entity_data.py
++++ b/chai_lab/data/parsing/structure/all_atom_entity_data.py
+@@ -238,6 +238,7 @@ def parse_structure(
+     """
+     if structure.input_format == gemmi.CoorFormat.Pdb:
+         raise NotImplementedError
++    structure.remove_waters()
+ 
+     if make_assembly:
+         # make assembly involves duplicating chains in the case of homomers
+@@ -250,8 +251,6 @@ def parse_structure(
+                 "Make assembly failed, likely no assemblies found in structure"
+             )
+ 
+-    structure.remove_waters()
+-
+     if chain_ids is not None:
+         chains = [chain for chain in structure[0] if chain.name in chain_ids]
+     else:
+diff --git a/chai_lab/data/sources/rdkit.py b/chai_lab/data/sources/rdkit.py
+index a073dde..608f417 100644
+--- a/chai_lab/data/sources/rdkit.py
++++ b/chai_lab/data/sources/rdkit.py
+@@ -5,7 +5,6 @@
+ import logging
+ from collections import defaultdict
+ from pathlib import Path
+-from typing import Any
+ 
+ import antipickle
+ import torch
+@@ -148,18 +147,17 @@ class RefConformerGenerator:
+ 
+         mol_with_hs = Chem.AddHs(mol)
+ 
+-        # RDKit exposes these writable fields at runtime, but the shipped stubs mis-type them.
+-        params: Any = rdDistGeom.ETKDGv3()
+-        params.useSmallRingTorsions = True
+-        params.randomSeed = 123
+-        params.enforceChirality = True
++        params = rdDistGeom.ETKDGv3()
++        params.useSmallRingTorsions = True  # type: ignore
++        params.randomSeed = 123  # type: ignore
++        params.useChirality = True
+         # below params were added after facing 'Value Error: Bad Conformer id'
+         # https://github.com/rdkit/rdkit/issues/1433#issuecomment-305097888
+-        params.maxIterations = (
++        params.maxAttempts = (
+             100  # 10_000 is ludicrous and causes processes to hang on this step
+         )
+-        params.useRandomCoords = True
+-        params.numThreads = -1  # 0 (or -1) lets RDKit use all available cores
++        params.useRandomCoords = True  # type: ignore
++        params.numThreads = -1  # type: ignore  # 0 (or -1) lets RDKit use all available cores
+ 
+         rdDistGeom.EmbedMultipleConfs(mol_with_hs, numConfs=1, params=params)
+         rdmolops.RemoveHs(mol_with_hs)
+diff --git a/requirements.in b/requirements.in
+index a51256d..aab2cc2 100644
+--- a/requirements.in
++++ b/requirements.in
+@@ -10,8 +10,8 @@ tqdm~=4.66
+ typing-extensions
+ 
+ # data import/export, application-specific
+-gemmi~=0.7.5       # pdb/mmcif parsing
+-rdkit==2025.09.6   # we likely support other versions,
++gemmi~=0.6.3       # pdb/mmcif parsing
++rdkit~=2024.9.5    # we likely support other versions,
+                    #  but typing is not consistent across rdkit versions, and mypy complain
+ biopython>=1.83    # parsing, data access
+ antipickle==0.2.0  # save/load heterogeneous python structures

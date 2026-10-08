@@ -1,0 +1,61 @@
+defaults:
+  - base
+  - _self_
+
+# Tandem repeat benchmark (v1).
+# Uses a single tied repeat unit within one protomer.
+
+task_name: ???
+out_dir: ???
+repeats: 1
+
+seqs:
+  A: ???
+
+steps: 80
+initializer:
+  mode: dplm
+initial_temperature: 0.03
+
+mutator:
+  names: ["ligand_mpnn", "dplm"]
+  selector_expression: null
+  mutator_terms:
+    ligand_mpnn:
+      _type: LigandMPNN
+      model_type: soluble_mpnn
+      temperature: 0.3
+    dplm:
+      _type: DPLM
+      temperature: 1.0
+
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+    Alphafold2:
+      _type: alphafold2
+
+loss:
+  loss_terms:
+    A_single_chain_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    repeat_unit_rmsd_raw:
+      _type: repeat_unit_rmsd_raw
+    repeat_unit_rmsd_norm:
+      _type: repeat_unit_rmsd_norm
+      best: 0.0
+      worst: 1.0
+  expression_terms:
+    A_globular_target: 0.395 * (A_length ** 0.6) + 7.257
+
+stages:
+  default:
+    oligo: ["A"]
+    evaluator: Alphafold3
+    mutation_num: 100%
+    mutators: ["ligand_mpnn", "dplm"]
+    mutator_weights: [1.0, 0.3]
+    weighted_score_expression: plddt + ptm + repeat_unit_rmsd_norm - 0.2 * (1 / (1 + exp(-((A_single_chain_rog - A_globular_target) / 5.0))))
+    early_stopping: null

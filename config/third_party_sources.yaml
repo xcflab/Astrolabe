@@ -1,0 +1,305 @@
+# Canonical source ownership inventory for third-party code used by GH.
+#
+# This file complements `.gitmodules` and `config/third_party_envs.yaml`.
+# Keep one source owner per component:
+# - official_submodule_plus_patch: upstream submodule plus repo-owned patch.
+# - fork_backed_submodule: `.gitmodules` points at a GH-maintained fork.
+# - fork_backed_submodule_plus_patch: fork plus a small local patch overlay.
+# - official_submodule: upstream submodule with no repo-owned patch.
+# Branch-backed entries also pin expected_commit so the superproject gitlink
+# cannot silently remain on an upstream ancestor instead of the reviewed branch.
+#
+# Fork candidates must stay explicit until their `.gitmodules` URL is migrated
+# to a reviewed fork and the local patch is removed or reduced to a small overlay.
+
+components:
+  abseil_cpp_source:
+    path: vendor/abseil-cpp-source
+    source_mode: official_submodule
+    expected_url: https://github.com/abseil/abseil-cpp.git
+    patch_group: null
+    fork_candidate: false
+    migration_status: upstream_owned
+    reason: AlphaFold3 C++ build dependency vendored for offline builds.
+
+  alphafold2:
+    path: vendor/alphafold2
+    source_mode: official_submodule_plus_patch
+    expected_url: https://github.com/google-deepmind/alphafold.git
+    expected_commit: c77e5d2a8961d1a353632c462914ff0a32a950f6
+    patch_group: alphafold2
+    fork_candidate: false
+    migration_status: patch_owned
+    reason: Public base plus the complete tracked patch reproduces local 4a959fffece926497454d421b12702bd7576179a, including chain confidence, recycle state, cyclic offsets and packaging.
+
+  alphafold3:
+    path: vendor/alphafold3
+    source_mode: fork_backed_submodule_plus_patch
+    expected_url: https://github.com/Molaison/alphafold3.git
+    patch_group: alphafold3
+    fork_candidate: false
+    migration_status: fork_with_small_overlay
+    reason: Fork-backed source with a small local third-party CMake overlay.
+
+  biohub_esm:
+    path: vendor/biohub_esm
+    source_mode: official_submodule
+    expected_url: https://github.com/Biohub/esm.git
+    patch_group: null
+    fork_candidate: false
+    migration_status: upstream_owned
+    reason: Official ESMFold2 input/complex utilities used by the subprocess evaluator.
+
+  biohub_transformers:
+    path: vendor/biohub_transformers
+    source_mode: official_submodule
+    expected_url: https://github.com/Biohub/transformers.git
+    patch_group: null
+    fork_candidate: false
+    migration_status: upstream_owned
+    reason: Official ESMFold2 Hugging Face model implementation isolated in a subprocess.
+
+  boltz:
+    path: vendor/boltz
+    source_mode: official_submodule_plus_patch
+    expected_url: https://github.com/jwohlwend/boltz.git
+    patch_group: boltz
+    fork_candidate: false
+    migration_status: patch_owned
+    reason: Compact cyclic-relative behavior patch.
+
+  boost_regex_source:
+    path: vendor/boost-regex-source
+    source_mode: official_submodule
+    expected_url: https://github.com/boostorg/regex.git
+    patch_group: null
+    fork_candidate: false
+    migration_status: upstream_owned
+    reason: AlphaFold3 C++ build dependency vendored for offline builds.
+
+  chai_lab:
+    path: vendor/chai_lab
+    source_mode: official_submodule_plus_patch
+    expected_url: https://github.com/chaidiscovery/chai-lab.git
+    patch_group: chai_lab
+    fork_candidate: false
+    migration_status: patch_owned
+    reason: Compact cyclic-relative behavior patch.
+
+  dplm:
+    path: vendor/dplm
+    source_mode: fork_backed_submodule
+    expected_url: https://github.com/Molaison/dplm.git
+    patch_group: null
+    fork_candidate: false
+    migration_status: fork_owned
+    reason: Subprocess-only DPLM source is already fork-backed.
+
+  dssp_source:
+    path: vendor/dssp-source
+    source_mode: official_submodule
+    expected_url: https://github.com/PDB-REDO/dssp.git
+    patch_group: null
+    fork_candidate: false
+    migration_status: upstream_owned
+    reason: AlphaFold3 C++ build dependency vendored for offline builds.
+
+  eigen_source:
+    path: vendor/eigen-source
+    source_mode: official_submodule
+    expected_url: https://gitlab.com/libeigen/eigen.git
+    patch_group: null
+    fork_candidate: false
+    migration_status: upstream_owned
+    reason: AlphaFold3 C++ build dependency vendored for offline builds.
+
+  esm2:
+    path: vendor/esm2
+    source_mode: fork_backed_submodule_plus_patch
+    expected_url: https://github.com/Molaison/gh-esm2.git
+    expected_branch: gh-package-rename
+    expected_commit: 43c67d952da30d2471f609848931d20ec8c98532
+    patch_group: esm2
+    fork_candidate: false
+    migration_status: fork_with_small_overlay
+    reason: Fork-backed package rename with a small Biotite compatibility overlay.
+
+  esm3:
+    path: vendor/esm3
+    source_mode: fork_backed_submodule
+    expected_url: https://github.com/Molaison/gh-esm3.git
+    expected_branch: gh-package-rename
+    expected_commit: c79d15480b0111e5a89b69a6aca144c29684dfa5
+    patch_group: null
+    fork_candidate: false
+    migration_status: fork_owned
+    reason: Package rename/isolation delta is committed in the Molaison fork.
+
+  fakeroot:
+    path: vendor/fakeroot
+    source_mode: official_submodule
+    expected_url: https://salsa.debian.org/clint/fakeroot.git
+    patch_group: null
+    fork_candidate: false
+    migration_status: upstream_owned
+    reason: Bootstrap dependency used when the host lacks a compatible fakeroot binary.
+
+  libcifpp_source:
+    path: vendor/libcifpp-source
+    source_mode: official_submodule
+    expected_url: https://github.com/PDB-REDO/libcifpp.git
+    patch_group: null
+    fork_candidate: false
+    migration_status: upstream_owned
+    reason: AlphaFold3 C++ build dependency vendored for offline builds.
+
+  libmcfp_source:
+    path: vendor/libmcfp-source
+    source_mode: official_submodule
+    expected_url: https://github.com/mhekkel/libmcfp.git
+    patch_group: null
+    fork_candidate: false
+    migration_status: upstream_owned
+    reason: AlphaFold3 C++ build dependency vendored for offline builds.
+
+  na_mpnn:
+    path: vendor/na_mpnn
+    source_mode: official_submodule
+    expected_url: https://github.com/baker-laboratory/NA-MPNN.git
+    patch_group: null
+    fork_candidate: false
+    migration_status: upstream_owned
+    reason: Optional subprocess backend; no repo-owned patch.
+
+  openfold_esm2:
+    path: vendor/openfold_esm2
+    source_mode: fork_backed_submodule
+    expected_url: https://github.com/Molaison/openfold.git
+    expected_branch: gh-esmfold-cpu-fallback
+    expected_commit: 8396098268a5675b0ff776ec274f15d380a4ccf5
+    patch_group: null
+    fork_candidate: false
+    migration_status: fork_owned
+    reason: Fork carries the reviewed CPU fallback commit used by the unified SIF for ESMFold.
+
+  opendde:
+    path: vendor/opendde
+    source_mode: official_submodule
+    expected_url: https://github.com/aurekaresearch/OpenDDE.git
+    patch_group: null
+    fork_candidate: false
+    migration_status: upstream_owned
+    reason: Subprocess evaluator dependency; keep its pinned stack isolated from the main GH env.
+
+  protenix:
+    path: vendor/protenix
+    source_mode: official_submodule_plus_patch
+    expected_url: https://github.com/bytedance/Protenix.git
+    expected_commit: 2475421477ab414b571149ad4a875c390ff8a35d
+    patch_group: protenix
+    fork_candidate: false
+    migration_status: patch_owned
+    reason: Public upstream v2 source with a small vendored ESM2 import overlay.
+
+  pybind11_abseil_source:
+    path: vendor/pybind11-abseil-source
+    source_mode: official_submodule
+    expected_url: https://github.com/pybind/pybind11_abseil.git
+    patch_group: null
+    fork_candidate: false
+    migration_status: upstream_owned
+    reason: AlphaFold3 C++ build dependency vendored for offline builds.
+
+  pybind11_source:
+    path: vendor/pybind11-source
+    source_mode: official_submodule
+    expected_url: https://github.com/pybind/pybind11.git
+    patch_group: null
+    fork_candidate: false
+    migration_status: upstream_owned
+    reason: AlphaFold3 C++ build dependency vendored for offline builds.
+
+  protein_sequence_models:
+    path: vendor/protein_sequence_models
+    source_mode: official_submodule
+    expected_url: https://github.com/microsoft/protein-sequence-models.git
+    patch_group: null
+    fork_candidate: false
+    migration_status: upstream_owned
+    reason: SurfPro fairseq eagerly imports sequence_models.structure during startup.
+
+  rhodesign:
+    path: vendor/rhodesign
+    source_mode: official_submodule
+    expected_url: https://github.com/ml4bio/RhoDesign.git
+    patch_group: null
+    fork_candidate: false
+    migration_status: upstream_owned
+    reason: Optional nucleic-acid design source; no repo-owned patch.
+
+  rhofold:
+    path: vendor/rhofold
+    source_mode: official_submodule
+    expected_url: https://github.com/ml4bio/RhoFold.git
+    patch_group: null
+    fork_candidate: false
+    migration_status: upstream_owned
+    reason: Runtime evaluator dependency installed from vendored upstream source.
+
+  rpxdock:
+    path: vendor/rpxdock
+    source_mode: fork_backed_submodule
+    expected_url: https://github.com/Molaison/gh-rpxdock.git
+    expected_branch: gh-cyclic-executor-fixes
+    expected_commit: 190662c8dc3bd8d0513b9e60dd0aa272a19f8eb2
+    patch_group: null
+    fork_candidate: false
+    migration_status: fork_owned
+    reason: Cyclic executor and one-component fixes are committed in the Molaison fork.
+
+  sru:
+    path: vendor/sru
+    source_mode: official_submodule
+    expected_url: https://github.com/asappresearch/sru.git
+    expected_branch: 3.0.0-dev
+    expected_commit: c2d44e62b90115db59ab92ccea4b2e5b77077cf9
+    patch_group: null
+    fork_candidate: false
+    migration_status: upstream_owned
+    reason: SurfPro runtime dependency pinned to the upstream-required SRU++ branch.
+
+  surfdesign:
+    path: vendor/surfdesign
+    source_mode: official_submodule
+    expected_url: https://github.com/smiles724/SurfDesign.git
+    patch_group: null
+    fork_candidate: false
+    migration_status: upstream_owned
+    reason: Subprocess mutator dependency; its trained experiment assets are supplied separately.
+
+  surfpro:
+    path: vendor/surfpro
+    source_mode: official_submodule
+    expected_url: https://github.com/JocelynSong/SurfPro.git
+    patch_group: null
+    fork_candidate: false
+    migration_status: upstream_owned
+    reason: Subprocess mutator dependency; its checkpoint and MSMS runtime assets are supplied separately.
+
+  willutil:
+    path: vendor/willutil
+    source_mode: official_submodule
+    expected_url: https://github.com/willsheffler/willutil.git
+    patch_group: null
+    fork_candidate: false
+    migration_status: upstream_owned
+    reason: RPXDock dependency; no repo-owned patch.
+
+  uplifting_biomolecular_modeling:
+    path: vendor/uplifting-biomolecular-modeling
+    source_mode: official_submodule
+    expected_url: https://github.com/anthropics/uplifting-biomolecular-modeling.git
+    patch_group: null
+    fork_candidate: false
+    migration_status: upstream_owned
+    reason: Pinned Anthropic reference kits for software with a direct semantic replacement; kit-native stock, opt_core, weights, and pin checks remain separate from the GH runtime.

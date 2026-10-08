@@ -1,0 +1,509 @@
+# Host-side environment spec for `scripts/installation/env_setup.py`.
+#
+# You are expected to follow each dependency's upstream GitHub instructions for
+# repo checkout / weights download. This file focuses on Python packages + a place
+# to encode the commands you actually want automated.
+#
+# Notes:
+# - `conda` is a list of conda package specs.
+# - `pip` is a list of strings; each string is appended to `pip install ...`.
+# - `commands` are executed inside the env via `micromamba run -n <env> ...`.
+# - `export` values may be either strings or mappings with:
+#     value: default generated path
+#     env_var: optional host environment variable to prefer when already set
+#     optional: true/false for `--verify-env-yaml`
+# - You can use `{{REPO_ROOT}}`, `{{ROOT_PREFIX}}`, and environment variables like `$HOME`.
+#
+# Example usage:
+#   just env-setup
+#   python3 scripts/installation/env_setup.py --only gh,boltz -y --jobs 2
+#
+# Vendor note:
+# - Third-party repos are vendored as git submodules under `vendor/`.
+# - Source ownership and fork-candidate status live in `config/third_party_sources.yaml`.
+# - Initialize them first:
+#     git submodule update --init --recursive
+
+envs:
+  # Main runtime env: runs `gh run` and must include everything imported directly by the pipeline
+  # (AlphaFold3 python, Boltz python, Protenix python, RAPiDock python if used, plus common deps).
+  - name: gh
+    manager: micromamba
+    python: "3.11"
+    channels: ["conda-forge"]
+    pip_env:
+      # Avoid leaking user-site packages into micromamba envs (common on shared hosts).
+      PYTHONNOUSERSITE: "1"
+      PIP_NO_USER: "1"
+      PIP_NO_INPUT: "1"
+      # Some hosts set `--user` in pip.conf; ignore all pip config to keep installs inside env.
+      PIP_CONFIG_FILE: "/dev/null"
+      # Some hosts export PIP_USER=1 globally; force it off.
+      PIP_USER: "0"
+      # AlphaFold3 C++ build pulls libcifpp; disable upstream tests (Catch2 headers not present).
+      CMAKE_ARGS: "-DBUILD_TESTING=OFF -DCMAKE_PREFIX_PATH={{PREFIX}} -DAF3_THIRD_PARTY_DIR={{ROOT_PREFIX}}/bootstrap_sources"
+      # Some hosts have a broken global git proxy config (e.g. localhost:18901) that
+      # breaks CMake FetchContent (git clone). Force git to ignore global/system configs.
+      GIT_CONFIG_GLOBAL: "/dev/null"
+      GIT_CONFIG_NOSYSTEM: "1"
+    conda:
+      # Core scientific stack (prefer conda wheels for speed/stability).
+      - "numpy==1.26.4"
+      - "scipy>=1.13.1"
+      - "pandas>=2.2.2"
+      - "matplotlib"
+      # Parquet engine (required for Chai precomputed MSAs: `.aligned.pqt`).
+      - "pyarrow>=15"
+      - "biopython>=1.84"
+      - "biotite>=1.4.0"
+      - "prody>=2.6.1"
+      - "modelcif>=1.2"
+      - "gemmi>=0.6.5"
+      - "numba>=0.61.0"
+      - "scikit-learn>=1.6.1"
+      - "zstandard"
+      - "zlib"
+      # AF3 runtime deps
+      - "rdkit>=2024.3.2"
+      # Torch (GPU) for chai/boltz/protenix runners.
+      - "pytorch-gpu==2.7.1"
+      # AF3 C++ extension build toolchain (build happens via pip/scikit-build-core).
+      - "gxx>=9.4"
+      - "cmake>=3.28,<4"
+      - "ninja"
+      - "make"
+      - "pkg-config"
+      - "scikit-build-core>=0.11.0"
+      - "pybind11>=2.12"
+      - "boost-cpp>=1.80"
+      - "eigen>=3.4.0"
+      # AF3 vendored dependency builds expect Catch2 headers (libcifpp tests).
+      - "catch2"
+    pip:
+      - "-e {{REPO_ROOT}}"
+      # Vendored evaluator deps (single-env mode).
+      #
+      # NOTE: this assumes the dependency stacks are compatible. If you hit a
+      # hard conflict (e.g., OpenFold variants), you'll need either:
+      # - a renamed fork (e.g. openfold_esm2 with renamed top-level module), or
+      # - split envs + path-only runners.
+      # NOTE: AF3 is a pyproject/scikit-build project. Disable build isolation so CMake can
+      # find conda-provided system libs (e.g. zlib) during the extension build.
+      - "-e {{REPO_ROOT}}/vendor/protenix --no-deps"
+      - "-e {{REPO_ROOT}}/vendor/alphafold3 --no-deps --no-build-isolation"
+      - "-e {{REPO_ROOT}}/vendor/alphafold2 --no-deps"
+      - "-e {{REPO_ROOT}}/vendor/rhofold --no-deps"
+      - "-e {{REPO_ROOT}}/vendor/chai_lab --no-deps"
+      - "-e {{REPO_ROOT}}/vendor/boltz --no-deps"
+      - "-e {{REPO_ROOT}}/vendor/esm2 --no-deps"
+      - "-e {{REPO_ROOT}}/vendor/esm3 --no-deps"
+      # `vendor/openfold_esm2` remains out of the host `gh` env because pip installation
+      # compiles a second CUDA extension stack. The unified SIF path-loads its Python
+      # source for ESMFold without installing that extension package.
+      # Unified pip deps (keep versions CPU-friendly + consistent across vendored stacks).
+      - "absl-py>=2.1.0"
+      - "dm-haiku==0.0.13"
+      - "dm-tree==0.1.9"
+      # AF2 still imports TensorFlow in-process through the vendored stack.
+      - "flatbuffers>=23.5.26"
+      - "tensorflow-cpu==2.15.1"
+      # JAX (GPU): required by AlphaFold3 + jax-triton.
+      # NOTE: the `-f` wheel index is required for CUDA-enabled jaxlib wheels.
+      - "-f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html jax[cuda12_pip]==0.4.34 jax-cuda12-pjrt==0.4.34 jax-cuda12-plugin==0.4.34"
+      - "jax-triton==0.2.0"
+      - "jaxtyping==0.2.34"
+      - "typeguard==2.13.3"
+      - "pyrosetta-installer"
+      - "tqdm>=4.66"
+      - "requests==2.32.3"
+      - "click==8.1.7"
+      - "pytorch-lightning==2.5.0"
+      - "lightning-fabric==2.5.0"
+      - "einops==0.8.0"
+      - "einx==0.3.0"
+      - "fairscale==0.4.13"
+      - "mashumaro==3.14"
+      - "wandb==0.18.7"
+      - "huggingface_hub>=0.24.7"
+      # ESM3 runtime deps (vendored install uses --no-deps).
+      - "zstd>=1.5.6.6"
+      - "transformers<4.53.0"
+      - "tenacity>=8.3.0"
+      - "cloudpathlib>=0.20.0"
+      - "msgpack-numpy>=0.4.8"
+      - "chembl_structure_pipeline==1.2.2"
+      - "ml_collections==1.1.0"
+      - "typer~=0.12"
+      - "beartype>=0.18"
+      - "python-box"
+      - "antipickle==0.2.0"
+      - "tmtools>=0.0.3"
+      - "pandera>=0.22.0"
+    pre_pip_commands:
+      # Apply remaining compact repo-owned patches on top of vendored checkouts.
+      - "python \"{{REPO_ROOT}}/scripts/maintenance/apply_vendor_patches.py\""
+    commands:
+      # AlphaFold3 intermediate data build (creates ccd.pickle consumed at import/runtime).
+      - "bash -lc 'cd \"{{REPO_ROOT}}/vendor/alphafold3\" && build_data'"
+      # PyRosetta (optional dependency for some losses/selectors). Uses official PyRosetta4 archive.
+      # Override with:
+      #   - GH_PYROSETTA_WHEEL=/abs/path/or/url/to/pyrosetta-...whl
+      - "python \"{{REPO_ROOT}}/scripts/installation/install_pyrosetta.py\""
+    export:
+      subprocess_envs.gh.python_bin: "{{PREFIX}}/bin/python"
+      subprocess_envs.nampnn.python_bin:
+        value: "{{PREFIX}}/bin/python"
+        env_var: GH_NAMPNN_PYTHON
+      subprocess_envs.nampnn.repo_path:
+        value: "{{REPO_ROOT}}/vendor/na_mpnn"
+        env_var: GH_NAMPNN_REPO
+        optional: true
+
+  # Optional: Meeko helper scripts env (only needed if you want mk_prepare_* to run in a separate env).
+  - name: dock
+    manager: micromamba
+    python: "3.11"
+    channels: ["conda-forge"]
+    # NOTE: these packages are available on conda-forge in many environments.
+    # If your cluster doesn't allow these, switch this env to `manager: external`
+    # and point `prefix:` to your preinstalled docking toolchain.
+    conda:
+      - "openbabel"
+      - "vina"
+    pip:
+      - "meeko -U"
+    export:
+      subprocess_envs.meeko.python_bin:
+        value: "{{PREFIX}}/bin/python"
+        env_var: GH_MEEKO_PYTHON
+      subprocess_envs.meeko.pythonpath:
+        value: "{{PREFIX}}/lib/python3.11/site-packages"
+        env_var: GH_MEEKO_PYTHONPATH
+        optional: true
+      obabel_path:
+        value: "{{PREFIX}}/bin/obabel"
+        env_var: GH_OBABEL
+      autodock.vina_path:
+        value: "{{PREFIX}}/bin/vina"
+        env_var: GH_VINA
+      autodock.mk_prepare_receptor:
+        value: "{{PREFIX}}/bin/mk_prepare_receptor.py"
+        env_var: GH_MK_PREPARE_RECEPTOR
+      autodock.mk_prepare_ligand:
+        value: "{{PREFIX}}/bin/mk_prepare_ligand.py"
+        env_var: GH_MK_PREPARE_LIGAND
+
+  # Optional: isolated OpenDDE runner env. The wrapper can use the main `gh`
+  # interpreter when compatible deps are already installed; use this env only
+  # when site-local dependency isolation is required.
+  # Upstream recommends `uv pip install --torch-backend ...`; if this micromamba
+  # recipe is not suitable for your CUDA site, create the env externally and set
+  # GH_OPENDDE_PYTHON to that interpreter.
+  - name: opendde
+    manager: micromamba
+    python: "3.11"
+    channels: ["conda-forge"]
+    conda:
+      - "pip"
+    pip:
+      - "-e {{REPO_ROOT}}/vendor/opendde[gpu]"
+    export:
+      subprocess_envs.opendde.python_bin:
+        value: "{{PREFIX}}/bin/python"
+        env_var: GH_OPENDDE_PYTHON
+      subprocess_envs.opendde.repo_path:
+        value: "{{REPO_ROOT}}/vendor/opendde"
+        env_var: GH_OPENDDE_REPO
+
+  # SurfDesign currently publishes an environment lock but no installable package.
+  # Point GH_SURFDESIGN_PYTHON at an environment prepared from the upstream lock.
+  - name: surfdesign
+    manager: external
+    python_bin: $GH_SURFDESIGN_PYTHON
+    export:
+      subprocess_envs.surfdesign.python_bin:
+        value: "{{PREFIX}}/bin/python"
+        env_var: GH_SURFDESIGN_PYTHON
+      subprocess_envs.surfdesign.repo_path:
+        value: "{{REPO_ROOT}}/vendor/surfdesign"
+        env_var: GH_SURFDESIGN_REPO
+
+  # SurfPro pins Python 3.8, PyTorch 1.10.2/CUDA 11.3, SRU++ 3.0.0-dev,
+  # and sequence-models 1.8.0; pip must remain below 24.1 for OmegaConf 2.0.6.
+  # Prepare that legacy stack externally and provide the MSMS executables via
+  # GH_SURFPRO_MSMS and
+  # GH_SURFPRO_PDB_TO_XYZRN.
+  - name: surfpro
+    manager: external
+    python_bin: $GH_SURFPRO_PYTHON
+    export:
+      subprocess_envs.surfpro.python_bin:
+        value: "{{PREFIX}}/bin/python"
+        env_var: GH_SURFPRO_PYTHON
+      subprocess_envs.surfpro.repo_path:
+        value: "{{REPO_ROOT}}/vendor/surfpro"
+        env_var: GH_SURFPRO_REPO
+
+  # Optional: isolated Biohub ESMFold2 runner env. This backend uses the official
+  # Biohub ESMFold2 model and a forked/newer transformers package, so keep it out
+  # of the main `gh` interpreter.
+  - name: esmfold2
+    manager: micromamba
+    python: "3.12"
+    channels: ["conda-forge"]
+    conda:
+      - "pip"
+      - "numpy>=1.26,<2"
+      - "pytorch-gpu==2.7.1"
+      - "rdkit"
+      - "biotite>=1.4.0"
+      - "biopython"
+      - "pandas"
+      - "scikit-learn"
+      - "zstandard"
+    pip:
+      - "-e {{REPO_ROOT}}/vendor/biohub_transformers --no-deps"
+      - "-e {{REPO_ROOT}}/vendor/biohub_esm --no-deps"
+      - "tokenizers>=0.22,<0.23"
+      - "huggingface-hub>=0.34,<1.0"
+      - "safetensors>=0.7.0"
+      - "accelerate"
+      - "regex"
+      - "attrs"
+      - "boto3"
+      - "ipython"
+      - "ipywidgets"
+      - "py3dmol"
+      - "zstd"
+      - "msgpack-numpy"
+      - "cloudpathlib"
+      - "httpx"
+      - "tenacity"
+      - "pydssp"
+      - "pygtrie"
+      - "dna_features_viewer"
+    export:
+      subprocess_envs.esmfold2.python_bin:
+        value: "{{PREFIX}}/bin/python"
+        env_var: GH_ESMFOLD2_PYTHON
+      subprocess_envs.esmfold2.esm_repo_path:
+        value: "{{REPO_ROOT}}/vendor/biohub_esm"
+        env_var: GH_ESMFOLD2_ESM_REPO
+      subprocess_envs.esmfold2.transformers_repo_path:
+        value: "{{REPO_ROOT}}/vendor/biohub_transformers"
+        env_var: GH_ESMFOLD2_TRANSFORMERS_REPO
+
+  # Optional: DPLM runner env (invoked via subprocess; points to `python_bin` in mutator.DPLM config).
+  # You still need to follow the upstream DPLM/byprot GitHub instructions to install the correct package(s).
+  - name: dplm
+    manager: micromamba
+    python: "3.9"
+    channels: ["conda-forge"]
+    conda:
+      - "pip<26"
+      - "cython"
+      - "versioneer"
+      - "pybind11"
+      - "numpy<2"
+    pip: []
+    cwd: "{{REPO_ROOT}}/vendor/dplm"
+    commands:
+      - "bash scripts/install.sh"
+      - "python -m pip install --isolated --force-reinstall --no-deps 'numpy<2'"
+    pip_upgrade: "pip<26"
+    export:
+      subprocess_envs.dplm.python_bin:
+        value: "{{PREFIX}}/bin/python"
+        env_var: GH_DPLM_PYTHON
+      subprocess_envs.dplm.repo_path:
+        value: "{{REPO_ROOT}}/vendor/dplm"
+        env_var: GH_DPLM_REPO
+
+  - name: rapidock
+    manager: micromamba
+    python: "3.9"
+    channels: ["pytorch", "pyg", "conda-forge", "defaults"]
+    conda:
+      - "numpy==1.26.4"
+      - "pandas>=2.1,<2.2"
+      - "scikit-learn>=1.5,<1.6"
+      - "pytorch==1.11.0"
+      - "pyg==2.1.0"
+      - "pytorch-cluster==1.6.0"
+      - "pytorch-scatter==2.0.9"
+      - "pytorch-sparse==0.6.15"
+      - "pyyaml"
+      - "tqdm"
+    pip:
+      - "biopython==1.84"
+      - "e3nn==0.5.1"
+      - "fair-esm==2.0.0"
+      - "MDAnalysis==2.6.1"
+      - "PeptideBuilder"
+      - "rdkit-pypi==2022.9.5"
+    export:
+      subprocess_envs.rapidock.python_bin:
+        value: "{{PREFIX}}/bin/python"
+        env_var: GH_RAPIDOCK_PYTHON
+      subprocess_envs.rapidock.repo_path:
+        value: "{{CLONE_ROOT}}/RAPiDock"
+        env_var: GH_RAPIDOCK_REPO
+
+  # Optional: RPXDock cyclic docking env. Source lives in vendored submodules;
+  # initialize vendor/rpxdock and vendor/willutil before enabling this env.
+  - name: rpxdock
+    manager: micromamba
+    python: "3.9"
+    channels: ["conda-forge"]
+    pip_env:
+      PYTHONNOUSERSITE: "1"
+      PIP_NO_USER: "1"
+      PIP_NO_INPUT: "1"
+      PIP_CONFIG_FILE: "/dev/null"
+      PIP_USER: "0"
+    conda:
+      - "numpy<2"
+      - "scipy"
+      - "pandas"
+      - "numba"
+      - "xarray"
+      - "seaborn"
+      - "netcdf4"
+      - "pyyaml"
+      - "tabulate"
+      - "cffi"
+      - "pytest"
+      - "pip<26"
+      - "pybind11"
+      - "cmake"
+      - "ninja"
+      - "cxx-compiler"
+      - "mdtraj"
+    pip_upgrade: "pip<26"
+    pip:
+      - "cppimport"
+      - "deferred-import"
+      - "rmsd"
+      - "icecream"
+      - "biopython"
+      - "tqdm"
+      - "opt_einsum"
+      - "yapf"
+      - "{{REPO_ROOT}}/vendor/willutil --no-deps"
+      - "{{REPO_ROOT}}/vendor/rpxdock --no-deps"
+    export:
+      subprocess_envs.rpxdock.python_bin:
+        value: "{{PREFIX}}/bin/python"
+        env_var: GH_RPXDOCK_PYTHON
+      subprocess_envs.rpxdock.repo_path:
+        value: "{{REPO_ROOT}}/vendor/rpxdock"
+        env_var: GH_RPXDOCK_REPO
+      subprocess_envs.rpxdock.willutil_repo_path:
+        value: "{{REPO_ROOT}}/vendor/willutil"
+        env_var: GH_WILLUTIL_REPO
+
+  # Repo/asset paths (not Python envs). These help generate an `env_local.yaml`
+  # with consistent mount points / clone locations, while keeping missing weights
+  # as OPTIONAL exports.
+
+  - name: boltz_cache
+    manager: path
+    prefix: "{{CLONE_ROOT}}/boltz_cache"
+    export:
+      weight_path.boltz:
+        value: "{{PREFIX}}"
+        env_var: GH_WEIGHT_BOLTZ
+
+  - name: alphafold3_assets
+    manager: path
+    prefix: "{{CLONE_ROOT}}/alphafold3"
+    commands:
+      - "mkdir -p '{{PREFIX}}/models'"
+    export:
+      weight_path.alphafold3:
+        value: "{{PREFIX}}/models"
+        env_var: GH_WEIGHT_AF3
+        optional: true
+
+  - name: alphafold2_assets
+    manager: path
+    prefix: "{{CLONE_ROOT}}/alphafold2"
+    export:
+      weight_path.alphafold:
+        value: "{{PREFIX}}/alphafold"
+        env_var: GH_WEIGHT_AF2
+        optional: true
+
+  - name: rapidock_assets
+    manager: path
+    prefix: "{{CLONE_ROOT}}/RAPiDock"
+    repos:
+      - name: rapidock
+        url: https://github.com/huifengzhao/RAPiDock
+        dest: "{{CLONE_ROOT}}/RAPiDock"
+        ref: 36b2f780cf60b6cd80c2ed128b79a7d5c3b29469
+    commands:
+      - "mkdir -p '{{PREFIX}}/train_models/CGTensorProductEquivariantModel'"
+    export:
+      weight_path.rapidock:
+        value: "{{PREFIX}}/train_models/CGTensorProductEquivariantModel"
+        env_var: GH_WEIGHT_RAPIDOCK
+        optional: true
+
+  - name: opendde_assets
+    manager: path
+    prefix: "{{CLONE_ROOT}}/opendde"
+    commands:
+      - "mkdir -p '{{PREFIX}}/checkpoint' '{{PREFIX}}/common' '{{PREFIX}}/search_database'"
+    export:
+      weight_path.opendde:
+        value: "{{PREFIX}}"
+        env_var: OPENDDE_ROOT_DIR
+        optional: true
+
+  - name: protenix_assets
+    manager: path
+    prefix: "{{CLONE_ROOT}}/Protenix"
+    commands:
+      - "mkdir -p '{{PREFIX}}/release_model'"
+      - "mkdir -p '{{PREFIX}}/release_data'"
+    export:
+      weight_path.protenix:
+        # Matches Protenix upstream download key.
+        value: "{{PREFIX}}/release_model/protenix-v2.pt"
+        env_var: GH_WEIGHT_PROTENIX
+        optional: true
+      weight_path.protenix_constraint:
+        value: "{{PREFIX}}/release_model/protenix_base_constraint_v0.5.0.pt"
+        env_var: GH_WEIGHT_PROTENIX_CONSTRAINT
+        optional: true
+      protenix.ccd_components_file:
+        value: "{{PREFIX}}/release_data/components.v20240608.cif"
+        env_var: GH_PROTENIX_CCD
+        optional: true
+      protenix.ccd_components_rdkit_mol_file:
+        value: "{{PREFIX}}/release_data/components.v20240608.cif.rdkit_mol.pkl"
+        env_var: GH_PROTENIX_CCD_RDKIT
+        optional: true
+
+  # USalign (TM-score) for structure-vs-structure comparisons, including mmCIF and multimers.
+  - name: usalign
+    manager: path
+    prefix: "{{REPO_ROOT}}/vendor/usalign"
+    commands:
+      - "make -C '{{PREFIX}}' USalign"
+    export:
+      usalign_path:
+        value: "{{PREFIX}}/USalign"
+        env_var: GH_USALIGN
+
+  # Optional: a pointer to an already-existing env (no create step).
+  # The referenced prefix/python_bin must already exist; missing external envs
+  # fail visibly instead of creating replacement envs.
+  # Example (edit to your own prefix):
+  # - name: gh_existing
+  #   manager: external
+  #   prefix: /path/to/your/conda/env
+  #   # or: python_bin: /path/to/your/conda/env/bin/python
+  #   pip:
+  #     - "-e {{REPO_ROOT}}"

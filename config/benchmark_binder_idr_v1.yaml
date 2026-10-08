@@ -1,0 +1,39 @@
+defaults:
+  - benchmark_binder_v1_4
+  - _self_
+
+# IDR target binder benchmark template (v1).
+#
+# Intended usage:
+#   - `gh run --task benchmark_binder_idr_v1 --overlay /path/to/overlay.yaml`
+#
+# Notes:
+#   - Built on top of `benchmark_binder_v1_4`.
+#   - Keeps the binder monomer shaping stage from v1.4.
+#   - Reweights the complex stage toward `ipsae` and `binder_ptm`.
+#   - Adds a target induced-fit proxy via target non-loop secondary structure fraction.
+
+loss:
+  loss_terms:
+    binder_ptm:
+      _type: binder_ptm
+      binder_chain: A
+    ipsae:
+      _type: ipsae
+      chain_a: A
+      chain_b: B
+    target_loop_frac:
+      _type: secondary_structure_fraction
+      included_protomers: B
+      sse_type: L
+
+  expression_terms:
+    target_non_loop_frac: max(0.0, 1.0 - target_loop_frac)
+
+stages:
+  ligand:
+    evaluator: Alphafold3
+    weighted_score_expression:
+      ipsae + binder_ptm + 0.5 * target_non_loop_frac
+      + interface_sc * 0.2 - 0.3 * (1 / (1 + exp(-((binder_rog - globin_rog) / 5.0))))
+      - min(binder_loop_frac, 1) * 0.6

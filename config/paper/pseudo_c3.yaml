@@ -1,0 +1,235 @@
+# @package _global_
+task_name: ???
+out_dir: ???
+steps: 40
+repeats: 1
+initial_temperature: 0.01
+seqs:
+  A: ???
+  B: ???
+  C: ???
+homologies:
+  A: ???
+  B: ???
+  C: ???
+mutator:
+  selector_expression: null
+  mutator_terms:
+    ligand_mpnn_sync:
+      _type: LigandMPNN
+      model_type: protein_mpnn
+      temperature: 0.3
+      position_selector: ${paper_protocol.sync_selector}
+    ligand_mpnn_patch:
+      _type: LigandMPNN
+      model_type: protein_mpnn
+      temperature: 0.5
+      position_selector: ${paper_protocol.patch_selector}
+    mcmc_patch:
+      _type: MCMC
+      mutation_method: frequency_adjusted
+      select_positions: random
+      position_selector: ${paper_protocol.patch_selector}
+      max_mutations: 10
+  names:
+  - ligand_mpnn_sync
+  - ligand_mpnn_patch
+  - mcmc_patch
+evaluator:
+  alphafold2:
+    recycles: 1
+    msa_clusters: 1
+  evaluator_terms:
+    Alphafold2:
+      _type: alphafold2
+loss:
+  loss_terms:
+    ABC_protomer_rmsd_raw:
+      _type: protomer_rmsd_raw
+      _for: ABC
+    ABC_protomer_rmsd_norm:
+      _type: protomer_rmsd_norm
+      _for: ABC
+    ABC_separation_std:
+      _type: separation_std
+      _for: ABC
+    ABC_ipae_mean_AB:
+      _type: ipae_mean
+      chain_a: A
+      chain_b: B
+      _for: ABC
+    ABC_ipae_mean_AC:
+      _type: ipae_mean
+      chain_a: A
+      chain_b: C
+      _for: ABC
+    ABC_ipae_mean_BC:
+      _type: ipae_mean
+      chain_a: B
+      chain_b: C
+      _for: ABC
+    ABC_core_identity:
+      _type: sequence_region_identity
+      included_protomers: A,B,C
+      positions: ${paper_protocol.regions.ABC_core_identity_positions}
+    ABC_anchor_identity:
+      _type: sequence_region_identity
+      included_protomers: A,B,C
+      positions: ${paper_protocol.regions.ABC_anchor_identity_positions}
+    ABC_patch_barcode_identity:
+      _type: sequence_region_identity
+      included_protomers: A,B,C
+      positions: ${paper_protocol.regions.ABC_patch_barcode_identity_positions}
+    ABC_buffer_identity:
+      _type: sequence_region_identity
+      included_protomers: A,B,C
+      positions: ${paper_protocol.regions.ABC_buffer_identity_positions}
+    ABC_noninterface_identity:
+      _type: sequence_region_identity
+      included_protomers: A,B,C
+      positions: ${paper_protocol.regions.ABC_noninterface_identity_positions}
+    ABC_nonpatch_identity:
+      _type: sequence_region_identity
+      included_protomers: A,B,C
+      positions: ${paper_protocol.regions.ABC_nonpatch_identity_positions}
+    ABC_global_identity:
+      _type: sequence_region_identity
+      included_protomers: A,B,C
+      positions: ${paper_protocol.regions.ABC_global_identity_positions}
+    ABC_m_patch_identity:
+      _type: sequence_region_identity
+      included_protomers: A,B,C
+      positions: ${paper_protocol.regions.ABC_m_patch_identity_positions}
+    ABC_n_patch_identity:
+      _type: sequence_region_identity
+      included_protomers: A,B,C
+      positions: ${paper_protocol.regions.ABC_n_patch_identity_positions}
+    ABC_edge_patch_identity:
+      _type: sequence_region_identity
+      included_protomers: A,B,C
+      positions: ${paper_protocol.regions.ABC_edge_patch_identity_positions}
+    ABC_directed_edge_patch_identity:
+      _type: sequence_edge_region_identity
+      edges: A>B,B>C,C>A
+      m_positions: ${paper_protocol.regions.ABC_directed_edge_patch_identity_m_positions}
+      n_positions: ${paper_protocol.regions.ABC_directed_edge_patch_identity_n_positions}
+    ABC_reference_tmscore:
+      _type: tmscore
+      _for: ABC
+      template_files:
+      - ${paper_protocol.reference_structure}
+      query_chain: A
+      reference_chain: A
+  expression_terms:
+    ABC_confidence: 0.45 * ABC.iptm + 0.25 * ABC.ptm + 0.20 * ABC.plddt + 0.10 * ABC_protomer_rmsd_norm
+    ABC_pair_ipae_mean: (ABC_ipae_mean_AB + ABC_ipae_mean_AC + ABC_ipae_mean_BC) / 3.0
+    ABC_pair_ipae_score: (exp(-ABC_ipae_mean_AB / 15.0) + exp(-ABC_ipae_mean_AC / 15.0) + exp(-ABC_ipae_mean_BC
+      / 15.0)) / 3.0
+    ABC_symmetry_score: exp(-(ABC_separation_std + 0.35))
+    ABC_core_sync_score: sigmoid((ABC_core_identity - 0.75) * 12.0)
+    ABC_anchor_sync_score: sigmoid((ABC_anchor_identity - 0.80) * 12.0)
+    ABC_buffer_sync_score: sigmoid((ABC_buffer_identity - 0.60) * 8.0)
+    ABC_noninterface_sync_score: sigmoid((ABC_noninterface_identity - 0.85) * 12.0)
+    ABC_patch_divergence_gate: sigmoid((0.55 - ABC_patch_barcode_identity) * 12.0)
+    ABC_patch_barcode_score: max(0.0, 1.0 - abs(ABC_patch_barcode_identity - 0.35) / 0.35)
+    ABC_nonpatch_divergence_penalty: max(0.0, 0.85 - ABC_nonpatch_identity)
+    ABC_global_asymmetry_penalty: max(0.0, 0.75 - ABC_global_identity)
+    ABC_localized_symmetry_breaking_score: 0.25 * ABC_core_sync_score + 0.15 * ABC_anchor_sync_score + 0.25 * ABC_patch_barcode_score
+      + 0.10 * ABC_patch_divergence_gate + 0.10 * ABC_buffer_sync_score + 0.10 * ABC_noninterface_sync_score - 0.25
+      * ABC_nonpatch_divergence_penalty - 0.15 * ABC_global_asymmetry_penalty
+    ABC_edge_patch_difference: max(0.0, 1.0 - ABC_directed_edge_patch_identity)
+    ABC_edge_patch_heterogeneity_score: 0.5 * max(0.0, 1.0 - max(0.0, ABC_directed_edge_patch_identity - 0.30) /
+      0.70)
+    ABC_edge_patch_conserved_penalty: max(0.0, ABC_directed_edge_patch_identity - 0.30)
+    ABC_mn_balance_score: 1.0 - abs(ABC_m_patch_identity - ABC_n_patch_identity)
+    pseudo_surface_score_no_ref: ABC.iptm + ABC_symmetry_score + ABC_edge_patch_heterogeneity_score + 0.10 * ABC_mn_balance_score
+      - 0.35 * ABC_edge_patch_conserved_penalty
+    ABC_reference_tmscore_penalty: 100.0 * (ABC_reference_tmscore < 0.75)
+    pseudo_surface_score: pseudo_surface_score_no_ref - ABC_reference_tmscore_penalty
+stages:
+  default:
+    oligo:
+    - ABC
+    evaluator: Alphafold2
+    mutation_num: 100%
+    mutators:
+    - ligand_mpnn_sync
+    - ligand_mpnn_patch
+    - mcmc_patch
+    mutator_weights:
+    - 1.0
+    - 0.5
+    - 0.5
+    weighted_score_expression: pseudo_surface_score
+    acceptance_threshold: null
+    early_stopping: null
+defaults:
+- /base
+- _self_
+paper_protocol:
+  name: pseudo-c3
+  sources:
+  - "SI 7, 59\u201360"
+  source_cohort: 015_denovo_oligomer_design/.codex-tasks/20260524-c3-top20-asym40
+  configured_steps: 40
+  source_start: null
+  starting_designs: 20
+  trajectories_per_start: 5
+  reference_structure: ???
+  sync_selector: ???
+  patch_selector: ???
+  regions:
+    ABC_core_identity_positions: ???
+    ABC_anchor_identity_positions: ???
+    ABC_patch_barcode_identity_positions: ???
+    ABC_buffer_identity_positions: ???
+    ABC_noninterface_identity_positions: ???
+    ABC_nonpatch_identity_positions: ???
+    ABC_global_identity_positions: ???
+    ABC_m_patch_identity_positions: ???
+    ABC_n_patch_identity_positions: ???
+    ABC_edge_patch_identity_positions: ???
+    ABC_directed_edge_patch_identity_m_positions: ???
+    ABC_directed_edge_patch_identity_n_positions: ???
+  required_input_paths:
+  - seqs.A
+  - seqs.B
+  - seqs.C
+  - homologies.A
+  - homologies.B
+  - homologies.C
+  - paper_protocol.reference_structure
+  - paper_protocol.sync_selector
+  - paper_protocol.patch_selector
+  - paper_protocol.regions.ABC_core_identity_positions
+  - paper_protocol.regions.ABC_anchor_identity_positions
+  - paper_protocol.regions.ABC_patch_barcode_identity_positions
+  - paper_protocol.regions.ABC_buffer_identity_positions
+  - paper_protocol.regions.ABC_noninterface_identity_positions
+  - paper_protocol.regions.ABC_nonpatch_identity_positions
+  - paper_protocol.regions.ABC_global_identity_positions
+  - paper_protocol.regions.ABC_m_patch_identity_positions
+  - paper_protocol.regions.ABC_n_patch_identity_positions
+  - paper_protocol.regions.ABC_edge_patch_identity_positions
+  - paper_protocol.regions.ABC_directed_edge_patch_identity_m_positions
+  - paper_protocol.regions.ABC_directed_edge_patch_identity_n_positions
+  starting_structure_gate: iptm > 0.80 and plddt > 0.80 and ananas_score > 0.50; top 20 ranked by iptm, plddt, ananas_score
+  primary_filter: ABC_reference_tmscore >= 0.75 and ABC_reference_tmscore_penalty == 0 and ABC.iptm >= 0.70 and
+    ABC.plddt >= 0.75 and ABC_pair_ipae_mean <= 10 and ABC_directed_edge_patch_identity <= 0.30
+  off_target_evaluation:
+    assemblies:
+    - ABC
+    - AAA
+    - BBB
+    - CCC
+    evaluated_designs: 84
+    selectivity: max(AAA.iptm, BBB.iptm, CCC.iptm) < 0.70 and ABC.iptm - max(AAA.iptm, BBB.iptm, CCC.iptm) >= 0.10
+    stringent_margin: 0.3
+  implementation_notes:
+  - Objective expressions, AF2 recycles=1, MCMC/ProteinMPNN proposal settings and [1.0,0.5,0.5] mutator weights
+    are recovered from the actual 100-run cohort, not the older 140-run v17 cohort.
+  - The shared core and independent interface patch are native segment aliases in each input overlay. Reference
+    fold is the original chain-A USalign term with a 100*(TM<0.75) penalty.
+  - The 20 source inputs and their original five seeds are provided in examples/paper/inputs/assemblies/manifest.csv.
+  - Site-specific runtime and reference paths are replaced with portable configuration and paths relative to each
+    input overlay.

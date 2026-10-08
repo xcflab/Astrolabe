@@ -1,0 +1,8 @@
+task_name: hif1a_ctad_benchmark_binder_idr_v1
+out_dir: outputs
+
+seqs:
+  B: +SMDESGLPQLTSYDCEVNAPIQGSRNLLQGEELLRALDQVN
+
+homologies:
+  B: null

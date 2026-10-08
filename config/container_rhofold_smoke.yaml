@@ -1,0 +1,42 @@
+defaults:
+  - base
+  - override env: env_container
+  - _self_
+
+task_name: sif_rhofold_smoke
+out_dir: /tmp/gh_rhofold_smoke_runs
+steps: 2
+mutation_num: 0
+
+types:
+  A: "r"
+seqs:
+  A: "GGGAAACCCUUUGGGAAACC"
+
+enable_pyrosetta: false
+skip_complex_poses: true
+
+evaluator:
+  evaluator_terms:
+    RhoFold:
+      _type: rhofold
+      device: cuda
+      relax_steps: 0
+
+mutator:
+  mutator_terms:
+    MCMC:
+      _type: MCMC
+
+loss:
+  loss_terms: {}
+
+stages:
+  default:
+    evaluator: RhoFold
+    oligo: ["A"]
+    mutators: ["MCMC"]
+    mutation_num: 0
+    weighted_score_expression: "0"
+    acceptance_threshold: null
+    early_stopping: null

@@ -1,0 +1,8 @@
+# @package _global_
+seqs:
+  B: +AVPETRPNHTIYINNLNEKIKKDELKKSLHAIFSRFGQILDILVSRSLKMRGQAFVIFKEVSSATNALRSMQGFPFYDKPMRIQYAKTDSDIIAKM
+homologies:
+  B: ${oc.env:ASTROLABE_PAPER_DATA}/nucleic/aptamer_target_1urn_u1a.json:B
+paper_protocol:
+  target: 1urn_u1a
+  input_source: 010_rna_aptamer_target_protein/scheduler/bench_20260325_nampnn20_r40_t03_chainA_plddt_ptm_iptm/overlays/1urn_u1a.yaml

@@ -1,0 +1,55 @@
+# Input overlay for astrolabe paper run; see ../README.md.
+task_name: single_ablation__ptm_statements_plus_chemistry_prepare__tail_sidechain_thiolactone__s001
+seed: 639801
+seqs:
+  A: YGCTQC +[CAM] MPPWIWIMRWQT +[CTM]
+cyclization:
+  bonds:
+  - a:
+      aa: C
+      atom: SG
+      pos: 7
+      proto: A
+    b:
+      atom: C
+      pos: 20
+      proto: A
+    order: single
+    signal_mode: both
+    target_distance: 1.81
+  encoding:
+    scope: all_bonds
+  signal_mode: bond_only
+paper_protocol:
+  topology: tail_sidechain_thiolactone
+  representation: ptm_statements_plus_chemistry_prepare
+  planned_runs: 40
+  example_source_sample: 1
+  source_task_id: 1041
+  source_task_index: 012_cyclic_peptide_design/analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv
+nonstandard_residues:
+  aliases:
+    CAM:
+      atom_names:
+        C: C
+        CA: CA
+        CB: CB
+        N: N
+        O: O
+        SG: SG
+      ccd_id: CAY
+      parent_aa: C
+      source:
+        format: mmcif
+        value: ${oc.env:ASTROLABE_PAPER_DATA}/cyclic/chemistry/CAM.cif
+    CTM:
+      atom_names:
+        C: C
+        CA: CA
+        N: N
+        O: O
+      ccd_id: CYM
+      parent_aa: G
+      source:
+        format: mmcif
+        value: ${oc.env:ASTROLABE_PAPER_DATA}/cyclic/chemistry/CTM.cif

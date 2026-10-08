@@ -1,0 +1,168 @@
+# @package _global_
+defaults:
+- /base
+- _self_
+task_name: ???
+out_dir: ???
+raw_model_results_dir: null
+enable_pyrosetta: false
+steps: 50
+repeats: 1
+initial_temperature: 0.03
+use_metropolis_acceptance: false
+seqs:
+  A: 70-80
+homologies:
+  A: null
+initializer:
+  mode: dplm
+  aa_set: null
+predocker:
+  predocker_terms:
+    allala:
+      _type: all_alanine
+mutator:
+  names:
+  - dplm
+  - mpnn_dn
+  selector_expression: null
+  mutator_terms:
+    dplm:
+      _type: DPLM
+      temperature: 1
+    mpnn_dn:
+      _type: LigandMPNN
+      model_type: soluble_mpnn
+      temperature: 0.3
+      predocker:
+      - allala
+evaluator:
+  evaluator_terms:
+    Protenix:
+      _type: Protenix
+    alphafold2:
+      _type: alphafold2
+  protenix:
+    model_name: protenix_base_default_v0.5.0
+    load_checkpoint_path: ${weight_path.protenix}
+loss:
+  loss_terms:
+    binder_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    binder_loop_frac:
+      _type: secondary_structure_fraction
+      included_protomers: A
+      sse_type: L
+    binder_longest_helix_run_frac:
+      _type: longest_secondary_structure_run_fraction
+      included_protomers: A
+      sse_type: H
+    d2_point_group_symmetry:
+      _type: point_group_symmetry_norm
+      _for: AAAA
+      point_group: D
+      order: 2
+      orbit_best: 0.0
+      orbit_worst: 0.2
+      rotation_best: 0.0
+      rotation_worst: 25.0
+      rotation_weight: 0.5
+    d2_ananas:
+      _type: ananas_rmsd_norm
+      _for: AAAA
+      point_group: D
+      order: 2
+      best: 0.0
+      worst: 2.0
+      timeout_s: 60
+    d2_ring_sep_cv:
+      _type: dihedral_ring_sep_cv_raw
+      _for: AAAA
+      order: 2
+    d2_pair_sep_cv:
+      _type: dihedral_pair_sep_cv_raw
+      _for: AAAA
+      order: 2
+    d2_pair_contact:
+      _type: dihedral_pair_contact_count_norm
+      _for: AAAA
+      order: 2
+      contact_cutoff: 5.0
+      atom_mode: heavy
+      target: 10.0
+      reduction: mean
+    d2_pair_min_distance:
+      _type: dihedral_pair_min_distance_norm
+      _for: AAAA
+      order: 2
+      atom_mode: heavy
+      best: 3.5
+      worst: 14.0
+      reduction: mean
+  expression_terms:
+    globin_rog: 0.395 * (A_length ** 0.6) + 7.257
+    shape_penalty: 0.25 * sigmoid((binder_rog - globin_rog) / 5.0) + 0.50 * min(binder_loop_frac, 1.0)
+    dn_ring_term: exp(-d2_ring_sep_cv)
+    dn_pair_sep_term: exp(-d2_pair_sep_cv)
+    dn_contact_term: d2_pair_contact + d2_pair_min_distance
+    dn_symmetry_term: d2_point_group_symmetry + d2_ananas + dn_ring_term + dn_pair_sep_term
+    ananas_score: d2_ananas
+stages:
+  default:
+    oligo:
+    - A
+    evaluator: Protenix
+    mutators:
+    - dplm
+    mutation_num: 100%
+    acceptance_threshold: null
+    weighted_score_expression: plddt + ptm - shape_penalty
+    early_stopping: null
+  oligomer:
+    _entrance: plddt > 0.50 and ((binder_loop_frac < 0.50) and (binder_rog <= globin_rog + 3))
+    oligo:
+    - AAAA
+    evaluator: alphafold2
+    mutators:
+    - mpnn_dn
+    mutator_weights:
+    - 1.0
+    mutation_num: 100%
+    acceptance_gate: null
+    acceptance_threshold: null
+    weighted_score_expression: 0.35 * iptm + 0.25 * ptm + 0.25 * plddt + 1.25 * dn_symmetry_term + 0.35 * dn_contact_term
+      - shape_penalty - 1.00 * binder_longest_helix_run_frac
+    early_stopping: d2_ananas > 0.25 and plddt > 0.80 and iptm > 0.60
+paper_protocol:
+  name: symmetry-d2
+  sources:
+  - "MainPaper Methods 187\u2013190"
+  - "SI 7, 73\u201374"
+  source_config: config/001_symmetry_50run_completion/01_prefix50_plus_missing20/01_six_symmetry_matched_cohort/rpxdock/d2.yaml
+  source_wrapper: config/001_symmetry_50run_completion/01_prefix50_plus_missing20/01_six_symmetry_matched_cohort/02_run_rpxdock_dn.sh
+  configured_steps: 50
+  symmetry: D2
+  protocol: no_rescue
+  planned_trajectories_per_protocol: 50
+  required_input_paths: []
+  endpoint:
+    unit: trajectory
+    selection: any predicted state
+    expression: (ananas_score > 0.80) and (plddt > 0.80) and (iptm > 0.60)
+    ananas_score_definition: clip((2.0 - AnAnaS Average RMSD in Angstrom) / 2.0, 0, 1)
+    score_source: 'loss d2_ananas: ananas_rmsd_norm(best=0,worst=2)'
+    denominator: all 50 planned trajectories per symmetry and protocol, including failures
+  implementation_notes:
+  - Recovered from the six-symmetry 50-run completion configs and effective shell-wrapper overrides; site paths
+    are replaced by portable environment settings.
+  - The historical optimization early-stop uses AnAnaS score >0.25 with pLDDT >0.80 and ipTM >0.60. The reported
+    strict endpoint instead uses score >0.80; these are separate criteria.
+  - "SI 7 defines steps: 50 as states 0\u201349. AnAnaS score is the historical bounded RMSD-derived score, not\
+    \ raw RMSD."
+  - The existing symmetry_canonicalizer aligns compatible protomers and averages coordinates before RPXDock; rescue
+    failures remain in the planned denominator.
+  - "The wrapper pins historical Protenix protenix_base_default_v0.5.0.pt; weight_path.protenix must identify that\
+    \ checkpoint. Effective Dn overrides are length 70\u201380, entrance pLDDT>0.50/loop<0.50, helix coefficient\
+    \ 1.00, and no acceptance gate."
+  - Control removes only the symmetry predocker and its mutator references; the Dn all-alanine processor remains.

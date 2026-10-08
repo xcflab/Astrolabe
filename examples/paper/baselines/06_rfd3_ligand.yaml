@@ -1,0 +1,8 @@
+# Supply one complete native Foundry ligand design specification in this JSON.
+native_config: ../../../data/baselines/rfd3_fad.json
+checkpoint: ../../../data/baselines/rfd3_foundry_2025_12_01_remapped.ckpt
+ligandmpnn:
+  tool_dir: ../../../vendor/LigandMPNN
+  python: /path/to/ligandmpnn/environment/bin/python
+  checkpoint: ../../../data/baselines/ligandmpnn_v_32_010_25.pt
+  chains_to_design: A

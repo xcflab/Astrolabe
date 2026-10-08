@@ -1,0 +1,144 @@
+# @package _global_
+task_name: ???
+out_dir: ???
+enable_pyrosetta: true
+steps: 50
+repeats: 1
+seqs:
+  A: 72-72
+homologies:
+  A: null
+initializer:
+  mode: dplm
+  aa_set: null
+predocker:
+  predocker_terms:
+    symmetry:
+      _type: symmetry_canonicalizer
+      mode: cyclic_oligomer
+      backend: rpxdock
+      _condition: separation_std > 0.25
+      rpxdock_failure_fallback: raise
+      order: 6
+mutator:
+  names:
+  - dplm
+  - mpnn_interface
+  - mpnn_surface
+  selector_expression: null
+  mutator_terms:
+    dplm:
+      _type: DPLM
+      temperature: 1
+    mpnn_interface:
+      _type: LigandMPNN
+      model_type: protein_mpnn
+      position_selector: interface(interface_distance=10.0)
+      temperature: 0.25
+      predocker:
+      - symmetry
+    mpnn_surface:
+      _type: LigandMPNN
+      model_type: soluble_mpnn
+      position_selector: not interface(interface_distance=10.0)
+      temperature: 0.15
+      predocker:
+      - symmetry
+evaluator:
+  evaluator_terms:
+    alphafold2:
+      _type: alphafold2
+loss:
+  loss_terms:
+    A_single_chain_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    separation_std:
+      _type: separation_std
+    A_loop_frac:
+      _type: secondary_structure_fraction
+      sse_type: L
+      included_protomers: A
+    A_longest_helix_run_frac:
+      _type: longest_secondary_structure_run_fraction
+      sse_type: H
+      included_protomers: A
+    c6_ananas:
+      _type: ananas_rmsd_norm
+      _for: AAAAAA
+      point_group: C
+      order: 6
+      best: 0.0
+      worst: 2.0
+      timeout_s: 60
+  expression_terms:
+    A_globular_target: 0.395 * (A_length ** 0.6) + 7.257
+    A_relaxed_rog_target: A_globular_target + 3
+    refine_confidence_term: 0.55 * iptm + 0.20 * ptm + 0.25 * plddt
+    refine_symmetry_term: 1.00 * exp(-(separation_std + 0.40))
+    refine_loop_term: -0.35 * min(A_loop_frac, 1)
+    refine_rog_term: -0.45 * (1 / (1 + exp(-((A_single_chain_rog - A_relaxed_rog_target) / 4.0))))
+    refine_helix_term: -0.65 * A_longest_helix_run_frac
+    ananas_score: c6_ananas
+stages:
+  default:
+    oligo:
+    - A
+    evaluator: alphafold2
+    mutators:
+    - dplm
+    mutator_weights:
+    - 1.0
+    mutation_num: 100%
+    weighted_score_expression: -0.4 * (1 / (1 + exp(-((A_single_chain_rog - A_globular_target) / 5.0)))) - min(A_loop_frac,1)
+      * 0.6
+    acceptance_threshold: (A_loop_frac < 0.4) and (A_single_chain_rog <= A_globular_target + 3)
+    early_stopping: null
+  oligomer:
+    _entrance: (A_loop_frac < 0.4) and (A_single_chain_rog <= A_globular_target + 3)
+    oligo:
+    - AAAAAA
+    evaluator: alphafold2
+    mutators:
+    - mpnn_interface
+    - mpnn_surface
+    mutator_weights:
+    - 1.0
+    - 1.0
+    mutation_num: 100%
+    weighted_score_expression: refine_confidence_term + refine_symmetry_term + refine_loop_term + refine_rog_term
+      + refine_helix_term
+    acceptance_threshold: null
+    early_stopping: c6_ananas > 0.25 and plddt > 0.80 and iptm > 0.60
+raw_model_results_dir: null
+defaults:
+- /base
+- _self_
+paper_protocol:
+  name: symmetry-c6
+  sources:
+  - "MainPaper Methods 187\u2013190"
+  - "SI 7, 73\u201374"
+  source_config: config/001_symmetry_50run_completion/01_prefix50_plus_missing20/01_six_symmetry_matched_cohort/rpxdock/c6.yaml
+  source_wrapper: config/001_symmetry_50run_completion/01_prefix50_plus_missing20/01_six_symmetry_matched_cohort/01_run_rpxdock_cn.sh
+  configured_steps: 50
+  symmetry: C6
+  protocol: rescue
+  planned_trajectories_per_protocol: 50
+  required_input_paths: []
+  endpoint:
+    unit: trajectory
+    selection: any predicted state
+    expression: (ananas_score > 0.80) and (plddt > 0.80) and (iptm > 0.60)
+    ananas_score_definition: clip((2.0 - AnAnaS Average RMSD in Angstrom) / 2.0, 0, 1)
+    score_source: 'loss c6_ananas: ananas_rmsd_norm(best=0,worst=2)'
+    denominator: all 50 planned trajectories per symmetry and protocol, including failures
+  implementation_notes:
+  - Recovered from the six-symmetry 50-run completion configs and effective shell-wrapper overrides; site paths
+    are replaced by portable environment settings.
+  - The historical optimization early-stop uses AnAnaS score >0.25 with pLDDT >0.80 and ipTM >0.60. The reported
+    strict endpoint instead uses score >0.80; these are separate criteria.
+  - "SI 7 defines steps: 50 as states 0\u201349. AnAnaS score is the historical bounded RMSD-derived score, not\
+    \ raw RMSD."
+  - The existing symmetry_canonicalizer aligns compatible protomers and averages coordinates before RPXDock; rescue
+    failures remain in the planned denominator.

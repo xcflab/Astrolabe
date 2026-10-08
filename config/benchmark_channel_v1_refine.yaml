@@ -1,0 +1,89 @@
+defaults:
+  - base
+  - _self_
+
+task_name: ???
+repeats: 1
+enable_pyrosetta: true
+
+out_dir: ???
+seqs:
+  A: ???
+  B: ???
+types:
+  B: c
+ligand_resnames: {}
+
+homologies:
+  A: null
+
+steps: 20
+initial_temperature: 0.03
+
+covalent_bonds: []
+
+mutator:
+  selector_expression: null
+  mutator_terms:
+    LMPNN_channel:
+      _type: LigandMPNN
+      temperature: 0.3
+      position_selector: >-
+        hole_surface(
+          reference_structure_path='${loss.loss_terms.channel_hole.reference_structure_path}',
+          reference_spheres_path='${loss.loss_terms.channel_hole.reference_spheres_path}',
+          alignment_chains='${loss.loss_terms.channel_hole.alignment_chains}',
+          surface_gap_max=1.5
+        ) and not ligand_contact(distance_max=5.0)
+
+evaluator:
+  rf3:
+    template_selection: null
+    ground_truth_conformer_selection: null
+    fixed_ligands: {}
+  evaluator_terms:
+    RF3:
+      _type: rf3
+
+loss:
+  loss_terms:
+    channel_hole:
+      _type: channel_hole
+      reference_structure_path: ???
+      alignment_chains: ???
+      reference_spheres_path: ???
+      radius_gate_path_len_threshold: 40.0
+    best_channel_effective_path_len:
+      _type: best_channel_effective_path_len
+      reference_structure_path: ${loss.loss_terms.channel_hole.reference_structure_path}
+      alignment_chains: ${loss.loss_terms.channel_hole.alignment_chains}
+      reference_spheres_path: ${loss.loss_terms.channel_hole.reference_spheres_path}
+      radius_gate_path_len_threshold: ${loss.loss_terms.channel_hole.radius_gate_path_len_threshold}
+    best_channel_min_radius:
+      _type: best_channel_min_radius
+      reference_structure_path: ${loss.loss_terms.channel_hole.reference_structure_path}
+      alignment_chains: ${loss.loss_terms.channel_hole.alignment_chains}
+      reference_spheres_path: ${loss.loss_terms.channel_hole.reference_spheres_path}
+      radius_gate_path_len_threshold: ${loss.loss_terms.channel_hole.radius_gate_path_len_threshold}
+    channel_softplus_radius:
+      _type: channel_softplus_radius
+      reference_structure_path: ${loss.loss_terms.channel_hole.reference_structure_path}
+      alignment_chains: ${loss.loss_terms.channel_hole.alignment_chains}
+      reference_spheres_path: ${loss.loss_terms.channel_hole.reference_spheres_path}
+      radius_gate_path_len_threshold: ${loss.loss_terms.channel_hole.radius_gate_path_len_threshold}
+  expression_terms:
+    channel_iptm_gate: min(iptm / 0.8, 1.0)
+    channel_ptm_gate: min(ptm / 0.8, 1.0)
+    channel_plddt_gate: min(plddt / 0.85, 1.0)
+    channel_confidence_gate: channel_iptm_gate * channel_ptm_gate * channel_plddt_gate
+    channel_radius_bonus: sigmoid((best_channel_min_radius - 1.2) / 0.2)
+
+stages:
+  default:
+    oligo: ["AB"]
+    evaluator: RF3
+    mutation_num: 100%
+    acceptance_threshold: null
+    mutators: ["LMPNN_channel"]
+    mutator_weights: [1.0]
+    weighted_score_expression: channel_hole + 0.5 * channel_radius_bonus + 0.05 * channel_confidence_gate

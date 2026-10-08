@@ -1,0 +1,89 @@
+defaults:
+  - base
+  - _self_
+
+# Oligomer refine template (v4).
+# Two-stage strategy:
+#   1) random initialization + MCMC on the target homooligomer to improve symmetry
+#   2) switch to LigandMPNN once chain packing is roughly symmetric/stable
+
+task_name: ???
+out_dir: ???
+repeats: 1
+
+seqs:
+  # Protein sequence (mutable) OR length range (e.g. "150-150") if starting from random.
+  A: ???
+
+homologies:
+  # Optional. Either:
+  #   - AF3 JSON: /path/to/af3.json:<chain_id>
+  #   - Or a dict with keys: unpairedMsa/pairedMsa/templates
+  A: null
+
+steps: 40
+initial_temperature: 0.01
+
+predocker:
+  predocker_terms:
+    symmetry:
+      _type: symmetry_canonicalizer
+      mode: cyclic_oligomer
+      backend: rfdiffusion
+
+mutator:
+  names: ["mcmc_symmetry", "ligand_mpnn_refine"]
+  selector_expression: null
+  mutator_terms:
+    mcmc_symmetry:
+      _type: MCMC
+      mutation_method: frequency_adjusted
+      select_positions: random
+    ligand_mpnn_refine:
+      _type: LigandMPNN
+      model_type: protein_mpnn
+      temperature: 0.3
+      predocker: ["symmetry"]
+
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+    Alphafold2:
+      _type: alphafold2
+
+loss:
+  loss_terms:
+    A_single_chain_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    separation_std:
+      _type: separation_std
+    A_loop_frac:
+      _type: secondary_structure_fraction
+      sse_type: L
+      included_protomers: A
+  expression_terms:
+    A_globular_target: 0.395 * (A_length ** 0.6) + 7.257
+
+stages:
+  default:
+    evaluator: Alphafold3
+    mutation_num: 10%
+    early_stopping: null
+    # CLI may override this (e.g. ["AAAA"] or ["AA","AAA"]).
+    oligo: ["AAAAA"]
+    weighted_score_expression: 0.5 * plddt + 0.5 * iptm + exp(-separation_std - 0.7) - min(A_loop_frac,1) * 0.25 - 0.2 * (1 / (1 + exp(-((A_single_chain_rog - A_globular_target) / 5.0))))
+    mutators: ["mcmc_symmetry"]
+    mutator_weights: [1.0]
+    acceptance_threshold: null
+  refine:
+    _entrance: (separation_std <= 2.5) and (plddt >= 0.5) and (iptm >= 0.2)
+    evaluator: Alphafold3
+    mutation_num: 100%
+    early_stopping: null
+    oligo: ["AAAAA"]
+    weighted_score_expression: iptm + ptm + plddt - A_loop_frac / 2 + exp(-separation_std - 0.7) - 0.2 * (1 / (1 + exp(-((A_single_chain_rog - A_globular_target) / 5.0))))
+    mutators: ["ligand_mpnn_refine"]
+    mutator_weights: [1.0]
+    acceptance_threshold: null

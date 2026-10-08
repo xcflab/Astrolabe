@@ -1,0 +1,61 @@
+task_name: thioether_with_target__mcl1__s001
+seed: 327821
+seqs:
+  A: PVH +[CAM] FQDNPLDIPQHS +[AET] VHE
+  B: +GSDELYRQSLEIISRYLREQATGAKDTKPMGRSGATSRKALETLRRVGDGVQRNHETAFQGMLRKLDIKNEDDVKSLSRVMIHVFSDGVTNWGRIVTLISFGAFVAKHLKTINQESCIEPLAESITDVLVRTKRDWLVKQRGWDGFVEFFHVEDLEGG
+cyclization:
+  bonds:
+  - a:
+      aa: C
+      atom: SG
+      pos: 4
+      proto: A
+      residue: CAM
+    b:
+      aa: A
+      atom: CB
+      pos: 17
+      proto: A
+      residue: AET
+    chemistry: thioether
+    order: single
+    signal_mode: both
+    target_distance: 1.81
+    topology: sidechain_sidechain
+  encoding:
+    scope: all_bonds
+  signal_mode: bond_only
+paper_protocol:
+  topology: sidechain_sidechain_thioether
+  source_task_id: 41
+  source_task_index: 012_cyclic_peptide_design/analysis/cyclic_v3/53_missing_single_ring_supplements__20260519/with_target_thioether/task_index.csv
+  target: MCL1
+nonstandard_residues:
+  aliases:
+    AET:
+      atom_names:
+        C: C
+        CA: CA
+        CB: CB
+        N: N
+        O: O
+      ccd_id: AET
+      parent_aa: A
+      source:
+        format: mmcif
+        value: ${oc.env:ASTROLABE_PAPER_DATA}/cyclic/chemistry/AET.cif
+    CAM:
+      atom_names:
+        C: C
+        CA: CA
+        CB: CB
+        N: N
+        O: O
+        SG: SG
+      ccd_id: CAY
+      parent_aa: C
+      source:
+        format: mmcif
+        value: ${oc.env:ASTROLABE_PAPER_DATA}/cyclic/chemistry/CAM.cif
+homologies:
+  B: ${oc.env:ASTROLABE_PAPER_DATA}/cyclic/homologies/MCL1.json:A

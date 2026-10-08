@@ -1,0 +1,20 @@
+# @package _global_
+defaults:
+- /paper/bivalent_rna
+- _self_
+task_name: bivalent_rna_archived
+seqs:
+  A: UCGGCAGCUGCCAUCUGACU@repeat repeat
+beam_search:
+  initialization: archived
+paper_protocol:
+  source:
+  - MainPaper 211-212
+  - 010_rna_aptamer_target_protein/scheduler/rna_evaluator_comparison/18_bivalent_40nt.yaml and bivalent_af3_metrics.py
+  variant: archived
+  notes:
+  - 'Archived 40nt batch: contact-guided shortened candidates from source steps 269/613/774, with seeds 67101/67102/67103
+    and 200 evaluations each.'
+  - The stored archived_starts and their provenance are preserved; this initialization differs from the random starts
+    specified by MainPaper 211.
+  - All structural metrics and the weighted objective retain the recovered archived implementation.

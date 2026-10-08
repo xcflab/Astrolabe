@@ -1,0 +1,21 @@
+patches/vendor/**/*.patch -whitespace
+
+# Release hygiene
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+.git export-ignore
+.codex-tasks export-ignore
+.beads export-ignore
+.pytest_cache export-ignore
+.ruff_cache export-ignore
+.mypy_cache export-ignore
+build export-ignore
+dist export-ignore
+*.egg-info export-ignore
+runs export-ignore
+outputs export-ignore
+logs export-ignore

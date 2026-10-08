@@ -1,0 +1,67 @@
+{
+  "archive": "paper_inputs_cyclic.tar.gz",
+  "size_bytes": 7028692,
+  "sha256": "e3404927fb3acf6bb8e3b5ebce70568ea4854689c8dc76c0ed247a82ed58f8b4",
+  "files": [
+    {
+      "path": "cyclic/chemistry/AET.cif",
+      "size_bytes": 505,
+      "sha256": "6511066f7b0f3c2f06e2321d7713e63977e5f17583f8764867e2b9ef1cf7b68c",
+      "source": "012_cyclic_peptide_design/data/nonstandard_postbond_pilot/AET.cif"
+    },
+    {
+      "path": "cyclic/chemistry/CAM.cif",
+      "size_bytes": 544,
+      "sha256": "8cc73f595700d4f1be9febea228cbfdf0b1827b313b417e86daea5c4341a5c69",
+      "source": "012_cyclic_peptide_design/data/nonstandard_postbond_pilot/CAM.cif"
+    },
+    {
+      "path": "cyclic/chemistry/CTM.cif",
+      "size_bytes": 466,
+      "sha256": "ccc40cf504011d9d19aaba99b452b4a8cadd9eae58ef9a7b07a8c80d2d5c13ca",
+      "source": "012_cyclic_peptide_design/data/nonstandard_postbond_pilot/CTM.cif"
+    },
+    {
+      "path": "cyclic/chemistry/EAM.cif",
+      "size_bytes": 624,
+      "sha256": "ec5c87001e85e0b017b9502d26ac67b58b25eec60e04cdafb4032f07ba9df328",
+      "source": "012_cyclic_peptide_design/data/nonstandard_postbond_pilot/EAM.cif"
+    },
+    {
+      "path": "cyclic/chemistry/KAM.cif",
+      "size_bytes": 661,
+      "sha256": "9621b9cba57bd1bc1ce496c73bd1a6cf8739a0530fcd0ff4acb68c19b4c767dd",
+      "source": "012_cyclic_peptide_design/data/nonstandard_postbond_pilot/KAM.cif"
+    },
+    {
+      "path": "cyclic/chemistry/SAM.cif",
+      "size_bytes": 544,
+      "sha256": "33e53e9f4bf98d063d321a8b80b705cc7a1ba8d4940147ffb20a5ee506b41a92",
+      "source": "012_cyclic_peptide_design/data/nonstandard_postbond_pilot/SAM.cif"
+    },
+    {
+      "path": "cyclic/homologies/KEAP1.json",
+      "size_bytes": 30732025,
+      "sha256": "59b8e74e786592d754f414f2cc73684fe11b8aacaeb89dbcf8b5633cddcd3c1c",
+      "source": "012_cyclic_peptide_design/data/homologies_peptide_v1/KEAP1.json"
+    },
+    {
+      "path": "cyclic/homologies/MCL1.json",
+      "size_bytes": 2035415,
+      "sha256": "b38018721595ab3bf1e95e4bcb8072cce5a4448b3ae2483ee99c28cbb0f0b035",
+      "source": "012_cyclic_peptide_design/data/homologies_peptide_v1/MCL1.json"
+    },
+    {
+      "path": "cyclic/homologies/MDM2.json",
+      "size_bytes": 989204,
+      "sha256": "d93dda4e9a397667a32c9b3f487e404d8dfadef372a7a4f3babbed5651d80931",
+      "source": "012_cyclic_peptide_design/data/homologies_peptide_v1/MDM2.json"
+    },
+    {
+      "path": "cyclic/homologies/PDL1.json",
+      "size_bytes": 4634714,
+      "sha256": "cedf4f79c4a9b6d80cea03d5b04c63c56e6148eba698c36fff13f512ff73e14d",
+      "source": "012_cyclic_peptide_design/data/homologies_peptide_v1/PDL1.json"
+    }
+  ]
+}

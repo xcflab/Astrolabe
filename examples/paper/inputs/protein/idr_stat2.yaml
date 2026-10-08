@@ -1,0 +1,5 @@
+# @package _global_
+seqs:
+  B: +VPEPDLPCDLRHLNTEPMEIFRNCVKIEEIMPNGDPLLAGQNTVDEVYVSRPS
+homologies:
+  B: ${oc.env:ASTROLABE_PAPER_DATA}/protein/idr/stat2_P52630_786_838.json:A

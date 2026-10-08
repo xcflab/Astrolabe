@@ -1,0 +1,44 @@
+defaults:
+  - base
+  - override env: env_container
+  - _self_
+
+task_name: sif_af2_smoke
+out_dir: /tmp/gh_af2_smoke_runs
+steps: 2
+mutation_num: 0
+
+types:
+  A: "p"
+seqs:
+  A: "ACDEFGHIKLMNPQRSTVWY"
+
+enable_pyrosetta: false
+skip_complex_poses: true
+
+evaluator:
+  evaluator_terms:
+    Alphafold2:
+      _type: alphafold2
+      model_id: 3
+      suffix: multimer_v3
+      recycles: 1
+      msa_clusters: 1
+
+mutator:
+  mutator_terms:
+    MCMC:
+      _type: MCMC
+
+loss:
+  loss_terms: {}
+
+stages:
+  default:
+    evaluator: Alphafold2
+    oligo: ["A"]
+    mutators: ["MCMC"]
+    mutation_num: 0
+    weighted_score_expression: "0"
+    acceptance_threshold: null
+    early_stopping: null

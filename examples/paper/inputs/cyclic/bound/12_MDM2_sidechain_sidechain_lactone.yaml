@@ -1,0 +1,64 @@
+# Input overlay for astrolabe paper run; see ../README.md.
+task_name: MDM2_sidechain_sidechain_lactone
+seqs:
+  A: 3 +[SAM] 12 +[EAM] 3
+  B: +SQIPASEQETLVRPKPLLLKLLKSVGAQKDTYTMKEVLFYLGQYIMTKRLYDEKQQHIVYCSNDLLGDLFGVPSFSVKEHRKIYTMIYRNLVVVNQQESSDSGTSVSEN
+homologies:
+  B: ${oc.env:ASTROLABE_PAPER_DATA}/cyclic/homologies/MDM2.json:A
+cyclization:
+  bonds:
+  - a:
+      aa: S
+      atom: OG
+      pos: nterm+3
+      proto: A
+    b:
+      aa: E
+      atom: CD
+      pos: cterm-3
+      proto: A
+    order: single
+    target_distance: 1.33
+  encoding:
+    scope: all_bonds
+  signal_mode: both
+nonstandard_residues:
+  aliases:
+    EAM:
+      atom_names:
+        C: C
+        CA: CA
+        CB: CB
+        CD: CD
+        CG: CG
+        N: N
+        O: O
+        OE1: OE1
+      ccd_id: VAM
+      parent_aa: E
+      source:
+        format: mmcif
+        value: ${oc.env:ASTROLABE_PAPER_DATA}/cyclic/chemistry/EAM.cif
+    SAM:
+      atom_names:
+        C: C
+        CA: CA
+        CB: CB
+        N: N
+        O: O
+        OG: OG
+      ccd_id: SUM
+      parent_aa: S
+      source:
+        format: mmcif
+        value: ${oc.env:ASTROLABE_PAPER_DATA}/cyclic/chemistry/SAM.cif
+paper_protocol:
+  topology: sidechain_sidechain_lactone
+  target: MDM2
+  example_peptide_length: 20
+  source_length_range:
+  - 9
+  - 20
+  source_manifest: 012_cyclic_peptide_design/manifests/cyclic_peptide_v3/11_standard_donor_ptm_token_against_target.json
+  chemical_state: Postbond aliases preserve endpoint residue chemistry; CTM has a
+    carbonyl C=O and no terminal OXT.

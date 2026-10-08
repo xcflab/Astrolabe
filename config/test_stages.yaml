@@ -1,0 +1,84 @@
+defaults:
+  - base
+
+task_name: test_stages
+
+# Multiple oligomeric states
+types:
+  D: "c"
+#  B: "r"
+named_files:
+  template1: "inputs/1BC8_1.pdb"
+seqs:
+  A: "AYAALAIWFIFWYFWAIVFWLAAWFIFLYVYALWMYFMVWMLAAMWYMYIIYVIMILFYIYVAYYWVWLVAVVWYAYVLY"
+  C: "MYVYMFLWWYWFIAMMWVYLYFVLAAVYIVFAIIYVMAYFYYFAMAVWYVMVAVAMLLAFMLYLVVYIYFAFMFMLFFIV"
+  D: "ATP"
+
+mutation_num: 10
+selectors:
+  interface: "interface('AB', 'C')"
+  sse: "sse('H')"
+
+predocker:
+  predocker_terms:
+    dimer_interface:
+      _type: dimer_interface_placer
+      _for: ACD
+    chemnet:
+      _type: chemnet_placer
+      _for: ACD
+      num_samples: 5
+
+mutator:
+  mutator_terms:
+    MCMC:
+      _type: MCMC
+    LMPNN_wo_center:
+      _type: LigandMPNN
+    LMPNN_wt_center:
+      _type: LigandMPNN
+      predocker: [
+        dimer_interface,
+        chemnet
+      ]
+    ESM2:
+      _type: ESM2
+
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+    esmfold:
+      _type: ESMFold
+
+# Complex loss configuration
+loss:
+  loss_terms:
+    com_distance:
+      _type: com_distance
+      _for: ACD
+      buried_protomer: D
+    hotspot_dsasa:
+      _type: hotspot_dsasa
+      _for: ACD
+      select_expression: "alias2:1-10@3"
+
+stages:
+  default:
+    oligo: [ "A", "C" ]
+    evaluator: esmfold
+    mutators: [ "MCMC","LMPNN_wo_center" ]
+    mutator_weights: [ 0.3, 0.7 ]
+    weighted_score_expression: >-
+      ptm + plddt
+    acceptance_threshold: null
+    early_stopping: null
+
+  stage_1:
+    _entrance: plddt > 0.9
+    mutators: [ "MCMC","LMPNN_wo_center" ]
+    mutator_weights: [ 0.3, 0.7 ]
+    oligo: [ "AC" ]
+    weighted_score_expression: >-
+      ptm * 0.2  +
+      iptm * 0.1

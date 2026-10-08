@@ -1,0 +1,105 @@
+defaults:
+  - base
+  - _self_
+
+# Ligand benchmark template (v1).
+# Intended usage:
+#   - Prefer the one-shot CLI:
+#       gh design ligand --task-name myjob --out-dir outputs --protein-len 140-180 --ligand FAD --ligand-type ccd
+#   - Or manual override:
+#       gh run --task benchmark_ligand_v1 --overlay overlay.yaml
+
+task_name: ???
+repeats: 1
+enable_pyrosetta: true
+
+out_dir: ???
+seqs:
+  # Protein (mutable) length range.
+  A: ???
+  # Ligand identifier (CCD code or SMILES literal depending on types.B).
+  B: ???
+types:
+  # "c" = CCD, "s" = SMILES
+  B: ???
+# Optional Rosetta params name mapping.
+# Example:
+# ligand_resnames:
+#   B: LIG
+ligand_resnames: {}
+steps: 20
+
+initializer:
+  mode: dplm
+initial_temperature: 0.03
+
+predocker:
+  predocker_terms:
+    autodock_vina_box:
+      _type: autodock_vina
+      _condition: ligand_burial < 0.7
+      binding_site_strategy: residue
+      binding_site_coverage: 90
+      binding_site_padding: 1.0
+
+mutator:
+  # NOTE: `mutator.names` is deprecated/ignored; stages reference aliases under `mutator_terms`.
+  # Keep it for backward compatibility only.
+  selector_expression: null
+  mutator_terms:
+    LMPNN_allala_vina:
+      _type: LigandMPNN
+      temperature: 0.3
+      predocker:
+        - autodock_vina_box
+    dplm:
+      _type: DPLM
+      temperature: 1
+
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+    Protenix:
+      _type: Protenix
+    chai1:
+      _type: chai1
+
+loss:
+  loss_terms:
+    binder_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    binder_loop_frac:
+      _type: secondary_structure_fraction
+      included_protomers: A
+      sse_type: L
+    hbonds:
+      _type: ligand_protein_hbond
+    ligand_burial:
+      _type: ligand_delta_sasa_fraction
+    holes:
+      _type: ligand_local_holes
+  expression_terms:
+    globin_rog: 0.395 * (A_length ** 0.6) + 7.257
+
+stages:
+  default:
+    oligo: ["A"]
+    evaluator: Protenix
+    mutators: ["dplm"]
+    mutation_num: 100%
+    weighted_score_expression: "-0.4 * (1 / (1 + exp(-((binder_rog - globin_rog) / 5.0)))) - min(binder_loop_frac,1) * 0.6"
+    acceptance_threshold: "(binder_loop_frac < 0.4) and (binder_rog <= globin_rog + 3)"
+    early_stopping: null
+  ligand:
+    _entrance: "(binder_loop_frac < 0.4) and (binder_rog <= globin_rog + 3)"
+    oligo: ["AB"]
+    evaluator: Alphafold3
+    mutation_num: 100%
+    acceptance_threshold: null
+    mutators: ["LMPNN_allala_vina"]
+    mutator_weights: [1.0]
+    weighted_score_expression: iptm + 0.8 * ptm + 0.5 * ligand_burial - 0.3 *
+      (1 / (1 + exp(-((binder_rog - globin_rog) / 5.0)))) -
+      min(binder_loop_frac,1) * 0.6

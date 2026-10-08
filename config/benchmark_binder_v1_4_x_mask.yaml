@@ -1,0 +1,39 @@
+defaults:
+  - benchmark_binder_v1_4
+  - _self_
+
+initializer:
+  mode: x_mix
+  x_fraction: 0.8
+
+
+mutator:
+  mutator_terms:
+    x_mask:
+      _type: XMix
+      x_fraction: ${initializer.x_fraction}
+      aa_set: ${initializer.aa_set}
+
+loss:
+  loss_terms:
+    binder_x_fraction:
+      _type: sequence_residue_fraction
+      included_protomers: A
+      residues: X
+
+stages:
+  default:
+    mutators: ["x_mask"]
+  redesign_no_x:
+    _entrance: "(binder_loop_frac < 0.4) and (binder_rog <= globin_rog + 3)"
+    oligo: ["A"]
+    evaluator: Protenix
+    acceptance_threshold: "(binder_x_fraction == 0) and (binder_loop_frac < 0.4) and (binder_rog <= globin_rog + 3)"
+    mutators:
+      - LigandMPNN_noitf
+      - esm3
+    mutator_weights:
+      - 1.0
+      - 0.1
+  ligand:
+    _entrance: "(binder_x_fraction == 0) and (binder_loop_frac < 0.4) and (binder_rog <= globin_rog + 3)"

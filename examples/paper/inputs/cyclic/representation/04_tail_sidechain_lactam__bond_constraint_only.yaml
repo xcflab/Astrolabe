@@ -1,0 +1,29 @@
+# Input overlay for astrolabe paper run; see ../README.md.
+task_name: single_ablation__bond_constraint_only__tail_sidechain_lactam__s001
+seed: 315185
+seqs:
+  A: QWACKDEMSWWYKHGLQEKF
+cyclization:
+  bonds:
+  - a:
+      aa: K
+      atom: NZ
+      pos: 5
+      proto: A
+    b:
+      atom: C
+      pos: 20
+      proto: A
+    order: single
+    signal_mode: bond_only
+    target_distance: 1.33
+  encoding:
+    scope: all_bonds
+  signal_mode: bond_only
+paper_protocol:
+  topology: tail_sidechain_lactam
+  representation: bond_constraint_only
+  planned_runs: 40
+  example_source_sample: 1
+  source_task_id: 121
+  source_task_index: 012_cyclic_peptide_design/analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv

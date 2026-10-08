@@ -1,0 +1,50 @@
+# @package _global_
+defaults:
+- /base
+- _self_
+task_name: evaluate_protenix2
+out_dir: null
+repeats: 1
+steps: 1
+seed: 1
+seqs:
+  A: ???
+  B: ???
+homologies: {}
+mutator:
+  selector_expression: null
+  mutator_terms:
+    MCMC:
+      _type: MCMC
+evaluator:
+  evaluator_terms:
+    Protenix:
+      _type: Protenix
+  protenix:
+    model_name: protenix-v2
+    model:
+      N_cycle: 10
+    sample_diffusion:
+      N_sample: 5
+      N_step: 200
+stages:
+  default:
+    oligo:
+    - AB
+    evaluator: Protenix
+    mutators:
+    - MCMC
+    mutation_num: 100%
+    weighted_score_expression: plddt
+    acceptance_threshold: null
+    early_stopping: null
+paper_protocol:
+  source:
+  - MainPaper 116-117,150,171
+  - SI 29-32,40,46
+  representative: fixed_sequence_evaluation
+  notes:
+  - One initialized state and no sequence proposals; input sequence must be literal, with no random-length segments.
+  - For apo/holo 5x5 ensembles, use --num-runs 5 for each state and empty MSAs/templates. All native sample outputs
+    remain under raw_model_results.
+  - AF3 binary evaluation target MSAs/templates come from the frozen target inputs; do not replace with empty contexts.

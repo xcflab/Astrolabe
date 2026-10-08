@@ -1,0 +1,48 @@
+# Input overlay for astrolabe paper run; see ../README.md.
+task_name: bond_modified__bond_plus_chemistry_prepare__sidechain_sidechain_thioether__from_chemistry_prepare__s001
+seed: 216156
+seqs:
+  A: NAQCYACMIAVWETCH +[AET] ACM
+cyclization:
+  bonds:
+  - a:
+      aa: C
+      atom: SG
+      pos: 4
+      proto: A
+      residue: CYS
+    b:
+      aa: A
+      atom: CB
+      pos: 17
+      proto: A
+      residue: AET
+    chemistry: thioether
+    order: single
+    signal_mode: bond_only
+    target_distance: 1.81
+    topology: sidechain_sidechain
+  encoding:
+    scope: all_bonds
+  signal_mode: bond_only
+paper_protocol:
+  topology: sidechain_sidechain_thioether
+  representation: bond_plus_chemistry_prepare
+  planned_runs: 40
+  example_source_sample: 1
+  source_task_id: 521
+  source_task_index: 012_cyclic_peptide_design/analysis/cyclic_v3/82_bond_modified_ablation__20260615/task_index.csv
+nonstandard_residues:
+  aliases:
+    AET:
+      atom_names:
+        C: C
+        CA: CA
+        CB: CB
+        N: N
+        O: O
+      ccd_id: AET
+      parent_aa: A
+      source:
+        format: mmcif
+        value: ${oc.env:ASTROLABE_PAPER_DATA}/cyclic/chemistry/AET.cif

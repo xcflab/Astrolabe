@@ -1,0 +1,90 @@
+target_name: hcar1
+task_name: hcar1_constraint_compliance_base
+
+out_dir: outputs/hcar1_constraint_compliance_benchmark
+
+# steps=11 => optimization steps 1..10 (loop condition is step < steps)
+steps: 11
+repeats: 3
+
+# dSASA and interface-related losses require complex poses.
+enable_pyrosetta: true
+skip_complex_poses: false
+
+seqs:
+  # HCAR1 nanobody baseline with explicit aliases for paratope and framework segments.
+  A: "+QVQLVESGGGSVQAGGSLRLSCTAS@fw1 GGSEYSYSTF@cdr1 +SLGWFRQAPGQEREAVAAI@fw2 ASMGGL@cdr2 +TYYADSVKGRFTISRDNAKNTVTLQMNNLKPEDTAIYYCAA@fw3 VRGYFMRLPSSHNFRY@cdr3 +WGQGTQVTVSSRGR@fw4"
+  # Use a single aliased segment so target_full:64-68 is well-defined.
+  B: "+CCRIEGDTISQVMPPLLIVAFVLGALGNGVALCGFCFHMKTWKPSTVYLFNLAVADFLLMICLPFRTDYYLRRRHWAFGDIPCRVGLFTLAMNRAGSIVFLTVVAADRYFKVVHPHHAVNTISTRVAAGIVCTLWALVILGTVYLLLENHLCVQETAVSCESFIMESANGWHDIMFQLEFFMPLGIILFCSFKIVWSLRRRQQLARQARMKKATRFIMVVAIVFITCYLPSVSARLYFLWTVPSSACDPSVHGALHITLSFTYMNSMLDPLVYYFSSPS@target_full"
+
+homologies:
+  B: /path/to/hcar1/af3_unique_chains_part_1_data.json:A
+
+binding_site:
+  target: "B:64-68"
+  binder: ["A:26-35", "A:55-60", "A:102-117"]
+  # Runner script switches pocket/contact here via CLI overrides.
+  mode: pocket
+  max_distance: 12.0
+  min_distance: 0.0
+
+mutator:
+  # Keep mutator simple and evaluator-neutral for fair comparison.
+  names: ["dplm"]
+
+evaluator:
+  evaluator_terms:
+    Protenix:
+      _type: Protenix
+    chai1:
+      _type: chai1
+    Boltz:
+      _type: boltz
+
+loss:
+  loss_terms:
+    # Existing benchmark terms kept for trajectory quality.
+    binder_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    binder_loop_frac:
+      _type: secondary_structure_fraction
+      included_protomers: A
+      sse_type: L
+    interface_sc:
+      _type: protomer_shape_complementarity
+
+    # Constraint compliance terms.
+    binding_site_allowed_min_dist:
+      _type: binding_site_allowed_min_dist
+    binding_site_framework_min_dist:
+      _type: binding_site_framework_min_dist
+
+    # Binding-site burial (delta SASA) terms.
+    dsasa_target:
+      _type: hotspot_dsasa
+      select_expression: "target_full:64-68"
+    dsasa_paratope:
+      _type: hotspot_dsasa
+      select_expression: "cdr1;cdr2;cdr3"
+
+  expression_terms:
+    globin_rog: 0.395 * (A_length ** 0.6) + 7.257
+
+stages:
+  default:
+    # Force AB from start so constraints apply in every optimization step.
+    oligo: ["AB"]
+    evaluator: Protenix
+    mutators: ["dplm"]
+    mutation_num: 100%
+    acceptance_threshold: null
+    weighted_score_expression: iptm + 0.4*ptm + plddt + interface_sc * 0.1 - 0.2 * (1 / (1 + exp(-((binder_rog - globin_rog) / 5.0)))) - min(binder_loop_frac,1) * 0.3 - 0.03 * binding_site_allowed_min_dist + 0.03 * binding_site_framework_min_dist + 0.2 * dsasa_target + 0.1 * dsasa_paratope
+  ligand:
+    _entrance: "False"
+    evaluator: Protenix
+    oligo: ["AB"]
+    mutators: ["dplm"]
+    mutation_num: 100%
+    acceptance_threshold: null
+    weighted_score_expression: iptm + 0.4*ptm + plddt + interface_sc * 0.1 - 0.2 * (1 / (1 + exp(-((binder_rog - globin_rog) / 5.0)))) - min(binder_loop_frac,1) * 0.3 - 0.03 * binding_site_allowed_min_dist + 0.03 * binding_site_framework_min_dist + 0.2 * dsasa_target + 0.1 * dsasa_paratope

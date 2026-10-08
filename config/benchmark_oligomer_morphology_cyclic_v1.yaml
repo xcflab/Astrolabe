@@ -1,0 +1,109 @@
+defaults:
+  - base
+  - _self_
+
+# Cn de novo oligomer design with DPLM initialization, AF2 scoring, and
+# conditional RPXDock cyclic predocking. The CLI injects shape/order/oligo.
+
+task_name: ???
+out_dir: ???
+raw_model_results_dir: null
+
+enable_pyrosetta: false
+steps: 25
+repeats: 1
+initial_temperature: 0.03
+
+seqs:
+  A: "72-72"
+
+homologies:
+  A: null
+
+initializer:
+  mode: dplm
+  aa_set: null
+
+predocker:
+  predocker_terms:
+    symmetry:
+      _type: symmetry_canonicalizer
+      mode: cyclic_oligomer
+      backend: rpxdock
+      order: 3
+      _condition: cyclic_symmetry_composite > 0.25
+
+mutator:
+  names: ["dplm", "mpnn_interface", "mpnn_surface"]
+  selector_expression: null
+  mutator_terms:
+    dplm:
+      _type: DPLM
+      temperature: 1
+    mpnn_interface:
+      _type: LigandMPNN
+      model_type: protein_mpnn
+      position_selector: "interface(interface_distance=10.0)"
+      temperature: 0.25
+      predocker: ["symmetry"]
+    mpnn_surface:
+      _type: LigandMPNN
+      model_type: soluble_mpnn
+      position_selector: "not interface(interface_distance=10.0)"
+      temperature: 0.15
+      predocker: ["symmetry"]
+
+evaluator:
+  evaluator_terms:
+    alphafold2:
+      _type: alphafold2
+
+loss:
+  loss_terms:
+    A_single_chain_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    cyclic_symmetry_composite:
+      _type: cyclic_symmetry_composite
+    A_loop_frac:
+      _type: secondary_structure_fraction
+      sse_type: L
+      included_protomers: A
+    A_longest_helix_run_frac:
+      _type: longest_secondary_structure_run_fraction
+      sse_type: H
+      included_protomers: A
+  expression_terms:
+    A_globular_target: 0.395 * (A_length ** 0.6) + 7.257
+    A_relaxed_rog_target: A_globular_target + 3
+    refine_confidence_term: 0.55 * iptm + 0.20 * ptm + 0.25 * plddt
+    refine_symmetry_term: 1.00 * exp(-(cyclic_symmetry_composite + 0.40))
+    refine_loop_term: -0.35 * min(A_loop_frac, 1)
+    refine_rog_term: -0.45 * (1 / (1 + exp(-((A_single_chain_rog - A_relaxed_rog_target) / 4.0))))
+    refine_helix_term: -0.65 * A_longest_helix_run_frac
+
+stages:
+  default:
+    oligo: ["A"]
+    evaluator: alphafold2
+    mutators: ["dplm"]
+    mutator_weights: [1.0]
+    mutation_num: "100%"
+    weighted_score_expression: "-0.4 * (1 / (1 + exp(-((A_single_chain_rog - A_globular_target) / 5.0)))) - min(A_loop_frac,1) * 0.6"
+    acceptance_threshold: "(A_loop_frac < 0.4) and (A_single_chain_rog <= A_globular_target + 3)"
+    early_stopping: null
+  oligomer:
+    _entrance: "(A_loop_frac < 0.4) and (A_single_chain_rog <= A_globular_target + 3)"
+    oligo: ["AAA"]
+    evaluator: alphafold2
+    mutators: ["mpnn_interface", "mpnn_surface"]
+    mutator_weights: [1.0, 1.0]
+    mutation_num: "100%"
+    weighted_score_expression: >-
+      refine_confidence_term
+      + refine_symmetry_term
+      + refine_loop_term
+      + refine_rog_term
+      + refine_helix_term
+    acceptance_threshold: null
+    early_stopping: null

@@ -1,0 +1,34 @@
+defaults:
+  - base
+  - _self_
+
+task_name: test_af2
+steps: 2
+
+# Multiple oligomeric states
+seqs:
+  A: "SMEEIQKKIKEELEEFLEEAPSLSDIERLTKFLELLTKILENAEYITDEILELLKKTVEELLKLLSPEYASLAKAAYEATLAALEKYKAA"
+
+mutation_num: 10
+
+mutator:
+  mutator_terms:
+    MCMC:
+      _type: MCMC
+    LMPNN_wo_center:
+      _type: LigandMPNN
+    LMPNN_wt_center:
+      _type: LigandMPNN
+
+evaluator:
+  evaluator_terms:
+    alphafold2:
+      _type: alphafold2
+
+stages:
+  default:
+    oligo: ["A"]
+    mutators: ["MCMC", "LMPNN_wt_center"]
+    evaluator: alphafold2
+    mutator_weights: [0.3, 0.7]
+    weighted_score_expression: "plddt + ptm"

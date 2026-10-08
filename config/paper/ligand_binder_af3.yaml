@@ -1,0 +1,87 @@
+# @package _global_
+defaults:
+  - /base
+  - _self_
+
+paper_protocol:
+  source: MainPaper Methods 123-133
+  representative: last accepted sequence
+  note: Vina residue-box rescue uses the existing implementation; exact rescue settings are recorded below.
+task_name: ???
+out_dir: ???
+repeats: 1
+steps: 20
+enable_pyrosetta: true
+seqs:
+  A: 140-180
+  B: ???
+types:
+  B: ???
+initializer:
+  mode: dplm
+predocker:
+  predocker_terms:
+    alanine:
+      _type: all_alanine
+      _condition: ligand_burial < 0.7
+      included_chains: [A]
+    vina:
+      _type: autodock_vina
+      _condition: ligand_burial < 0.7
+      binding_site_strategy: residue
+      binding_site_coverage: 90
+      binding_site_padding: 1.0
+      exhaustiveness: 8
+      num_modes: 20
+mutator:
+  mutator_terms:
+    dplm:
+      _type: DPLM
+      temperature: 1.0
+    ligandmpnn:
+      _type: LigandMPNN
+      temperature: 0.3
+      predocker: [alanine, vina]
+evaluator:
+  evaluator_terms:
+    predictor:
+      _type: Alphafold3
+loss:
+  loss_terms:
+    binder_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    binder_loop_frac:
+      _type: secondary_structure_fraction
+      included_protomers: A
+      sse_type: L
+    ligand_burial:
+      _type: ligand_delta_sasa_fraction
+      _for: AB
+      ligand_targets: B
+    holes:
+      _type: ligand_local_holes
+      _for: AB
+      ligand_targets: B
+      neighbor_distance: 8.0
+      saturation_constant: 10.0
+  expression_terms:
+    rg_ref: 0.395 * A_length ** 0.6 + 7.257
+stages:
+  default:
+    oligo: [A]
+    evaluator: predictor
+    mutators: [dplm]
+    mutation_num: 100%
+    weighted_score_expression: -0.4 / (1 + exp(-(binder_rog - rg_ref) / 5.0)) - 0.6 * min(binder_loop_frac, 1)
+    acceptance_threshold: binder_loop_frac < 0.4 and binder_rog <= rg_ref + 3
+    early_stopping: null
+  complex:
+    _entrance: binder_loop_frac < 0.4 and binder_rog <= rg_ref + 3
+    oligo: [AB]
+    evaluator: predictor
+    mutators: [ligandmpnn]
+    mutation_num: 100%
+    weighted_score_expression: iptm + ptm + plddt + ligand_burial - holes
+    acceptance_threshold: null
+    early_stopping: null

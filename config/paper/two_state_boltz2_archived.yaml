@@ -1,0 +1,16 @@
+# @package _global_
+defaults:
+  - /paper/two_state_af3_archived
+  - _self_
+
+paper_protocol:
+  second_stage_version: Boltz 2.2.1
+  planned_trajectories_per_ligand: 30
+evaluator:
+  boltz:
+    recycling_steps: 3
+    sampling_steps: 200
+    diffusion_samples: 1
+  evaluator_terms:
+    holo_predictor:
+      _type: Boltz

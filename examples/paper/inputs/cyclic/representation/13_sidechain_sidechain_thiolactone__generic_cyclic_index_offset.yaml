@@ -1,0 +1,30 @@
+# Input overlay for astrolabe paper run; see ../README.md.
+task_name: single_ablation__generic_cyclic_index_offset__sidechain_sidechain_thiolactone__s001
+seed: 52125
+seqs:
+  A: GIGCTTTPKKRWRMSDEHQT
+cyclization:
+  bonds:
+  - a:
+      aa: C
+      atom: SG
+      pos: 4
+      proto: A
+    b:
+      aa: E
+      atom: CD
+      pos: 17
+      proto: A
+    order: single
+    signal_mode: both
+    target_distance: 1.81
+  encoding:
+    scope: all_bonds
+  signal_mode: bond_only
+paper_protocol:
+  topology: sidechain_sidechain_thiolactone
+  representation: generic_cyclic_index_offset
+  planned_runs: 40
+  example_source_sample: 1
+  source_task_id: 641
+  source_task_index: 012_cyclic_peptide_design/analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv

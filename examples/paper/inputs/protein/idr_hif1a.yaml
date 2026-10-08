@@ -1,0 +1,5 @@
+# @package _global_
+seqs:
+  B: +SDLACRLLGQSMDESGLPQLTSYDCEVNAPIQGSRNLLQGEELLRALDQVN
+homologies:
+  B: ${oc.env:ASTROLABE_PAPER_DATA}/protein/idr/hif1a_Q16665_776_826.json:A

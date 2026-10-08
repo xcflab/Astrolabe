@@ -1,0 +1,164 @@
+{
+  "schema_version": 1,
+  "archive": "paper_inputs_protein.tar.gz",
+  "files": [
+    {
+      "path": "protein/benchmark/CBAGOc_6QZK.json",
+      "sha256": "7641e32fc1b98c8f507b7c810196191b3788d6c7d91165b62ddd603ba821e3c7",
+      "source": "hallucination_paper_preparation/004_protein_binder/data/homologies/CBAGOc_6QZK.json",
+      "size_bytes": 2815669
+    },
+    {
+      "path": "protein/benchmark/CD38_3DZI.json",
+      "sha256": "8c5e2bd1a6d06197aeb15561bf9fe8b0f698c56d839011a98ce070a6367610de",
+      "source": "hallucination_paper_preparation/004_protein_binder/data/homologies/CD38_3DZI.json",
+      "size_bytes": 1772646
+    },
+    {
+      "path": "protein/benchmark/EGFRC_4UV7.json",
+      "sha256": "3baeb55aa6c37b19ddc21a1c0c817fe83db63a38d152fd43992e7d20b2d424fb",
+      "source": "hallucination_paper_preparation/004_protein_binder/data/homologies/EGFRC_4UV7.json",
+      "size_bytes": 7924491
+    },
+    {
+      "path": "protein/benchmark/EGFRN_1MOX.json",
+      "sha256": "9b7fca76200364e4e022120654402a70317d421b9da02b1b9c0f2ed314aac1c6",
+      "source": "hallucination_paper_preparation/004_protein_binder/data/homologies/EGFRN_1MOX.json",
+      "size_bytes": 6282907
+    },
+    {
+      "path": "protein/benchmark/FGFR2_1EV2.json",
+      "sha256": "a48fcba41c4e1a91559238a070ec9bda499eb9e181bf4f5ef1fec03800cb08e3",
+      "source": "hallucination_paper_preparation/004_protein_binder/data/homologies/FGFR2_1EV2.json",
+      "size_bytes": 9225345
+    },
+    {
+      "path": "protein/benchmark/GM2A_1G13.json",
+      "sha256": "e87a5147413de13c2021c296f6c7460440a6d89679dde428b853e527e191f0da",
+      "source": "hallucination_paper_preparation/004_protein_binder/data/homologies/GM2A_1G13.json",
+      "size_bytes": 1115197
+    },
+    {
+      "path": "protein/benchmark/IGF1R_5U8R.json",
+      "sha256": "55acc4da35fc398ee2248e80fd3e746e9faed341f434db73cb9bc61eae4f4572",
+      "source": "hallucination_paper_preparation/004_protein_binder/data/homologies/IGF1R_5U8R.json",
+      "size_bytes": 5732494
+    },
+    {
+      "path": "protein/benchmark/IR_4ZXB.json",
+      "sha256": "df8daf0fc30a4474fd4dd1d8f104271245957d2557f9e5cb8c9f47c1a155c8b1",
+      "source": "hallucination_paper_preparation/004_protein_binder/data/homologies/IR_4ZXB.json",
+      "size_bytes": 7554524
+    },
+    {
+      "path": "protein/benchmark/MZB1_7AAH.json",
+      "sha256": "b08d630cbd4d7835a0d0a2e5bb24bcd1d55c26b837f93637f50ddb6f906bc988",
+      "source": "hallucination_paper_preparation/004_protein_binder/data/homologies/MZB1_7AAH.json",
+      "size_bytes": 1240887
+    },
+    {
+      "path": "protein/benchmark/ORM2_3APU.json",
+      "sha256": "60de62800ac65efdccf901e4db840eb18c27eb8d6bd1c44d1b322de84e0e59aa",
+      "source": "hallucination_paper_preparation/004_protein_binder/data/homologies/ORM2_3APU.json",
+      "size_bytes": 804960
+    },
+    {
+      "path": "protein/benchmark/PDGFR_3MJG.json",
+      "sha256": "f702a207dd18b352adee5ea3c8f84458b65230a4e54ccb052177d92f96b20343",
+      "source": "hallucination_paper_preparation/004_protein_binder/data/homologies/PDGFR_3MJG.json",
+      "size_bytes": 3646824
+    },
+    {
+      "path": "protein/benchmark/PMVK_3CH4.json",
+      "sha256": "ba5c453a26d6d88eeedf774f5d9cc3de51d37ee4b34b93ce4ceb12be2af6464d",
+      "source": "hallucination_paper_preparation/004_protein_binder/data/homologies/PMVK_3CH4.json",
+      "size_bytes": 2517911
+    },
+    {
+      "path": "protein/benchmark/RFK_1NB0.json",
+      "sha256": "fc13f249b3c745fda30a6febbdb549fa6928f83b4a31715bb77255c9d54ec0c0",
+      "source": "hallucination_paper_preparation/004_protein_binder/data/homologies/RFK_1NB0.json",
+      "size_bytes": 12658281
+    },
+    {
+      "path": "protein/cre/cre_template_domains_split.json",
+      "sha256": "7debaa667623c94732b387677644e362900f45560ae3d5b6e964867671d54e1c",
+      "source": "hallucination_cre_recombinase_binder/002_mk_target_flex/inputs/homologies/cre_template_domains_split.json",
+      "size_bytes": 1757118
+    },
+    {
+      "path": "protein/frameworks/scfv_vh_linker_vl__rfantibody_4d5.json",
+      "sha256": "a0a5470a584d3e396afe8e4147af90624bd818f6457bcd58805cc6cf626b7223",
+      "source": "Astrolabe/data/framework_homologies/scfv_vh_linker_vl__rfantibody_4d5.json",
+      "size_bytes": 24861857
+    },
+    {
+      "path": "protein/frameworks/vhh__boltzgen_7eow.json",
+      "sha256": "8b04d2186b86bd76d2ad871b85dd24bfa6785fcc7cc7f89dfa3a09e9e0633878",
+      "source": "Astrolabe/data/framework_homologies/vhh__boltzgen_7eow.json",
+      "size_bytes": 9890594
+    },
+    {
+      "path": "protein/idr/hif1a_Q16665_776_826.json",
+      "sha256": "017e50a6066e2ef432d9bca23a773aa253da7569aacec0ad9a2d99fd7ff487c5",
+      "source": "hallucination_paper_preparation/016_flexible_target_binder/01_runtime_validation/25_v2_targets_setup/01_af3_nomsa_inputs/inputs/hif1a_Q16665_776_826.json",
+      "size_bytes": 342
+    },
+    {
+      "path": "protein/idr/rela_Q04206_425_490.json",
+      "sha256": "5baa602e57642bea04c3ff681b70f626d468ede3b2847fb58ba0409af8e9e84a",
+      "source": "hallucination_paper_preparation/016_flexible_target_binder/01_runtime_validation/25_v2_targets_setup/01_af3_nomsa_inputs/inputs/rela_Q04206_425_490.json",
+      "size_bytes": 356
+    },
+    {
+      "path": "protein/idr/stat2_P52630_786_838.json",
+      "sha256": "43f20d491985079f0adcbf2cd02460f13ac52a9c31e42a59f477453fbb010114",
+      "source": "hallucination_paper_preparation/016_flexible_target_binder/01_runtime_validation/25_v2_targets_setup/01_af3_nomsa_inputs/inputs/stat2_P52630_786_838.json",
+      "size_bytes": 344
+    },
+    {
+      "path": "protein/idr/tp53_P04637_15_61.json",
+      "sha256": "c73c220105d08469fe8209b4ef443228b618a1ee8e021ceb0c6906719f2a8676",
+      "source": "hallucination_paper_preparation/016_flexible_target_binder/01_runtime_validation/25_v2_targets_setup/01_af3_nomsa_inputs/inputs/tp53_P04637_15_61.json",
+      "size_bytes": 335
+    },
+    {
+      "path": "protein/targets/il12a_p35.json",
+      "sha256": "eed8bdb82799c6c10179f2d7400cb040d088bc6a011cc929ae119f0db89eac4c",
+      "source": "hallucination_paper_preparation/019_multitarget_antibody_binder/inputs/001_simultaneous_antibody_binding/01_astrolabe_antibody_frameworks/11_vhh_dual_topup_single_controls/targets/il12a_p35.json",
+      "size_bytes": 762387
+    },
+    {
+      "path": "protein/targets/il13.json",
+      "sha256": "f872ed2f13fd2656ddf3b5cb8b59ec377930eddc191ae00c788db96d1a008c20",
+      "source": "hallucination_paper_preparation/019_multitarget_antibody_binder/inputs/001_simultaneous_antibody_binding/01_astrolabe_antibody_frameworks/11_vhh_dual_topup_single_controls/targets/il13.json",
+      "size_bytes": 430446
+    },
+    {
+      "path": "protein/targets/il23a_p19.json",
+      "sha256": "40cd6b23af0cdd075a82ef582a4a12536aa66773412609ac67179d3ca85bd38d",
+      "source": "hallucination_paper_preparation/019_multitarget_antibody_binder/inputs/001_simultaneous_antibody_binding/01_astrolabe_antibody_frameworks/11_vhh_dual_topup_single_controls/targets/il23a_p19.json",
+      "size_bytes": 775658
+    },
+    {
+      "path": "protein/targets/il4.json",
+      "sha256": "111bad95e45f485a6557a02b58a40b3c7af10d9a201d6eabfd2fa8ee4f6837f0",
+      "source": "hallucination_paper_preparation/019_multitarget_antibody_binder/inputs/001_simultaneous_antibody_binding/01_astrolabe_antibody_frameworks/11_vhh_dual_topup_single_controls/targets/il4.json",
+      "size_bytes": 498597
+    },
+    {
+      "path": "protein/targets/pdl1.json",
+      "sha256": "d177bc7d81a450aecc6566b951cff47a33848b70adc612bca1a213c82a3d1021",
+      "source": "hallucination_paper_preparation/019_multitarget_antibody_binder/inputs/001_simultaneous_antibody_binding/01_astrolabe_antibody_frameworks/11_vhh_dual_topup_single_controls/targets/pdl1.json",
+      "size_bytes": 10723466
+    },
+    {
+      "path": "protein/targets/pdl2.json",
+      "sha256": "d9554bc6028ffe327450ce716659ed968436454f28c718be303478c13caf4a9e",
+      "source": "hallucination_paper_preparation/019_multitarget_antibody_binder/inputs/001_simultaneous_antibody_binding/01_astrolabe_antibody_frameworks/11_vhh_dual_topup_single_controls/targets/pdl2.json",
+      "size_bytes": 5556943
+    }
+  ],
+  "size_bytes": 25729922,
+  "sha256": "4896f03b67a7260c28e225dd7561469d2b3dee438808cbd4f8c9351b0560c201"
+}

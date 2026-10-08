@@ -1,0 +1,248 @@
+diff --git a/alphafold/model/model.py b/alphafold/model/model.py
+index aff26c1..6962fdd 100644
+--- a/alphafold/model/model.py
++++ b/alphafold/model/model.py
+@@ -28,6 +28,55 @@ import ml_collections
+ import numpy as np
+ 
+ 
++def _compute_chain_pair_iptm(
++    logits: np.ndarray,
++    breaks: np.ndarray,
++    asym_id: np.ndarray,
++) -> np.ndarray:
++  """Computes one symmetric iPTM value for every pair of chains."""
++  logits = np.asarray(logits)
++  breaks = np.asarray(breaks)
++  asym_id = np.asarray(asym_id).reshape(-1)
++  chain_ids = list(dict.fromkeys(asym_id.tolist()))
++  scores = np.zeros((len(chain_ids), len(chain_ids)), dtype=np.float32)
++  for left_idx, left_chain in enumerate(chain_ids):
++    for right_idx in range(left_idx + 1, len(chain_ids)):
++      right_chain = chain_ids[right_idx]
++      pair_mask = np.isin(asym_id, (left_chain, right_chain))
++      pair_logits = logits[pair_mask][:, pair_mask, :]
++      pair_asym_id = asym_id[pair_mask]
++      pair_score = confidence.predicted_tm_score(
++          logits=pair_logits,
++          breaks=breaks,
++          asym_id=pair_asym_id,
++          interface=True,
++      )
++      scores[left_idx, right_idx] = pair_score
++      scores[right_idx, left_idx] = pair_score
++  return scores
++
++
++def _compute_chain_ptm(
++    logits: np.ndarray,
++    breaks: np.ndarray,
++    asym_id: np.ndarray,
++) -> np.ndarray:
++  """Computes one within-chain pTM value for every chain."""
++  logits = np.asarray(logits)
++  breaks = np.asarray(breaks)
++  asym_id = np.asarray(asym_id).reshape(-1)
++  chain_ids = list(dict.fromkeys(asym_id.tolist()))
++  scores = np.zeros(len(chain_ids), dtype=np.float32)
++  for chain_idx, chain_id in enumerate(chain_ids):
++    chain_mask = asym_id == chain_id
++    chain_logits = logits[chain_mask][:, chain_mask, :]
++    scores[chain_idx] = confidence.predicted_tm_score(
++        logits=chain_logits,
++        breaks=breaks,
++    )
++  return scores
++
++
+ def get_confidence_metrics(
+     prediction_result: Mapping[str, Any], multimer_mode: bool
+ ) -> Mapping[str, Any]:
+@@ -56,6 +105,16 @@ def get_confidence_metrics(
+           asym_id=prediction_result['predicted_aligned_error']['asym_id'],
+           interface=True,
+       )
++      confidence_metrics['chain_pair_iptm'] = _compute_chain_pair_iptm(
++          logits=prediction_result['predicted_aligned_error']['logits'],
++          breaks=prediction_result['predicted_aligned_error']['breaks'],
++          asym_id=prediction_result['predicted_aligned_error']['asym_id'],
++      )
++      confidence_metrics['chain_ptm'] = _compute_chain_ptm(
++          logits=prediction_result['predicted_aligned_error']['logits'],
++          breaks=prediction_result['predicted_aligned_error']['breaks'],
++          asym_id=prediction_result['predicted_aligned_error']['asym_id'],
++      )
+       confidence_metrics['ranking_confidence'] = (
+           0.8 * confidence_metrics['iptm'] + 0.2 * confidence_metrics['ptm']
+       )
+diff --git a/alphafold/model/modules.py b/alphafold/model/modules.py
+index 1104236..a54d378 100644
+--- a/alphafold/model/modules.py
++++ b/alphafold/model/modules.py
+@@ -326,6 +326,20 @@ class AlphaFold(hk.Module):
+       predictions from the various heads.
+     """
+ 
++    initial_prev_pos = batch.get('initial_prev_pos')
++    initial_prev_msa_first_row = batch.get('initial_prev_msa_first_row')
++    initial_prev_pair = batch.get('initial_prev_pair')
++    if (
++        initial_prev_pos is not None
++        or initial_prev_msa_first_row is not None
++        or initial_prev_pair is not None
++    ):
++      batch = {
++          key: value
++          for key, value in batch.items()
++          if not key.startswith('initial_prev_')
++      }
++
+     impl = AlphaFoldIteration(self.config, self.global_config)
+     batch_size, num_residues = batch['aatype'].shape
+ 
+@@ -364,16 +378,36 @@ class AlphaFold(hk.Module):
+     prev = {}
+     emb_config = self.config.embeddings_and_evoformer
+     if emb_config.recycle_pos:
+-      prev['prev_pos'] = jnp.zeros(
+-          [num_residues, residue_constants.atom_type_num, 3]
+-      )
++      if initial_prev_pos is not None:
++        prev_pos = jnp.asarray(initial_prev_pos, dtype=jnp.float32)
++        if prev_pos.ndim == 4:
++          prev_pos = prev_pos[0]
++        prev['prev_pos'] = prev_pos
++      else:
++        prev['prev_pos'] = jnp.zeros(
++            [num_residues, residue_constants.atom_type_num, 3]
++        )
+     if emb_config.recycle_features:
+-      prev['prev_msa_first_row'] = jnp.zeros(
+-          [num_residues, emb_config.msa_channel]
+-      )
+-      prev['prev_pair'] = jnp.zeros(
+-          [num_residues, num_residues, emb_config.pair_channel]
+-      )
++      if initial_prev_msa_first_row is not None:
++        prev_msa_first_row = jnp.asarray(
++            initial_prev_msa_first_row, dtype=jnp.float32
++        )
++        if prev_msa_first_row.ndim == 3:
++          prev_msa_first_row = prev_msa_first_row[0]
++        prev['prev_msa_first_row'] = prev_msa_first_row
++      else:
++        prev['prev_msa_first_row'] = jnp.zeros(
++            [num_residues, emb_config.msa_channel]
++        )
++      if initial_prev_pair is not None:
++        prev_pair = jnp.asarray(initial_prev_pair, dtype=jnp.float32)
++        if prev_pair.ndim == 4:
++          prev_pair = prev_pair[0]
++        prev['prev_pair'] = prev_pair
++      else:
++        prev['prev_pair'] = jnp.zeros(
++            [num_residues, num_residues, emb_config.pair_channel]
++        )
+ 
+     if self.config.num_recycle:
+       if 'num_iter_recycling' in batch:
+@@ -1977,7 +2011,10 @@ class EmbeddingsAndEvoformer(hk.Module):
+     if c.max_relative_feature:
+       # Add one-hot-encoded clipped residue distances to the pair activations.
+       pos = batch['residue_index']
+-      offset = pos[:, None] - pos[None, :]
++      if 'cyclic_offset' in batch:
++        offset = batch['cyclic_offset']
++      else:
++        offset = pos[:, None] - pos[None, :]
+       rel_pos = jax.nn.one_hot(
+           jnp.clip(
+               offset + c.max_relative_feature,
+diff --git a/alphafold/model/modules_multimer.py b/alphafold/model/modules_multimer.py
+index 2df7467..b97f237 100644
+--- a/alphafold/model/modules_multimer.py
++++ b/alphafold/model/modules_multimer.py
+@@ -445,6 +445,19 @@ class AlphaFold(hk.Module):
+       safe_key = prng.SafeKey(safe_key)
+ 
+     assert isinstance(batch, dict)
++    initial_prev_pos = batch.get('initial_prev_pos')
++    initial_prev_msa_first_row = batch.get('initial_prev_msa_first_row')
++    initial_prev_pair = batch.get('initial_prev_pair')
++    if (
++        initial_prev_pos is not None
++        or initial_prev_msa_first_row is not None
++        or initial_prev_pair is not None
++    ):
++      batch = {
++          key: value
++          for key, value in batch.items()
++          if not key.startswith('initial_prev_')
++      }
+     num_res = batch['aatype'].shape[0]
+ 
+     def get_prev(ret):
+@@ -464,12 +477,32 @@ class AlphaFold(hk.Module):
+     prev = {}
+     emb_config = self.config.embeddings_and_evoformer
+     if emb_config.recycle_pos:
+-      prev['prev_pos'] = jnp.zeros(
+-          [num_res, residue_constants.atom_type_num, 3]
+-      )
++      if initial_prev_pos is not None:
++        prev_pos = jnp.asarray(initial_prev_pos, dtype=jnp.float32)
++        if prev_pos.ndim == 4:
++          prev_pos = prev_pos[0]
++        prev['prev_pos'] = prev_pos
++      else:
++        prev['prev_pos'] = jnp.zeros(
++            [num_res, residue_constants.atom_type_num, 3]
++        )
+     if emb_config.recycle_features:
+-      prev['prev_msa_first_row'] = jnp.zeros([num_res, emb_config.msa_channel])
+-      prev['prev_pair'] = jnp.zeros([num_res, num_res, emb_config.pair_channel])
++      if initial_prev_msa_first_row is not None:
++        prev_msa_first_row = jnp.asarray(
++            initial_prev_msa_first_row, dtype=jnp.float32
++        )
++        if prev_msa_first_row.ndim == 3:
++          prev_msa_first_row = prev_msa_first_row[0]
++        prev['prev_msa_first_row'] = prev_msa_first_row
++      else:
++        prev['prev_msa_first_row'] = jnp.zeros([num_res, emb_config.msa_channel])
++      if initial_prev_pair is not None:
++        prev_pair = jnp.asarray(initial_prev_pair, dtype=jnp.float32)
++        if prev_pair.ndim == 4:
++          prev_pair = prev_pair[0]
++        prev['prev_pair'] = prev_pair
++      else:
++        prev['prev_pair'] = jnp.zeros([num_res, num_res, emb_config.pair_channel])
+ 
+     if self.config.num_recycle:
+       if 'num_iter_recycling' in batch:
+@@ -574,7 +607,10 @@ class EmbeddingsAndEvoformer(hk.Module):
+     pos = batch['residue_index']
+     asym_id = batch['asym_id']
+     asym_id_same = jnp.equal(asym_id[:, None], asym_id[None, :])
+-    offset = pos[:, None] - pos[None, :]
++    if 'cyclic_offset' in batch:
++      offset = batch['cyclic_offset']
++    else:
++      offset = pos[:, None] - pos[None, :]
+     dtype = jnp.bfloat16 if gc.bfloat16 else jnp.float32
+ 
+     clipped_offset = jnp.clip(
+diff --git a/pyproject.toml b/pyproject.toml
+index 237e8da..1254bf8 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -65,6 +65,9 @@ version = {attr = "alphafold.version.__version__"}
+ [tool.setuptools]
+ py-modules = ["run_alphafold"]
+ 
++[tool.setuptools.packages.find]
++include = ["alphafold*"]
++
+ [tool.pyink]
+ line-length = 80
+ unstable = true

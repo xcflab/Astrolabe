@@ -1,0 +1,30 @@
+# @package _global_
+defaults:
+- /paper/dual_target_af3
+- _self_
+evaluator:
+  evaluator_terms:
+    Protenix:
+      _type: Protenix
+  protenix:
+    model_name: protenix-v2
+    use_template: true
+    load_checkpoint_path: null
+    model:
+      N_cycle: 10
+    sample_diffusion:
+      N_sample: 1
+      N_step: 200
+stages:
+  default:
+    evaluator: Protenix
+paper_protocol:
+  source:
+  - SI 45-46
+  planned_runs_per_pair: 50
+  required_input_paths:
+  - homologies.B
+  - homologies.C
+  - evaluator.protenix.load_checkpoint_path
+  notes:
+  - Protenix v2 checkpoint must be selected explicitly; legacy Protenix weights are not interchangeable.

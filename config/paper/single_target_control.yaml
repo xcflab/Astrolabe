@@ -1,0 +1,14 @@
+# @package _global_
+defaults:
+- /paper/protein_binder_af3
+- _self_
+steps: 100
+paper_protocol:
+  source:
+  - MainPaper 152-154
+  representative: last_accepted
+  notes:
+  - Run separately against each target; fix the retained sequence before separate AB/AC AF3 evaluation.
+  planned_runs_per_direction: 100
+  required_input_paths:
+  - homologies.B

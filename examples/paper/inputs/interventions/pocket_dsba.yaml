@@ -1,0 +1,61 @@
+# Inputs shared by the three pocket protocols. Run paper prepare-inputs first.
+paper_protocol:
+  input_source: 007_halludesign_proteinhunter_bench/004_pocket_refine_dynamically/config/001_pocket_baseline_completion/01_original_seed_replay/01_matched_50step_baselines/ty/configs/arm_d/DsbA_homolog_groove_to_EcDsbA_cryptic_pocket_iptm_only_r01.yaml
+  input_notes:
+  - Sequence statements preserve the original mutable pocket positions and fixed scaffold segments. Homology
+    input contains the original inline structure template.
+seqs:
+  A: +ADISEGKQYTNLSKPVAGAPQVV EFFSF +YSP HCY +Q FSE +V Y +K VNS +T VE +KNVPENTKMA R +YHVDFLGPLGKEMTRA
+    W +AVAIALGVEDQV S +PAL F +KGIQETQSIRSVDDIRTTFINAGVKAEDYDAAINSFVVNSLVSQQQNAVTDFQIN GVPAMV +IDGKY KMKNDG
+    +ISAKSPEE Y +AKA Y +SDVVNQLLMK
+  B: YJP
+types:
+  B: c
+  A: p
+ligand_resnames:
+  B: YJP
+  YJP: YJP
+  B:YJP: YJP
+homologies:
+  A: ${oc.env:ASTROLABE_PAPER_DATA}/interventions/pocket_dsba/homology.json:A
+loss:
+  loss_terms:
+    target_ligand_in_target_pocket:
+      reference_structure_path: ${oc.env:ASTROLABE_PAPER_DATA}/interventions/pocket_dsba/reference.pdb
+      reference_structure_chain: A
+      reference_pocket_positions:
+      - 24
+      - 25
+      - 26
+      - 27
+      - 28
+      - 32
+      - 33
+      - 34
+      - 36
+      - 37
+      - 38
+      - 40
+      - 42
+      - 43
+      - 44
+      - 46
+      - 47
+      - 58
+      - 75
+      - 88
+      - 92
+      - 148
+      - 149
+      - 150
+      - 151
+      - 152
+      - 153
+      - 159
+      - 160
+      - 161
+      - 162
+      - 163
+      - 164
+      - 173
+      - 177

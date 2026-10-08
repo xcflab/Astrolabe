@@ -1,0 +1,39 @@
+# Input overlay for astrolabe paper run; see ../README.md.
+task_name: plecanatide
+seqs:
+  A: '16'
+cyclization:
+  bonds:
+  - a:
+      aa: C
+      atom: SG
+      pos: 4
+      proto: A
+    b:
+      aa: C
+      atom: SG
+      pos: 12
+      proto: A
+    order: single
+    target_distance: 2.03
+    signal_mode: both
+  - a:
+      aa: C
+      atom: SG
+      pos: 7
+      proto: A
+    b:
+      aa: C
+      atom: SG
+      pos: 15
+      proto: A
+    order: single
+    target_distance: 2.03
+    signal_mode: both
+  signal_mode: both
+  encoding:
+    scope: all_bonds
+paper_protocol:
+  topology: plecanatide
+  planned_runs: 40
+  source_manifest: 012_cyclic_peptide_design/manifests/cyclic_peptide_v3/04_multiring_patterns.json

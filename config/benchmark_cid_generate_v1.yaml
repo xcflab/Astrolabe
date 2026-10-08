@@ -1,0 +1,104 @@
+defaults:
+  - base
+  - _self_
+
+# Chemical-induced dimer sensor generation template (v1).
+#
+# Intended usage:
+#   - Prefer the one-shot CLI:
+#       gh design cid-generate --task-name myjob --out-dir outputs \
+#         --protein-a-len 80-120 --protein-b-len 80-120 \
+#         --ligand ATP --ligand-type ccd
+#   - Or manual override:
+#       gh run --task benchmark_cid_generate_v1 --overlay overlay.yaml
+
+task_name: ???
+repeats: 1
+enable_pyrosetta: true
+
+out_dir: ???
+seqs:
+  A: ???
+  B: ???
+  C: ???
+types:
+  C: c
+ligand_resnames: {}
+
+steps: 30
+initializer:
+  mode: dplm
+initial_temperature: 0.03
+
+predocker:
+  predocker_terms:
+    dimer_interface:
+      _type: dimer_interface_placer
+      _for: ABC
+    autodock_vina_box:
+      _type: autodock_vina
+      _condition: cid_ligand_burial < 0.6
+      binding_site_strategy: interface
+      binding_site_coverage: 90
+      binding_site_padding: 1.0
+
+mutator:
+  selector_expression: null
+  mutator_terms:
+    MCMC:
+      _type: MCMC
+    LMPNN_dimer_vina:
+      _type: LigandMPNN
+      temperature: 0.3
+      predocker:
+        - dimer_interface
+        - autodock_vina_box
+
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+    Protenix:
+      _type: Protenix
+
+loss:
+  loss_terms:
+    cid_ligand_burial:
+      _type: buried_fraction_allala
+      _for: ABC
+      buried_protomer: C
+    cid_ligand_com_distance:
+      _type: com_distance
+      _for: ABC
+      buried_protomer: C
+    cid_sensor_rog:
+      _type: single_chain_rog
+      included_protomers: AB
+    cid_buried_contribution_balance:
+      _type: buried_contribution_diff
+      _for: ABC
+      buried_protomer: C
+    cid_packing_delta:
+      _type: chain_holes_diff
+      _for: ABC
+      buried_protomer: C
+
+stages:
+  default:
+    oligo: [ABC]
+    evaluator: Alphafold3
+    mutators: [MCMC, LMPNN_dimer_vina]
+    mutator_weights: [0.3, 0.7]
+    mutation_num: 10
+    weighted_score_expression: >-
+      min(0.9, ABC.plddt) + min(0.9, ABC.ptm) + min(0.8, ABC.iptm)
+      + ABC.cid_ligand_burial
+      + max((12 - ABC.cid_ligand_com_distance) / 12, 0)
+      + max((20 - ABC.cid_sensor_rog) / 10, 0)
+      + 0.5 * max(0, min(1, ABC.cid_packing_delta))
+    acceptance_threshold: >-
+      ABC.plddt > 0.8 and ABC.ptm > 0.8 and ABC.iptm > 0.6
+      and ABC.cid_ligand_burial > 0.6
+      and ABC.cid_sensor_rog < 14
+      and ABC.cid_buried_contribution_balance > 0.6
+    early_stopping: null

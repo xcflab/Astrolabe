@@ -1,0 +1,157 @@
+defaults:
+  - base
+  - _self_
+
+# D2 de novo oligomer design with AF-guided Dn scoring.
+# Stage 1 designs a Protenix-scored monomer with DPLM.
+# Stage 2 uses LigandMPNN plus RPXDock dihedral predocking, then scores the
+# AF2-predicted oligomer with point-group, AnAnaS, and D2 contact terms.
+
+task_name: ???
+out_dir: ???
+raw_model_results_dir: null
+
+enable_pyrosetta: false
+# The optimizer runs mutation steps 1..steps-1; 41 gives 40 optimization steps.
+steps: 41
+repeats: 1
+initial_temperature: 0.03
+use_metropolis_acceptance: false
+
+seqs:
+  A: "72-72"
+
+homologies:
+  A: null
+
+initializer:
+  mode: dplm
+  aa_set: null
+
+predocker:
+  predocker_terms:
+    allala:
+      _type: all_alanine
+    symmetry:
+      _type: symmetry_canonicalizer
+      mode: dihedral_oligomer
+      backend: rpxdock
+      order: 2
+      rpxdock_failure_fallback: raise
+      rpxdock_timeout_s: 900
+
+mutator:
+  names: ["dplm", "mpnn_dn"]
+  selector_expression: null
+  mutator_terms:
+    dplm:
+      _type: DPLM
+      temperature: 1
+    mpnn_dn:
+      _type: LigandMPNN
+      model_type: soluble_mpnn
+      temperature: 0.30
+      predocker: ["allala", "symmetry"]
+
+evaluator:
+  evaluator_terms:
+    Protenix:
+      _type: Protenix
+    alphafold2:
+      _type: alphafold2
+
+loss:
+  loss_terms:
+    binder_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    binder_loop_frac:
+      _type: secondary_structure_fraction
+      included_protomers: A
+      sse_type: L
+    binder_longest_helix_run_frac:
+      _type: longest_secondary_structure_run_fraction
+      included_protomers: A
+      sse_type: H
+    d2_point_group_symmetry:
+      _type: point_group_symmetry_norm
+      _for: AAAA
+      point_group: D
+      order: 2
+      orbit_best: 0.0
+      orbit_worst: 0.20
+      rotation_best: 0.0
+      rotation_worst: 25.0
+      rotation_weight: 0.5
+    d2_ananas:
+      _type: ananas_rmsd_norm
+      _for: AAAA
+      point_group: D
+      order: 2
+      best: 0.0
+      worst: 2.0
+      timeout_s: 60
+    d2_ring_sep_cv:
+      _type: dihedral_ring_sep_cv_raw
+      _for: AAAA
+      order: 2
+    d2_pair_sep_cv:
+      _type: dihedral_pair_sep_cv_raw
+      _for: AAAA
+      order: 2
+    d2_pair_contact:
+      _type: dihedral_pair_contact_count_norm
+      _for: AAAA
+      order: 2
+      contact_cutoff: 5.0
+      atom_mode: heavy
+      target: 10.0
+      reduction: mean
+    d2_pair_min_distance:
+      _type: dihedral_pair_min_distance_norm
+      _for: AAAA
+      order: 2
+      atom_mode: heavy
+      best: 3.5
+      worst: 14.0
+      reduction: mean
+  expression_terms:
+    globin_rog: 0.395 * (A_length ** 0.6) + 7.257
+    shape_penalty: 0.25 * sigmoid((binder_rog - globin_rog) / 5.0) + 0.50 * min(binder_loop_frac, 1.0)
+    dn_ring_term: exp(-d2_ring_sep_cv)
+    dn_pair_sep_term: exp(-d2_pair_sep_cv)
+    dn_contact_term: d2_pair_contact + d2_pair_min_distance
+    dn_symmetry_term: d2_point_group_symmetry + d2_ananas + dn_ring_term + dn_pair_sep_term
+
+stages:
+  default:
+    oligo:
+      - A
+    evaluator: Protenix
+    mutators:
+      - dplm
+    mutation_num: 100%
+    acceptance_threshold: null
+    weighted_score_expression: plddt + ptm - shape_penalty
+    early_stopping: null
+  oligomer:
+    _entrance: plddt > 0.70 and ((binder_loop_frac < 0.4) and (binder_rog <= globin_rog + 3))
+    oligo:
+      - AAAA
+    evaluator: alphafold2
+    mutators:
+      - mpnn_dn
+    mutator_weights:
+      - 1.0
+    mutation_num: 100%
+    acceptance_gate: d2_ananas > 0.0
+    acceptance_threshold: null
+    weighted_score_expression: >-
+      0.35 * iptm
+      + 0.25 * ptm
+      + 0.25 * plddt
+      + 1.25 * dn_symmetry_term
+      + 0.35 * dn_contact_term
+      - shape_penalty
+      - 0.35 * binder_longest_helix_run_frac
+    early_stopping: null

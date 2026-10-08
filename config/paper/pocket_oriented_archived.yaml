@@ -1,0 +1,18 @@
+# @package _global_
+defaults:
+  - /paper/pocket_iptm_archived
+  - _self_
+
+loss:
+  loss_terms:
+    ligand_burial:
+      _type: ligand_delta_sasa_fraction
+      ligand_targets: B
+    holes:
+      _type: ligand_local_holes
+      ligand_targets: B
+      neighbor_distance: 8.0
+      saturation_constant: 10.0
+stages:
+  default:
+    weighted_score_expression: iptm + ptm + plddt + ligand_burial + target_ligand_in_target_pocket - holes

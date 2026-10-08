@@ -1,0 +1,23 @@
+# @package _global_
+defaults:
+- /paper/cyclic_peptide_multiring
+- _self_
+mutator:
+  mutator_terms:
+    MCMC:
+      _type: MCMC
+stages:
+  default:
+    mutators:
+    - MCMC
+paper_protocol:
+  source:
+  - '012_cyclic_peptide_design/scripts/run_cyclic_peptide_benchmark_task.py: multiring_patterns'
+  - 012_cyclic_peptide_design/scripts/prepare_targetfree_multiring_40pertype_allbondboth_rerun.py
+  notes:
+  - 'Archived execution recipe: MCMC proposals, AF3 with one seed/recycle/sample,
+    20 steps, mean Gaussian closure, no acceptance gate.'
+  - The latest MainPaper instead specifies LigandMPNN; cyclic-peptide-multiring follows
+    that manuscript recipe.
+  - The historical final cohort combined older and rerun trajectories; new runs from
+    this recipe are not the archived 200 outcomes.

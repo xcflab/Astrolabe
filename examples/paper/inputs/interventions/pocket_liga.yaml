@@ -1,0 +1,39 @@
+# Inputs shared by the three pocket protocols. Run paper prepare-inputs first.
+paper_protocol:
+  input_source: 007_halludesign_proteinhunter_bench/004_pocket_refine_dynamically/config/44_target_selection_v3_catm_liga_30run_completion/ty3_catm_liga_30run_completion1/configs/arm_d/LigA_homolog_to_SaLigA_AT4213_alt_site_predocker_r21.yaml
+  input_notes:
+  - Sequence statements preserve the original mutable pocket positions and fixed scaffold segments. Homology
+    input contains the original inline structure template.
+seqs:
+  A: +MESIEQQLTELRTTLRHHEYLYHVMDAPEIPDAEYDRLMRELRELETKHPELITPDSPTQRVGAAPLAAFSQIRHEVPM LSL +DNVFDEESFLAFNKRVQDRLKNNEKVTWCC
+    ELKL +DGL A +VSILYENGVLVSAATRGDGTTGEDITSNVRTIRAIPLKLHGENIPARLEVRG E +VFLPQAGFEKINEDARRTGGKVFANPRNAAAGSLRQLDPRITAKRPLTFFC
+    YG +VGVLEGGELPDTHLGRLLQFKKWGLPVSDRVTLCESAEEVLAFYHKVEEDRPTLGFDIDGV V +I K +VNSLAQQEQLGFVARAPRWAVAFKFPAQEQMTFVRDVEFQVGRTGAITPVARLEPVHVAGVLVSNATLHNADEIERLGLRIGDKVVIRRAGDVIPQVVNVVLSERPEDTREVVFPTHCPVCGSDVERVEGEAVARCTGGLICGAQRKESLKHFVSRRAMDVDGMGDKIIDQLVEKEYVHTPADLFKLTAGKLTGLERMGPKSAQNVVNALEKAKETTFARFLYALGIREVGEATAAGLAAYFGTLEALEAASIEELQKVPDVGIVVASHVHNFFAEESNRNVISELLAEGVHWPAP
+  B: 10L
+types:
+  B: c
+  A: p
+ligand_resnames:
+  B: 10L
+  10L: 10L
+  B:10L: 10L
+homologies:
+  A: ${oc.env:ASTROLABE_PAPER_DATA}/interventions/pocket_liga/homology.json:A
+loss:
+  loss_terms:
+    target_ligand_in_target_pocket:
+      reference_structure_path: ${oc.env:ASTROLABE_PAPER_DATA}/interventions/pocket_liga/reference.pdb
+      reference_structure_chain: A
+      reference_pocket_positions:
+      - 80
+      - 81
+      - 82
+      - 113
+      - 114
+      - 115
+      - 116
+      - 120
+      - 173
+      - 225
+      - 226
+      - 288
+      - 290

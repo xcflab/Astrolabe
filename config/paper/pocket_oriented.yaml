@@ -1,0 +1,8 @@
+# @package _global_
+defaults:
+  - /paper/pocket_iptm
+  - _self_
+
+stages:
+  default:
+    weighted_score_expression: iptm + target_ligand_in_target_pocket

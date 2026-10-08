@@ -1,0 +1,14 @@
+# @package _global_
+seqs:
+  B: +GGUCACGCACAGGGCAAACCAUUCGAAAGAGUGGGACGCAAAGCCUCCGGCCUAAACCAUUGCACUCCGGUAGGUAGCGGGGUUACCGAUGG
+types:
+  B: r
+homologies:
+  B: ${oc.env:ASTROLABE_PAPER_DATA}/nucleic/binder_target_3mxh.json:A
+stages:
+  complex:
+    oligo:
+    - AB
+paper_protocol:
+  target: 3mxh
+  input_source: 009_rna_target_binder/config/001_nucleic_binder_design/01_protenix_initialization_comparison/04_selected_target_benchmark/06_base_3mxh.yaml

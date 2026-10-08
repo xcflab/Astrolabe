@@ -1,0 +1,62 @@
+# Inputs shared by the three pocket protocols. Run paper prepare-inputs first.
+paper_protocol:
+  input_source: 007_halludesign_proteinhunter_bench/004_pocket_refine_dynamically/config/001_pocket_baseline_completion/01_original_seed_replay/01_matched_50step_baselines/ty/configs/arm_d/EcFtsZ_resistant_to_PC190723_sensitive_IDC_iptm_only_r01.yaml
+  input_notes:
+  - Sequence statements preserve the original mutable pocket positions and fixed scaffold segments. Homology
+    input contains the original inline structure template.
+seqs:
+  A: +MDAVIKVIGVGGGGGNAVEHMVRERIEGVEFFAVNTDAQALRKTAVGQTIQIGSGITKGLGAGANPEVGRNAADEDRDALRAALEGADMVFIAAGMGGGTGTGAAPVVAEVAKDLGILTVAVVTKPFNFEGKKRMAFAEQGITELSKHVDSLITIPNDKLLLGRGISELDAFGAANDVL
+    KGAVQGIAELI +T RPGLMNVD +FADVRTVMSEMGYAM M +G S +GVASGEDRAEEAAEMAISSPLLEDIDLSGARGV LVNIT +AGFDLRLDE
+    F +ETVGNTIRAFASDNATVV IGTSL +DPDMNDEL R +V TVV +ATGIG
+  B: 9PC
+types:
+  B: c
+  A: p
+ligand_resnames:
+  B: 9PC
+  9PC: 9PC
+  B:9PC: 9PC
+homologies:
+  A: ${oc.env:ASTROLABE_PAPER_DATA}/interventions/pocket_ecftsz/homology.json:A
+loss:
+  loss_terms:
+    target_ligand_in_target_pocket:
+      reference_structure_path: ${oc.env:ASTROLABE_PAPER_DATA}/interventions/pocket_ecftsz/reference.pdb
+      reference_structure_chain: A
+      reference_pocket_positions:
+      - 190
+      - 191
+      - 192
+      - 193
+      - 194
+      - 195
+      - 196
+      - 197
+      - 198
+      - 199
+      - 200
+      - 202
+      - 203
+      - 204
+      - 205
+      - 206
+      - 207
+      - 208
+      - 209
+      - 225
+      - 227
+      - 261
+      - 262
+      - 263
+      - 264
+      - 265
+      - 275
+      - 294
+      - 295
+      - 296
+      - 297
+      - 298
+      - 307
+      - 309
+      - 310
+      - 311

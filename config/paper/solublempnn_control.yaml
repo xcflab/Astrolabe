@@ -1,0 +1,61 @@
+# @package _global_
+defaults:
+- /base
+- _self_
+task_name: solublempnn_control
+out_dir: null
+repeats: 1
+seed: 1
+steps: 1
+seqs:
+  A: ???
+  B: ???
+homologies:
+  B: ???
+initializer:
+  mode: structure
+  sequence_designer: soluble_mpnn
+  structure:
+    source: ???
+    chain_map:
+      A: A
+      B: B
+mutator:
+  selector_expression: null
+  mutator_terms:
+    soluble_mpnn:
+      _type: LigandMPNN
+      model_type: soluble_mpnn
+      temperature: 0.3
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+  alphafold3:
+    num_recycles: 10
+    num_samples: 5
+stages:
+  default:
+    oligo:
+    - AB
+    evaluator: Alphafold3
+    mutators:
+    - soluble_mpnn
+    mutation_num: 100%
+    weighted_score_expression: iptm
+    acceptance_threshold: null
+    early_stopping: null
+paper_protocol:
+  source:
+  - MainPaper 121-122
+  representative: first_20_variants
+  notes:
+  - Input seqs.A must preserve parent binder residues with heavy-atom target distance <4 A as +fixed segments; seqs.B
+    is fully fixed.
+  - 'Use --num-runs 20: each run samples a variant on the same parent backbone, then performs one AF3 evaluation.'
+  - Count passing parent designs when any of their first 20 variants passes; variants are nested candidates, not
+    independent parents.
+  required_input_paths:
+  - initializer.structure.source
+  - homologies.B
+  parent_interface_redesign: true

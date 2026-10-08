@@ -1,0 +1,91 @@
+defaults:
+  - base
+  - override env: env_container
+  - _self_
+
+task_name: container_ligand_matrix_smoke
+out_dir: /cache/gh-runtime/smoke/ligand_matrix_20260915
+steps: 2
+seed: 20260915
+mutation_num: 1
+
+types:
+  A: "p"
+  B: "s"
+seqs:
+  A: "ACDEFGHIKLMNPQRSTVWYACDEFGHIKL"
+  B: "CCO"
+
+enable_pyrosetta: false
+skip_complex_poses: true
+
+predocker:
+  predocker_terms:
+    centroid:
+      _type: ligand_centroid_alignment
+      obabel_path: ${obabel_path}
+    vina:
+      _type: autodock_vina
+      binding_site_strategy: ligand
+      exhaustiveness: 1
+      num_modes: 1
+      rank_buried_fraction: false
+
+mutator:
+  mutator_terms:
+    MCMC:
+      _type: MCMC
+    LigandMPNN_centroid:
+      _type: LigandMPNN
+      model_type: ligand_mpnn
+      temperature: 0.3
+      predocker: [centroid]
+    LigandMPNN_vina:
+      _type: LigandMPNN
+      model_type: ligand_mpnn
+      temperature: 0.3
+      predocker: [vina]
+
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+      num_seeds: 1
+      num_recycles: 1
+      num_samples: 1
+      run_data_pipeline: false
+      run_inference: true
+      flash_attention_implementation: cudnn
+    Protenix:
+      _type: Protenix
+      use_constraints: false
+      diffusion_batch_size: 1
+      diffusion_chunk_size: 1
+      num_workers: 0
+      model:
+        N_cycle: 1
+      sample_diffusion:
+        N_sample: 1
+        N_step: 200
+    Boltz:
+      _type: Boltz
+      accelerator: gpu
+      recycling_steps: 1
+      sampling_steps: 200
+      diffusion_samples: 1
+      num_workers: 0
+      write_full_pae: false
+
+loss:
+  loss_terms: {}
+
+stages:
+  default:
+    evaluator: Alphafold3
+    oligo: ["AB"]
+    mutators: ["MCMC"]
+    mutator_weights: [1.0]
+    mutation_num: 1
+    weighted_score_expression: "plddt"
+    acceptance_threshold: null
+    early_stopping: null

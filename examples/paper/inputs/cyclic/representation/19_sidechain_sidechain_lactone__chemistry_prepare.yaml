@@ -1,0 +1,47 @@
+# Input overlay for astrolabe paper run; see ../README.md.
+task_name: single_ablation__chemistry_prepare__sidechain_sidechain_lactone__s001
+seed: 29987
+seqs:
+  A: WHMSKPGHAPASDNCG +[EAM] YCC
+cyclization:
+  bonds:
+  - a:
+      aa: S
+      atom: OG
+      pos: 4
+      proto: A
+    b:
+      aa: E
+      atom: CD
+      pos: 17
+      proto: A
+    order: single
+    signal_mode: both
+    target_distance: 1.33
+  encoding:
+    scope: all_bonds
+  signal_mode: bond_only
+paper_protocol:
+  topology: sidechain_sidechain_lactone
+  representation: chemistry_prepare
+  planned_runs: 40
+  example_source_sample: 1
+  source_task_id: 881
+  source_task_index: 012_cyclic_peptide_design/analysis/cyclic_v3/19_single_ring_targetfree_ablation__20260425/task_index.csv
+nonstandard_residues:
+  aliases:
+    EAM:
+      atom_names:
+        C: C
+        CA: CA
+        CB: CB
+        CD: CD
+        CG: CG
+        N: N
+        O: O
+        OE1: OE1
+      ccd_id: VAM
+      parent_aa: E
+      source:
+        format: mmcif
+        value: ${oc.env:ASTROLABE_PAPER_DATA}/cyclic/chemistry/EAM.cif

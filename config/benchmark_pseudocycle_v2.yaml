@@ -1,0 +1,104 @@
+defaults:
+  - base
+  - _self_
+
+# Pseudocycle benchmark (v2).
+# Two-stage strategy:
+#   1) random initialization + MCMC to establish approximate internal symmetry
+#   2) switch to LigandMPNN as soon as pseudocycle geometry is roughly formed
+
+task_name: ???
+out_dir: ???
+repeats: 1
+
+seqs:
+  A: ???
+
+steps: 100
+initial_temperature: 0.03
+
+predocker:
+  predocker_terms:
+    symmetry:
+      _type: symmetry_canonicalizer
+      mode: pseudocycle
+      oligo: A
+      included_protomer: A
+      backend: rfdiffusion
+      repeat_canonicalizer_mode: helical
+
+mutator:
+  names: ["mcmc_symmetry", "ligand_mpnn_refine"]
+  selector_expression: null
+  mutator_terms:
+    mcmc_symmetry:
+      _type: MCMC
+      mutation_method: frequency_adjusted
+      select_positions: random
+    ligand_mpnn_refine:
+      _type: LigandMPNN
+      model_type: soluble_mpnn
+      temperature: 0.3
+      predocker: ["symmetry"]
+
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+    Alphafold2:
+      _type: alphafold2
+    Protenix:
+      _type: Protenix
+
+loss:
+  loss_terms:
+    A_single_chain_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    repeat_unit_rmsd_raw:
+      _type: repeat_unit_rmsd_raw
+    repeat_unit_rmsd_norm:
+      _type: repeat_unit_rmsd_norm
+      best: 0.0
+      worst: 0.8
+    pseudocycle_rotation_raw:
+      _type: pseudocycle_rotation_raw
+    pseudocycle_rotation_norm:
+      _type: pseudocycle_rotation_norm
+      best: 0.0
+      worst: 20.0
+    pseudocycle_rise_raw:
+      _type: pseudocycle_rise_raw
+    pseudocycle_rise_norm:
+      _type: pseudocycle_rise_norm
+      best: 0.0
+      worst: 1.0
+    pseudocycle_closure_norm:
+      _type: pseudocycle_closure_norm
+      rotation_best: 0.0
+      rotation_worst: 20.0
+      rise_best: 0.0
+      rise_worst: 1.0
+  expression_terms:
+    A_globular_target: 0.395 * (A_length ** 0.6) + 7.257
+
+stages:
+  default:
+    oligo: ["A"]
+    evaluator: Alphafold3
+    mutation_num: 10%
+    mutators: ["mcmc_symmetry"]
+    mutator_weights: [1.0]
+    weighted_score_expression: 0.25 * plddt + 0.15 * ptm + repeat_unit_rmsd_norm + 2.5 * pseudocycle_rise_norm + 1.2 * pseudocycle_rotation_norm - 0.2 * (1 / (1 + exp(-((A_single_chain_rog - A_globular_target) / 5.0))))
+    acceptance_threshold: null
+    early_stopping: null
+  refine:
+    _entrance: (repeat_unit_rmsd_raw <= 0.8) and (pseudocycle_rotation_raw <= 20.0) and (pseudocycle_rise_raw <= 1.0)
+    oligo: ["A"]
+    evaluator: Alphafold3
+    mutation_num: 25%
+    acceptance_threshold: null
+    mutators: ["ligand_mpnn_refine"]
+    mutator_weights: [1.0]
+    weighted_score_expression: 0.45 * plddt + 0.35 * ptm + 0.7 * repeat_unit_rmsd_norm + 1.5 * pseudocycle_rise_norm + 0.8 * pseudocycle_rotation_norm + 1.5 * pseudocycle_closure_norm - 0.2 * (1 / (1 + exp(-((A_single_chain_rog - A_globular_target) / 5.0))))
+    early_stopping: (plddt >= 0.7) and (pseudocycle_rotation_raw <= 10.0) and (pseudocycle_rise_raw <= 0.5)

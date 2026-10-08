@@ -1,0 +1,58 @@
+defaults:
+  - base
+
+task_name: comprehensive_test
+enable_pyrosetta: true
+
+# Multiple oligomeric states
+oligo: [ "ACD" ]
+types:
+  D: "c"
+#  B: "r"
+named_files:
+  template1: "inputs/1BC8_1.pdb"
+seqs:
+  A: "template1:C1-30 10-10@alias2"
+  C: "alias2 alias2 GSGSKKKSFEDADTEETVT"
+  D: "ATP"
+
+selectors:
+  interface: "interface('AB', 'C')"
+  sse: "sse('H')"
+
+predocker:
+  predocker_terms:
+    dimer_interface:
+      _type: dimer_interface_placer
+      _for: ACD
+    chemnet:
+      _type: chemnet_placer
+      _for: ACD
+  LigandMPNN: [
+    dimer_interface,
+    chemnet
+  ]
+
+mutator:
+  selector_expression: "sse('H') and interface()"
+  mutation_num:
+    A: 10
+    B: 4
+
+
+# Complex loss configuration
+loss:
+  loss_terms:
+    com_distance:
+      _type: com_distance
+      _for: ACD
+      buried_protomer: D
+    hotspot_dsasa:
+      _type: hotspot_dsasa
+      _for: ACD
+      select_expression: "alias2:1-10@3"
+
+  weighted_score_expression: >-
+    ACD.cross_contact_lis * 0.2 + 
+    ptm * 0.2 +  hotspot_dsasa +
+    iptm * 0.1

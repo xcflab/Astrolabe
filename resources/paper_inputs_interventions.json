@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "archive": "paper_inputs_interventions.tar.gz",
+  "files": [
+    {
+      "path": "interventions/pocket_catm/homology.json",
+      "sha256": "b2436b38e231935514c4001fa36ebad10025a68b054736e3e190a09b2b6450d9",
+      "source": "007_halludesign_proteinhunter_bench/004_pocket_refine_dynamically/config/homology_inputs/target_selection_v3/CatM_muconate_only_to_BenM_like_benzoate_response.json",
+      "size_bytes": 134111
+    },
+    {
+      "path": "interventions/pocket_catm/reference.pdb",
+      "sha256": "ba3f8e3131e926d1fb122a66ac40f106f2fd6aabb9705a484635d7397573a3bc",
+      "source": "007_halludesign_proteinhunter_bench/004_pocket_refine_dynamically/config/reference_sources/32_target_selection_v3_assets/cases/CatM_muconate_only_to_BenM_like_benzoate_response/pa_clean.pdb",
+      "size_bytes": 140292
+    },
+    {
+      "path": "interventions/pocket_liga/homology.json",
+      "sha256": "4e1c248b90536bd9fe808d6b72a9e3a31b6f137accd338c7b31a5f40668465ce",
+      "source": "007_halludesign_proteinhunter_bench/004_pocket_refine_dynamically/config/homology_inputs/target_selection_v3/LigA_homolog_to_SaLigA_AT4213_alt_site.json",
+      "size_bytes": 370494
+    },
+    {
+      "path": "interventions/pocket_liga/reference.pdb",
+      "sha256": "14e5ee3596ba55bf61ce52ccdbec233748385153a9f5731a17c14f11c2cc9c61",
+      "source": "007_halludesign_proteinhunter_bench/004_pocket_refine_dynamically/config/reference_sources/32_target_selection_v3_assets/cases/LigA_homolog_to_SaLigA_AT4213_alt_site/pa_clean.pdb",
+      "size_bytes": 372114
+    },
+    {
+      "path": "interventions/pocket_dsba/homology.json",
+      "sha256": "a5d305d76e7820b02d6210a7988e353ae8037e84ca3f9c88ee590b6f9dab1b01",
+      "source": "007_halludesign_proteinhunter_bench/004_pocket_refine_dynamically/config/homology_inputs/target_selection_v3/DsbA_homolog_groove_to_EcDsbA_cryptic_pocket.json",
+      "size_bytes": 220924
+    },
+    {
+      "path": "interventions/pocket_dsba/reference.pdb",
+      "sha256": "0de41d9b1728f01805bf873daa28e559e2e65a8130a3fb2c699b673546c89220",
+      "source": "007_halludesign_proteinhunter_bench/004_pocket_refine_dynamically/config/reference_sources/32_target_selection_v3_assets/cases/DsbA_homolog_groove_to_EcDsbA_cryptic_pocket/pa_clean.pdb",
+      "size_bytes": 347247
+    },
+    {
+      "path": "interventions/pocket_ecftsz/homology.json",
+      "sha256": "e1ae89a0694b57c6764c36a2b6281e3ac3cd9ff452e037f400386857436c02f4",
+      "source": "007_halludesign_proteinhunter_bench/004_pocket_refine_dynamically/config/homology_inputs/target_selection_v3/EcFtsZ_resistant_to_PC190723_sensitive_IDC.json",
+      "size_bytes": 184082
+    },
+    {
+      "path": "interventions/pocket_ecftsz/reference.pdb",
+      "sha256": "9e43386f8c7620c709de81ca329ee6886cbe714f323c5b996d5234c73effbb6a",
+      "source": "007_halludesign_proteinhunter_bench/004_pocket_refine_dynamically/config/reference_sources/32_target_selection_v3_assets/cases/EcFtsZ_resistant_to_PC190723_sensitive_IDC/pa_clean.pdb",
+      "size_bytes": 361584
+    }
+  ],
+  "sha256": "ce664282878d3c67a15dcc8ba8cdf2d110cda63689a83e9bbe40c9b38605a03b",
+  "size_bytes": 530030
+}

@@ -1,0 +1,95 @@
+# @package _global_
+defaults:
+- /base
+- _self_
+task_name: antibody_framework
+out_dir: null
+repeats: 1
+steps: 30
+seed: 1
+seqs:
+  A: ???
+  B: ???
+homologies:
+  A: null
+  B: null
+enable_pyrosetta: true
+use_metropolis_acceptance: true
+initial_temperature: 0.03
+initializer:
+  mode: x_mix
+  x_fraction: 1.0
+mutator:
+  selector_expression: null
+  mutator_terms:
+    mpnn:
+      _type: LigandMPNN
+      model_type: protein_mpnn
+      temperature: 0.3
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+loss:
+  loss_terms:
+    interface_sc:
+      _type: protomer_shape_complementarity
+    ipsae:
+      _type: ipsae
+      chain_a: A
+      chain_b: B
+stages:
+  default:
+    oligo:
+    - AB
+    evaluator: Alphafold3
+    mutators:
+    - mpnn
+    mutation_num: 100%
+    weighted_score_expression: iptm + interface_sc + ipsae
+    acceptance_threshold: null
+    early_stopping: null
+paper_protocol:
+  source:
+  - SI 47-52
+  representative: step_29
+  framework: vhh_7eow
+  cdr_initializer: all-x
+  notes:
+  - Framework positions fixed; CDR positions mutable. Paper CLI prepares the framework MSA/template hook.
+  - 'Four CDR starts: all-x, random, ser-tyr, all-ala; two frameworks; 10 seeds per cell.'
+  - The AF3-TurboAb hook requires ASTROLABE_TURBOAB_DB and an AF3 data-pipeline script via ASTROLABE_AF3_DATA_PIPELINE
+    (optional ASTROLABE_AF3_PYTHON).
+  planned_total: 320
+  required_input_paths:
+  - homologies.A.source
+  - homologies.B
+  - pre_eval_hooks.af3_antibody_msa_cache.af3_turboab_db_dir
+reinitialize_random_segments_with_dplm: false
+pre_eval_hooks:
+  af3_antibody_msa_cache:
+    enabled: true
+    require_msa_payload: true
+    chain_ids:
+    - A
+    af3_turboab_db_dir: ${oc.env:ASTROLABE_TURBOAB_DB}
+    af3_turboab_db_subset: VHH
+    clear_paired_msa: true
+    preserve_existing_templates: true
+    expected_template_count: 4
+    minimum_unpaired_msa_sequences: 2
+    data_pipeline_command:
+    - ${oc.env:ASTROLABE_AF3_PYTHON,python}
+    - ${oc.env:ASTROLABE_AF3_DATA_PIPELINE}
+    - --json_path
+    - '{json_path}'
+    - --output_dir
+    - '{output_dir}'
+    - --db_dir
+    - '{db_dir}'
+    - --norun_inference
+    - --force_output_dir
+    - --jackhmmer_n_cpu
+    - '8'
+    - --nhmmer_n_cpu
+    - '8'

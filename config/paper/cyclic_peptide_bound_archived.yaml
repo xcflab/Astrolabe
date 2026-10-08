@@ -1,0 +1,35 @@
+# @package _global_
+defaults:
+- /paper/cyclic_peptide_bound
+- _self_
+mutator:
+  mutator_terms:
+    LigandMPNN_itf:
+      _type: LigandMPNN
+      temperature: 0.5
+      position_selector: interface(interface_distance=5.0)
+    LigandMPNN_noitf:
+      _type: LigandMPNN
+      model_type: soluble_mpnn
+      temperature: 0.3
+      position_selector: not interface(interface_distance=5.0)
+stages:
+  default:
+    mutators:
+    - LigandMPNN_itf
+    - LigandMPNN_noitf
+    mutator_weights:
+    - 1.0
+    - 1.0
+enable_pyrosetta: true
+skip_complex_poses: false
+paper_protocol:
+  recipe_kind: archived
+  source:
+  - 012_cyclic_peptide_design/configs/cyclic_peptide_v3/02_against_target_cyclization
+  notes:
+  - 'Historical standard-residue head-to-tail and disulfide protocol: interface LigandMPNN
+    at temperature 0.5 plus non-interface SolubleMPNN at 0.3, with equal weights.'
+  - The formal cyclic-peptide-bound recipe follows MainPaper 196 LigandMPNN proposals
+    for all linkage chemistries. Both recipes accept the same structure/topology input
+    overlays.

@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ASTROLABE_PY="${ASTROLABE_PY:-${GH_PY:-}}"
+
+if [[ -z "$ASTROLABE_PY" ]]; then
+  RESOLVER_PY="$(command -v python3 || command -v python || true)"
+  if [[ -n "$RESOLVER_PY" ]]; then
+    if ! ASTROLABE_PY="$($RESOLVER_PY - "$REPO_ROOT" 2>/dev/null <<'PYTHON'
+import sys
+from pathlib import Path
+
+repo_root = Path(sys.argv[1])
+sys.path.insert(0, str(repo_root))
+from astrolabe.dev_wrapper import resolve_default_astrolabe_python
+
+print(resolve_default_astrolabe_python(repo_root) or sys.executable)
+PYTHON
+)"; then
+      echo "Unable to resolve an Astrolabe interpreter. Activate a Python 3.11+ environment or set ASTROLABE_PY. For model setup: python scripts/install.py --help" >&2
+      exit 2
+    fi
+  fi
+fi
+
+if [[ -z "$ASTROLABE_PY" ]]; then
+  echo "Unable to resolve ASTROLABE_PY. Activate an Astrolabe environment or set ASTROLABE_PY to its Python interpreter." >&2
+  exit 2
+fi
+if [[ "$ASTROLABE_PY" != /* ]]; then
+  echo "ASTROLABE_PY must be an absolute path: $ASTROLABE_PY" >&2
+  exit 2
+fi
+if [[ ! -x "$ASTROLABE_PY" ]]; then
+  echo "ASTROLABE_PY is not executable: $ASTROLABE_PY" >&2
+  exit 2
+fi
+
+if ! "$ASTROLABE_PY" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)'; then
+  echo "Astrolabe requires Python 3.11 or newer: $ASTROLABE_PY" >&2
+  exit 2
+fi
+
+export ASTROLABE_HOST_REPO_ROOT="${ASTROLABE_HOST_REPO_ROOT:-$REPO_ROOT}"
+export ASTROLABE_HOST_REPO_MAP_ROOT="${ASTROLABE_HOST_REPO_MAP_ROOT:-$REPO_ROOT}"
+# Existing backend wrappers still consume these names during the namespace migration.
+export GH_HOST_REPO_ROOT="${GH_HOST_REPO_ROOT:-$ASTROLABE_HOST_REPO_ROOT}"
+export GH_HOST_REPO_MAP_ROOT="${GH_HOST_REPO_MAP_ROOT:-$ASTROLABE_HOST_REPO_MAP_ROOT}"
+
+exec "$ASTROLABE_PY" -c 'import sys; sys.path.insert(0, sys.argv.pop(1)); from astrolabe.cli import main; main(sys.argv[1:])' "$REPO_ROOT" "$@"

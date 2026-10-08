@@ -1,0 +1,8 @@
+# Counts are explicit; these are native recipe inputs, not an archived cohort.
+target_name: FAD
+ligand_code: FAD
+input_pdb: ../../../data/baselines/fad.pdb
+design_samples: 100
+num_designs: 2
+checkpoint: ../../../data/baselines/boltz1_conf.ckpt
+ccd_path: ../../../data/baselines/ccd.pkl

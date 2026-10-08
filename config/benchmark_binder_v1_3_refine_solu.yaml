@@ -1,0 +1,87 @@
+defaults:
+  - base
+  - _self_
+
+# Binder refine template (v1.3).
+#
+# Intended usage:
+#   - Prefer the one-shot CLI:
+#       gh refine binder --structure complex.cif --target-chain B --binder-chains A,C --task-name myjob --out-dir outputs
+#   - Or manual override:
+#       gh run --task benchmark_binder_v1_3_refine --overlay overlay.yaml
+#
+# Notes:
+#   - Protomer 'B' is reserved for the target chain (typically fixed: prefix '+').
+#   - Binder may be multi-chain: first binder chain is 'A', additional binder chains are 'C', 'D', ...
+
+task_name: ???
+repeats: 10
+enable_pyrosetta: true
+
+out_dir: ???
+seqs:
+  # Binder chain(s): set by CLI / overlay.
+  A: ???
+  # Target sequence (usually fixed, prefix with '+').
+  B: ???
+
+homologies:
+  # Optional. Either:
+  #   - AF3 JSON: /path/to/af3.json:<chain_id>
+  #   - Or a dict with keys: unpairedMsa/pairedMsa/templates (templates is a list of AF3 template dicts)
+  B: null
+
+steps: 10
+initial_temperature: 0.03
+
+mutator:
+  # Required by `astrolabe/argparser.py` (used to build selector mappings).
+  selector_expression: null
+  mutator_terms:
+    LigandMPNN_itf:
+      _type: LigandMPNN
+      temperature: 0.5
+      position_selector: "interface(interface_distance=10.0)"
+    LigandMPNN_noitf:
+      _type: LigandMPNN
+      model_type: soluble_mpnn
+      temperature: 0.3
+      position_selector: "surface() and not interface(interface_distance=10.0)"
+    dplm:
+      _type: DPLM
+      temperature: 1
+    esm3:
+      _type: ESM3
+      model_name: esm3-open
+      temperature: 0.35
+      position_selector: "long_loop(min_length=8)"
+
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+    Protenix:
+      _type: Protenix
+    chai1:
+      _type: chai1
+
+loss:
+  loss_terms:
+    sap_score:
+      _type: sap_score
+      # By default, score the first binder chain ('A'). For multi-chain binders,
+      # override this to a concatenated protomer string, e.g. "ACD".
+      included_protomers: A
+    interface_sc:
+      _type: protomer_shape_complementarity
+
+stages:
+  default:
+    # CLI overrides this to the full oligomer (e.g. "ABC...").
+    oligo: ["AB"]
+    evaluator: Alphafold3
+    mutation_num: 100%
+    acceptance_threshold: null
+    mutators:
+      - LigandMPNN_noitf
+    weighted_score_expression: iptm + 0.4*ptm + plddt + interface_sc * 0.2 - 0.01 * sap_score

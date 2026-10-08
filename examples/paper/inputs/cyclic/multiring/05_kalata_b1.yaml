@@ -1,0 +1,53 @@
+# Input overlay for astrolabe paper run; see ../README.md.
+task_name: kalata_b1
+seqs:
+  A: '29'
+cyclization:
+  bonds:
+  - a:
+      aa: C
+      atom: SG
+      pos: 5
+      proto: A
+    b:
+      aa: C
+      atom: SG
+      pos: 17
+      proto: A
+    order: single
+    target_distance: 2.03
+    signal_mode: both
+  - a:
+      aa: C
+      atom: SG
+      pos: 10
+      proto: A
+    b:
+      aa: C
+      atom: SG
+      pos: 22
+      proto: A
+    order: single
+    target_distance: 2.03
+    signal_mode: both
+  - a:
+      aa: C
+      atom: SG
+      pos: 15
+      proto: A
+    b:
+      aa: C
+      atom: SG
+      pos: 28
+      proto: A
+    order: single
+    target_distance: 2.03
+    signal_mode: both
+  signal_mode: both
+  encoding:
+    scope: all_bonds
+  head_to_tail: true
+paper_protocol:
+  topology: kalata_b1
+  planned_runs: 40
+  source_manifest: 012_cyclic_peptide_design/manifests/cyclic_peptide_v3/04_multiring_patterns.json

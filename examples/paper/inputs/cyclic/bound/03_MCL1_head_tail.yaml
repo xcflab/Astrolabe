@@ -1,0 +1,17 @@
+task_name: MCL1_head_tail
+seqs:
+  A: 9-20
+  B: +GSDELYRQSLEIISRYLREQATGAKDTKPMGRSGATSRKALETLRRVGDGVQRNHETAFQGMLRKLDIKNEDDVKSLSRVMIHVFSDGVTNWGRIVTLISFGAFVAKHLKTINQESCIEPLAESITDVLVRTKRDWLVKQRGWDGFVEFFHVEDLEGG
+homologies:
+  B: ${oc.env:ASTROLABE_PAPER_DATA}/cyclic/homologies/MCL1.json:A
+cyclization:
+  head_to_tail: true
+  signal_mode: both
+  encoding:
+    scope: all_bonds
+  bonds: []
+paper_protocol:
+  topology: head_tail
+  target: MCL1
+  source_config: 012_cyclic_peptide_design/configs/cyclic_peptide_v3/02_against_target_cyclization/MCL1_head_tail.yaml
+  historical_protocol: cyclic-peptide-bound-archived

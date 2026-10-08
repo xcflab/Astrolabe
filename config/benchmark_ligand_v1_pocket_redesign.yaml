@@ -1,0 +1,38 @@
+defaults:
+  - benchmark_ligand_v1_refine
+  - _self_
+
+# Ligand pocket redesign template (v1).
+# Intended usage:
+#   - Prefer the one-shot CLI:
+#       gh refine ligand-pocket --task-name myjob --out-dir outputs --structure complex.cif --protein-chain A --ligand FAD --reference-structure ref.pdb --reference-chain A --reference-pocket 72,103-105
+#   - Or manual override:
+#       gh run --task benchmark_ligand_v1_pocket_redesign --overlay overlay.yaml
+
+initial_temperature: 0.02
+mutation_num: 6
+
+predocker:
+  predocker_terms:
+    autodock_vina_box:
+      binding_site_strategy: residue
+      binding_site_coverage: 90
+      binding_site_padding: 1.0
+
+mutator:
+  mutator_terms:
+    LMPNN_allala_vina:
+      predocker:
+        - alanine_relax
+        - autodock_vina_box
+      position_selector: ligand_contact(distance_max=5.0)
+
+loss:
+  loss_terms:
+    autodock_penalty:
+      _type: autodock_penalty
+
+stages:
+  default:
+    mutation_num: 6
+    weighted_score_expression: iptm + ptm + plddt + ligand_burial - holes - autodock_penalty

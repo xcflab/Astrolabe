@@ -1,0 +1,14 @@
+task_name: example_benchmark_antibody_v1__scfv_4d5
+out_dir: outputs
+steps: 5
+repeats: 1
+
+seqs:
+  # scFv (RFantibody 4D5): VH-(GGGGS)3-VL; CDR length ranges from RFantibody examples.
+  A: "+EVQLVESGGGLVQPGGSLRLSCAAS 7-7 +YIHWVRQAPGKGLEWVARI 6-6 +YTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVY 5-13 +MDYWGQGTLVTVSS +GGGGSGGGGSGGGGS +DIQMTQSPSSLSASVGDRVTITC 8-13 +WYQQKPGKAPKLLIY 7-7 +GVPSRFSGSRSGTDFTLTISSLQPEDFATYYC 9-11 +FGQGTKVEIK"
+  # Toy target (fixed); replace with a real target for actual runs.
+  B: "+ACDEFGHIK"
+
+homologies:
+  B: null
+

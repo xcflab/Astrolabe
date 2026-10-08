@@ -1,0 +1,119 @@
+defaults:
+  - benchmark_binder_v1_4
+  - _self_
+
+task_name: ???
+out_dir: ???
+use_metropolis_acceptance: false
+
+seqs:
+  A: "80-120"
+  B: ???
+  C: ???
+
+homologies:
+  B: null
+  C: null
+
+
+initializer:
+  mode: mask_mix
+  mask_fraction: 0.99
+
+evaluator:
+  evaluator_terms:
+    Chai1:
+      _type: chai1
+    Protenix:
+      _type: Protenix
+  chai1:
+    use_esm_embeddings: false
+    num_trunk_recycles: 3
+    num_diffn_timesteps: 50
+    num_diffn_samples: 1
+
+binding_site:
+  AB:
+    binder: A
+    target: ???
+    mode: pocket
+    max_distance: 8.0
+  AC:
+    binder: A
+    target: ???
+    mode: pocket
+    max_distance: 8.0
+
+loss:
+  loss_terms:
+    binder_x_fraction:
+      _type: sequence_residue_fraction
+      included_protomers: A
+      residues: X
+    binder_pair_tmscore:
+      _type: binder_pair_tmscore
+      oligo_a: AB
+      oligo_b: AC
+      binder_chain: A
+    hotspot_target_b_global:
+      _type: hotspot_dsasa
+      _for: AB
+      select_expression: ???
+    hotspot_target_c_global:
+      _type: hotspot_dsasa
+      _for: AC
+      select_expression: ???
+  expression_terms:
+    globin_rog: 0.395 * (A_length ** 0.6) + 7.257
+    shape_penalty:
+      0.25 * sigmoid((binder_rog - globin_rog) / 5.0) + 0.50 * min(binder_loop_frac,
+      1.0)
+    pair_min_iptm: min(AB.iptm, AC.iptm)
+    pair_mean_iptm: (AB.iptm + AC.iptm)/2
+    pair_hotspot_support: min(AB.hotspot_target_b_global, AC.hotspot_target_c_global, 1.0)
+
+multitarget:
+  pair_name: ???
+  purpose: joint_multitarget_with_per_oligo_binding_site
+  shared_hotspot_manifest: ???
+  shared_hotspots:
+    B: []
+    C: []
+
+stages:
+  default:
+    oligo:
+      - AB
+      - AC
+    evaluator: Chai1
+    mutators:
+      - LigandMPNN_itf
+      - LigandMPNN_noitf
+    mutator_weights:
+      - 1.0
+      - 1.0
+    mutation_num: 100%
+    acceptance_threshold: null
+    weighted_score_expression:
+      pair_min_iptm + pair_mean_iptm + pair_hotspot_support
+      + 0.50 * binder_pair_tmscore - shape_penalty - binder_x_fraction
+    early_stopping: null
+  ligand: null
+  monomer_chai: null
+  dual_protenix:
+    _entrance: binder_x_fraction <= 0.05
+    oligo:
+      - AB
+      - AC
+    evaluator: Protenix
+    mutators:
+      - LigandMPNN_itf
+      - LigandMPNN_noitf
+    mutator_weights:
+      - 1.0
+      - 1.0
+    mutation_num: 100%
+    acceptance_threshold: null
+    weighted_score_expression:
+      pair_min_iptm + pair_mean_iptm + pair_hotspot_support
+      + 0.50 * binder_pair_tmscore - shape_penalty

@@ -1,0 +1,40 @@
+# @package _global_
+defaults:
+  - /paper/pocket_oriented
+  - _self_
+
+predocker:
+  predocker_terms:
+    alanine:
+      _type: all_alanine
+      _condition: target_ligand_in_target_pocket < 0.8
+      included_chains: [A]
+    vina:
+      _type: autodock_vina
+      _condition: target_ligand_in_target_pocket < 0.8
+      fail_on_error: true
+      binding_site_strategy: aligned_reference_pocket
+      reference_structure_path: ${loss.loss_terms.target_ligand_in_target_pocket.reference_structure_path}
+      reference_structure_chain: ${loss.loss_terms.target_ligand_in_target_pocket.reference_structure_chain}
+      current_structure_chain: A
+      reference_pocket_positions: ${loss.loss_terms.target_ligand_in_target_pocket.reference_pocket_positions}
+      reference_alignment_mode: ordinal
+      reference_box_geometry: cb_alpha_shape
+      reference_box_padding: 0.5
+      reference_min_box_size: 4.0
+      alpha_radius_scale: 1.8
+      alpha_min_radius: 3.0
+      alpha_max_radius: 8.0
+      exhaustiveness: 8
+      num_modes: 20
+      rank_vina_order: true
+      cache_first_pose_only: true
+      rank_buried_fraction: false
+      rank_com_diff: false
+      rank_buried_contribution: false
+      rank_alpha_shape_occupancy: false
+      rank_alpha_shape_retry_attempts: 0
+mutator:
+  mutator_terms:
+    ligandmpnn:
+      predocker: [alanine, vina]

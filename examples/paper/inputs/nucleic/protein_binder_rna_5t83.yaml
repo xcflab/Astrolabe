@@ -1,0 +1,14 @@
+# @package _global_
+seqs:
+  B: +GUCUAAAGUUUGCUAGGGUUCCGCGUCAUAGGUGGUCUGGUCCAAGAGCAAACGGCUUUCACAAAGCCACACGGAAGGAUAAAAGCCUGGGAGAU
+types:
+  B: r
+homologies:
+  B: ${oc.env:ASTROLABE_PAPER_DATA}/nucleic/binder_target_5t83.json:A
+stages:
+  complex:
+    oligo:
+    - AB
+paper_protocol:
+  target: 5t83
+  input_source: 009_rna_target_binder/config/001_nucleic_binder_design/01_protenix_initialization_comparison/05_rna_target_replacement/06_base_5t83.yaml

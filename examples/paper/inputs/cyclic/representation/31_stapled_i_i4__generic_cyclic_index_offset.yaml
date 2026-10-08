@@ -1,0 +1,75 @@
+# Input overlay for astrolabe paper run; see ../README.md.
+task_name: missing_stapled_offset__i_i4__s001
+seed: 98897
+seqs:
+  A: DI +[S5] VRY +[R8] GDYTVMSFVHNKG
+cyclization:
+  bonds:
+  - a:
+      aa: A
+      atom: SC5
+      pos: 3
+      proto: A
+      residue: S5
+    b:
+      aa: A
+      atom: SC8
+      pos: 7
+      proto: A
+      residue: R8
+    order: single
+    signal_mode: both
+    target_distance: 1.54
+  encoding:
+    scope: all_bonds
+  signal_mode: bond_only
+paper_protocol:
+  topology: stapled_i_i4
+  representation: generic_cyclic_index_offset
+  planned_runs: 40
+  example_source_sample: 1
+  source_task_id: 1
+  source_task_index: 012_cyclic_peptide_design/analysis/cyclic_v3/55_missing_ablation_cells__20260519/task_index.csv
+nonstandard_residues:
+  aliases:
+    R8:
+      atom_names:
+      - SC8
+      - SC7
+      - SC6
+      - SC5
+      - SC4
+      - SC3
+      - SC2
+      - SC1
+      - CA
+      - N
+      - CB
+      - C
+      - O
+      - OXT
+      ccd_id: VR8
+      parent_aa: A
+      reactive_atom: SC8
+      source:
+        format: smiles
+        value: C=CCCCCCC[C@@](N)(C)C(=O)O
+    S5:
+      atom_names:
+      - SC5
+      - SC4
+      - SC3
+      - SC2
+      - SC1
+      - CA
+      - N
+      - CB
+      - C
+      - O
+      - OXT
+      ccd_id: AS5
+      parent_aa: A
+      reactive_atom: SC5
+      source:
+        format: smiles
+        value: C=CCCC[C@](N)(C)C(=O)O

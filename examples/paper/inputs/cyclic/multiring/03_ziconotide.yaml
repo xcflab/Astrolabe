@@ -1,0 +1,52 @@
+# Input overlay for astrolabe paper run; see ../README.md.
+task_name: ziconotide
+seqs:
+  A: '25'
+cyclization:
+  bonds:
+  - a:
+      aa: C
+      atom: SG
+      pos: 1
+      proto: A
+    b:
+      aa: C
+      atom: SG
+      pos: 16
+      proto: A
+    order: single
+    target_distance: 2.03
+    signal_mode: both
+  - a:
+      aa: C
+      atom: SG
+      pos: 8
+      proto: A
+    b:
+      aa: C
+      atom: SG
+      pos: 20
+      proto: A
+    order: single
+    target_distance: 2.03
+    signal_mode: both
+  - a:
+      aa: C
+      atom: SG
+      pos: 15
+      proto: A
+    b:
+      aa: C
+      atom: SG
+      pos: 25
+      proto: A
+    order: single
+    target_distance: 2.03
+    signal_mode: both
+  signal_mode: both
+  encoding:
+    scope: all_bonds
+paper_protocol:
+  topology: ziconotide
+  planned_runs: 40
+  source_manifest: 012_cyclic_peptide_design/manifests/cyclic_peptide_v3/04_multiring_patterns.json

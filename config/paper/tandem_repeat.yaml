@@ -1,0 +1,4 @@
+# @package _global_
+defaults:
+- /paper/tandem_repeat_3
+- _self_

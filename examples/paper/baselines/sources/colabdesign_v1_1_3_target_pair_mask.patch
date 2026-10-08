@@ -1,0 +1,32 @@
+diff --git a/colabdesign/af/alphafold/model/modules_multimer.py b/colabdesign/af/alphafold/model/modules_multimer.py
+index 8822c6d..93bf0d9 100644
+--- a/colabdesign/af/alphafold/model/modules_multimer.py
++++ b/colabdesign/af/alphafold/model/modules_multimer.py
+@@ -283,10 +283,16 @@ class EmbeddingsAndEvoformer(hk.Module):
+     rel_feat = jnp.concatenate(rel_feats, axis=-1)
+ 
+     rel_feat = rel_feat.astype(dtype)
+-    return common_modules.Linear(
++    rel_act = common_modules.Linear(
+         c.pair_channel,
+         name='position_activations')(rel_feat)
+ 
++    if 'complexdesign_relpos_pair_mask' in batch:
++      # COMPLEXDESIGN_TARGET_PAIR_MASK_V1: optional target-target pair mask.
++      rel_act = rel_act * batch['complexdesign_relpos_pair_mask'].astype(
++          rel_act.dtype)[..., None]
++    return rel_act
++
+   def __call__(self, batch, safe_key=None):
+ 
+     c = self.config
+@@ -352,6 +358,9 @@ class EmbeddingsAndEvoformer(hk.Module):
+         # computed, since all templates are for each chain individually.
+         multichain_mask = batch['asym_id'][:, None] == batch['asym_id'][None, :]
+         multichain_mask = jnp.where(batch["mask_template_interchain"], multichain_mask, True)
++        if 'complexdesign_template_pair_mask' in batch:
++          template_pair_mask = batch['complexdesign_template_pair_mask'].astype(bool)
++          multichain_mask = jnp.logical_and(multichain_mask, template_pair_mask)
+ 
+         safe_key, safe_subkey = safe_key.split()
+         template_act = template_module(

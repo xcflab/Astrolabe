@@ -1,0 +1,46 @@
+defaults:
+  - base
+  - override env: env_container
+  - _self_
+
+task_name: sif_boltz_smoke
+out_dir: /tmp/gh_boltz_smoke_runs
+steps: 2
+mutation_num: 0
+
+types:
+  A: "p"
+seqs:
+  A: "ACDEFGHIKLMNPQRSTVWY"
+
+enable_pyrosetta: false
+skip_complex_poses: true
+
+evaluator:
+  evaluator_terms:
+    Boltz:
+      _type: Boltz
+      accelerator: gpu
+      recycling_steps: 1
+      sampling_steps: 2
+      diffusion_samples: 1
+      num_workers: 0
+      write_full_pae: false
+
+mutator:
+  mutator_terms:
+    MCMC:
+      _type: MCMC
+
+loss:
+  loss_terms: {}
+
+stages:
+  default:
+    evaluator: Boltz
+    oligo: ["A"]
+    mutators: ["MCMC"]
+    mutation_num: 0
+    weighted_score_expression: "0"
+    acceptance_threshold: null
+    early_stopping: null

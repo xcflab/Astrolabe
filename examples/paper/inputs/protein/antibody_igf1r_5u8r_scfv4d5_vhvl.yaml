@@ -1,0 +1,39 @@
+# @package _global_
+seqs:
+  B: +EICGPGIDIRNDYQQLKRLENCTVIEGYLHILLISKARSYRFPKLTVITEYLLLFRVAGLESLGDLFPNLTVIRGWKLFYNYALVIFEMTNLKDIGLYNLRNITRGAIRIEKNADLCYLSTVDWSLILDAVSNNYIVGNKP
+  A: +EVQLVESGGGLVQPGGSLRLSCAAS 7-7 +YIHWVRQAPGKGLEWVARI 6-6 +YTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVY 5-13 +MDYWGQGTLVTVSS
+    +GGGGSGGGGSGGGGS +DIQMTQSPSSLSASVGDRVTITC 8-13 +WYQQKPGKAPKLLIY 7-7 +GVPSRFSGSRSGTDFTLTISSLQPEDFATYYC 9-11 +FGQGTKVEIK
+homologies:
+  B: ${oc.env:ASTROLABE_PAPER_DATA}/protein/benchmark/IGF1R_5U8R.json:A
+  A:
+    _type: antibody_framework_homology
+    framework_name: scfv_vh_linker_vl__rfantibody_4d5
+    source: ${oc.env:ASTROLABE_PAPER_DATA}/protein/frameworks/scfv_vh_linker_vl__rfantibody_4d5.json:A
+    layout:
+      fixed_segments:
+      - EVQLVESGGGLVQPGGSLRLSCAAS
+      - YIHWVRQAPGKGLEWVARI
+      - YTRYADSVKGRFTISADTSKNTAYLQMNSLRAEDTAVY
+      - MDYWGQGTLVTVSSGGGGSGGGGSGGGGSDIQMTQSPSSLSASVGDRVTITC
+      - WYQQKPGKAPKLLIY
+      - GVPSRFSGSRSGTDFTLTISSLQPEDFATYYC
+      - FGQGTKVEIK
+      loop_order:
+      - H1
+      - H2
+      - H3
+      - L1
+      - L2
+      - L3
+      source_loop_lengths:
+        H1: 7
+        H2: 5
+        H3: 8
+        L1: 11
+        L2: 7
+        L3: 9
+pre_eval_hooks:
+  af3_antibody_msa_cache:
+    af3_turboab_db_subset: IgG
+paper_protocol:
+  framework: scfv4d5_vhvl

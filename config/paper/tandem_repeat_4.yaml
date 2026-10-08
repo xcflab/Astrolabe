@@ -1,0 +1,139 @@
+# @package _global_
+task_name: ???
+out_dir: ???
+steps: 100
+repeats: 1
+enable_pyrosetta: true
+skip_complex_poses: false
+initial_temperature: 0.03
+seqs:
+  A: 20-30@repeat_1 5-5@loop_1 repeat_1 loop_1 repeat_1 loop_1 repeat_1 loop_1
+initializer:
+  mode: aa_set
+  aa_set:
+    segments:
+      loop_1: GSTNQPD
+predocker:
+  predocker_terms: {}
+mutator:
+  names:
+  - ligand_mpnn_refine
+  selector_expression: null
+  mutator_terms:
+    ligand_mpnn_refine:
+      _type: LigandMPNN
+      model_type: protein_mpnn
+      temperature: 0.3
+evaluator:
+  evaluator_terms:
+    Alphafold2:
+      _type: alphafold2
+loss:
+  loss_terms:
+    A_single_chain_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    repeat_unit_rmsd_raw:
+      _type: repeat_unit_rmsd_raw
+    repeat_unit_rmsd_norm:
+      _type: repeat_unit_rmsd_norm
+      best: 0.0
+      worst: 1.1
+    pseudocycle_rotation_raw:
+      _type: pseudocycle_rotation_raw
+    pseudocycle_rotation_norm:
+      _type: pseudocycle_rotation_norm
+      best: 0.0
+      worst: 30.0
+    pseudocycle_rise_raw:
+      _type: pseudocycle_rise_raw
+    pseudocycle_rise_norm:
+      _type: pseudocycle_rise_norm
+      best: 0.0
+      worst: 1.5
+    pseudocycle_closure_norm:
+      _type: pseudocycle_closure_norm
+      rotation_best: 0.0
+      rotation_worst: 30.0
+      rise_best: 0.0
+      rise_worst: 1.5
+    loop_fraction:
+      _type: secondary_structure_fraction
+      included_protomers: A
+      sse_type: L
+stages:
+  default:
+    oligo:
+    - A
+    evaluator: Alphafold2
+    mutation_num: 10%
+    mutators:
+    - ligand_mpnn_refine
+    mutator_weights:
+    - 1.0
+    weighted_score_expression: 0.60 * plddt + 0.40 * ptm + 0.45 * repeat_unit_rmsd_norm
+      + 0.35 * pseudocycle_rise_norm + 0.20 * pseudocycle_rotation_norm
+    acceptance_threshold: null
+    early_stopping: null
+  refine:
+    _entrance: (repeat_unit_rmsd_raw <= 1.1) and (pseudocycle_rotation_raw <= 30.0)
+      and (pseudocycle_rise_raw <= 1.5)
+    oligo:
+    - A
+    evaluator: Alphafold2
+    mutation_num: 100%
+    mutators:
+    - ligand_mpnn_refine
+    mutator_weights:
+    - 1.0
+    weighted_score_expression: 0.60 * plddt + 0.40 * ptm + 0.25 * repeat_unit_rmsd_norm
+      + 0.15 * pseudocycle_rise_norm + 0.10 * pseudocycle_rotation_norm + 0.25 * pseudocycle_closure_norm
+      - 0.25 * loop_fraction
+    acceptance_threshold: null
+    early_stopping: null
+defaults:
+- /base
+- _self_
+paper_protocol:
+  name: tandem-repeat-4
+  sources:
+  - SI 7, 61
+  source_config: 007_halludesign_proteinhunter_bench/008_tandem_repeats/configs/c4_u20_30_batch.yaml
+  configured_steps: 100
+  repeat_count: 4
+  cohort: manuscript_recipe
+  planned_runs_per_order: 50
+  required_input_paths: []
+  endpoint:
+    plddt_expression: plddt > 0.85
+    geometry_filter: pass_geom_strict == 1
+    geometry_filter_source: Original processed/benchmark_summary/analysis_summary.json;
+      exact upstream computation of this flag was not recovered. Do not substitute
+      the stricter practical-candidate filter.
+  trajectory_analysis:
+    state_selection: highest objective score reached so far at each step
+    summary: mean and central 75% interval
+    reported_selected_trajectories: 80
+    reported_cohorts:
+      initial:
+        planned: 150
+        selected: 43
+        secondary_structure: DSSP
+      additional:
+        planned: 100
+        selected: 37
+        secondary_structure: Biotite
+  implementation_notes:
+  - The latest SI 61 specifies ProteinMPNN proposals and AlphaFold 2 evaluation for
+    all 100 steps. Both configured stages therefore use the existing protein_mpnn
+    model, without MCMC proposals.
+  - The source geometry objectives, stage transition, mutation fractions, temperature,
+    repeat/linker synchronization and initialization are retained because the manuscript
+    does not replace their detailed values.
+  - The original initial-cohort MCMC/ProteinMPNN schedule remains in tandem-repeat-4-archived.
+    The reported 43+37 selected trajectories describe existing data; this recipe has
+    not regenerated them.
+  - The formal recipe retains the source DSSP-based runtime; the separate historical
+    additional cohort used Biotite as stated in SI 61.
+  recipe_kind: manuscript
+  archived_protocol: tandem-repeat-4-archived

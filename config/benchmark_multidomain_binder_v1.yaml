@@ -1,0 +1,141 @@
+defaults:
+  - base
+  - _self_
+
+task_name: ???
+repeats: 1
+enable_pyrosetta: true
+
+out_dir: ???
+seqs:
+  A: "80-120"
+  B: ???
+
+homologies:
+  B: ???
+
+steps: 50
+initializer:
+  mode: dplm
+initial_temperature: 0.03
+
+mutator:
+  mutator_terms:
+    LigandMPNN_itf:
+      _type: LigandMPNN
+      model_type: ligand_mpnn
+      temperature: 0.3
+      position_selector: interface(interface_distance=10.0)
+    LigandMPNN_noitf:
+      _type: LigandMPNN
+      model_type: soluble_mpnn
+      temperature: 0.3
+      position_selector: not interface(interface_distance=10.0)
+    dplm:
+      _type: DPLM
+      temperature: 1
+  enabled_aliases:
+    - dplm
+    - LigandMPNN_itf
+    - LigandMPNN_noitf
+
+evaluator:
+  evaluator_terms:
+    Protenix:
+      _type: Protenix
+    Alphafold3:
+      _type: Alphafold3
+  enabled_aliases:
+    - Protenix
+    - Alphafold3
+
+binding_site:
+  binder: A
+  target: ???
+  mode: pocket
+  max_distance: 8.0
+
+loss:
+  loss_terms:
+    binder_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    binder_loop_frac:
+      _type: secondary_structure_fraction
+      included_protomers: A
+      sse_type: L
+    binding_site_allowed_min_dist:
+      _type: binding_site_allowed_min_dist
+      _for: AB
+    hotspot_target_global:
+      _type: hotspot_dsasa
+      _for: AB
+      select_expression: ???
+    binder_ptm:
+      _type: binder_ptm
+      binder_chain: A
+    scaled_pae_min:
+      _type: scaled_pae_min
+      chain_a: A
+      chain_b: B
+      cutoff: 10.0
+    contact_molecular_surface:
+      _type: contact_molecular_surface
+      protomer_a: A
+      protomer_b: B
+      distance_weight: 0.5
+      use_rosetta_radii: true
+    contact_molecular_surface_norm:
+      _type: contact_molecular_surface_norm
+      protomer_a: A
+      protomer_b: B
+      distance_weight: 0.5
+      use_rosetta_radii: true
+      midpoint: 400.0
+      midpoint_value: 0.8
+      lower_scale: 150.0
+      upper_scale: 75.0
+  expression_terms:
+    globin_rog: 0.395 * (A_length ** 0.6) + 7.257
+    shape_penalty:
+      0.25 * sigmoid((binder_rog - globin_rog) / 5.0) + 0.50 * min(binder_loop_frac,
+      1.0)
+    confidence_term: 0.6 * AB.iptm + 0.5 * AB.scaled_pae_min + 0.4 * AB.binder_ptm
+    hotspot_support: min(AB.hotspot_target_global, 1.0)
+    binding_site_score: max(0, 1 - (AB.binding_site_allowed_min_dist / 8.0))
+
+multidomain_target:
+  target_name: ???
+  purpose: flexible_multidomain_target_multivalent_binder
+  full_homology: null
+  domains: []
+
+stages:
+  default:
+    oligo:
+      - A
+    evaluator: Protenix
+    mutators:
+      - dplm
+    mutation_num: 100%
+    acceptance_threshold: null
+    weighted_score_expression: plddt + ptm - shape_penalty
+    early_stopping: null
+  target_complex:
+    _entrance:
+      plddt > 0.70 and ((binder_loop_frac < 0.4) and (binder_rog <= globin_rog
+      + 3))
+    oligo:
+      - AB
+    evaluator: Protenix
+    mutation_num: 100%
+    acceptance_threshold: null
+    mutators:
+      - LigandMPNN_itf
+      - LigandMPNN_noitf
+    mutator_weights:
+      - 1.0
+      - 1.0
+    weighted_score_expression:
+      AB.contact_molecular_surface_norm + confidence_term
+      + hotspot_support - shape_penalty

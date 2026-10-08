@@ -1,0 +1,29 @@
+# @package _global_
+seqs:
+  B: +GFLPNDAEELFIFLTEITEITIPCRVTDPQLVVTLHEKKGDVALPVPYDHQRGFSGIFEDRSYICKTTIGDREVDSDAYYVYRLQVSSINVSVNAVQTVVRQGENITLMCIVIGNEVVNFEWTYPRKESGRLVEPVTDFLLDMPYHIRSILHIPSAELEDSGTYTCNVTESVNDHQDEKAINITVVE
+  A: +EVQLVESGGGLVQPGGSLRLSCAAS 7-11 +GWFRQAPGKGRELVAAI 6-10 +YPDSVEGRFTISRDNAKRMVYLQMNSLRAEDTAVYYCA 15-28 +GQGTQVTVSS
+homologies:
+  B: ${oc.env:ASTROLABE_PAPER_DATA}/protein/benchmark/PDGFR_3MJG.json:A
+  A:
+    _type: antibody_framework_homology
+    framework_name: vhh__boltzgen_7eow
+    source: ${oc.env:ASTROLABE_PAPER_DATA}/protein/frameworks/vhh__boltzgen_7eow.json:A
+    layout:
+      fixed_segments:
+      - EVQLVESGGGLVQPGGSLRLSCAAS
+      - GWFRQAPGKGRELVAAI
+      - YPDSVEGRFTISRDNAKRMVYLQMNSLRAEDTAVYYCA
+      - GQGTQVTVSS
+      loop_order:
+      - H1
+      - H2
+      - H3
+      source_loop_lengths:
+        H1: 9
+        H2: 8
+        H3: 21
+pre_eval_hooks:
+  af3_antibody_msa_cache:
+    af3_turboab_db_subset: VHH
+paper_protocol:
+  framework: vhh_7eow

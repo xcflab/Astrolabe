@@ -1,0 +1,238 @@
+diff --git a/src/boltz/data/module/inference.py b/src/boltz/data/module/inference.py
+index b09a6af..1f1a4f6 100644
+--- a/src/boltz/data/module/inference.py
++++ b/src/boltz/data/module/inference.py
+@@ -74,6 +74,31 @@ def load_input(
+     return Input(structure, msas, record, residue_constraints)
+ 
+ 
++def _build_cyclic_relative_patches_feature(input_data: Input) -> Tensor | None:
++    options = getattr(input_data.record, "inference_options", None)
++    entries = getattr(options, "cyclic_relative_patches", None) if options is not None else None
++    if not entries:
++        return None
++    chain_starts = {
++        int(chain["asym_id"]): int(chain["res_idx"])
++        for chain in input_data.structure.chains[input_data.structure.mask]
++    }
++    data = []
++    for chain_id, residue_i, residue_j, offset in entries:
++        if int(chain_id) not in chain_starts:
++            raise ValueError(f"Unknown cyclic relative patch chain_id {chain_id}")
++        start = chain_starts[int(chain_id)]
++        data.append(
++            [
++                int(chain_id),
++                int(start + int(residue_i) - 1),
++                int(start + int(residue_j) - 1),
++                int(offset),
++            ]
++        )
++    return torch.tensor(data, dtype=torch.long)
++
++
+ def collate(data: list[dict[str, Tensor]]) -> dict[str, Tensor]:
+     """Collate the data.
+ 
+@@ -208,6 +233,9 @@ class PredictionDataset(torch.utils.data.Dataset):
+             print(f"Featurizer failed on {record.id} with error {e}. Skipping.")  # noqa: T201
+             return self.__getitem__(0)
+ 
++        cyclic_relative_patches = _build_cyclic_relative_patches_feature(input_data)
++        if cyclic_relative_patches is not None:
++            features["cyclic_relative_patches"] = cyclic_relative_patches
+         features["record"] = record
+         return features
+ 
+diff --git a/src/boltz/data/module/inferencev2.py b/src/boltz/data/module/inferencev2.py
+index 590297d..0fb7bcd 100644
+--- a/src/boltz/data/module/inferencev2.py
++++ b/src/boltz/data/module/inferencev2.py
+@@ -109,6 +109,35 @@ def load_input(
+     )
+ 
+ 
++def _build_cyclic_relative_patches_feature(input_data: Input) -> Tensor | None:
++    options = getattr(input_data.record, "inference_options", None)
++    entries = (
++        getattr(options, "cyclic_relative_patches", None)
++        if options is not None
++        else None
++    )
++    if not entries:
++        return None
++    chain_starts = {
++        int(chain["asym_id"]): int(chain["res_idx"])
++        for chain in input_data.structure.chains[input_data.structure.mask]
++    }
++    data = []
++    for chain_id, residue_i, residue_j, offset in entries:
++        if int(chain_id) not in chain_starts:
++            raise ValueError(f"Unknown cyclic relative patch chain_id {chain_id}")
++        start = chain_starts[int(chain_id)]
++        data.append(
++            [
++                int(chain_id),
++                int(start + int(residue_i) - 1),
++                int(start + int(residue_j) - 1),
++                int(offset),
++            ]
++        )
++    return torch.tensor(data, dtype=torch.long)
++
++
+ def collate(data: list[dict[str, Tensor]]) -> dict[str, Tensor]:
+     """Collate the data.
+ 
+@@ -298,6 +327,9 @@ class PredictionDataset(torch.utils.data.Dataset):
+             print(f"Featurizer failed on {record.id} with error {e}. Skipping.")  # noqa: T201
+             return self.__getitem__(0)
+ 
++        cyclic_relative_patches = _build_cyclic_relative_patches_feature(input_data)
++        if cyclic_relative_patches is not None:
++            features["cyclic_relative_patches"] = cyclic_relative_patches
+         # Add record
+         features["record"] = record
+         return features
+diff --git a/src/boltz/data/parse/schema.py b/src/boltz/data/parse/schema.py
+index 9ffe7ad..25cf239 100644
+--- a/src/boltz/data/parse/schema.py
++++ b/src/boltz/data/parse/schema.py
+@@ -1803,8 +1803,25 @@ def parse_boltz_schema(  # noqa: C901, PLR0915, PLR0912
+         )
+         chain_infos.append(chain_info)
+ 
++    cyclic_relative_patches = []
++    inference_options_schema = schema.get("inference_options", {}) or {}
++    for entry in inference_options_schema.get("cyclic_relative_entries", []) or []:
++        chain_name = str(entry["chain"])
++        if chain_name not in chain_to_idx:
++            raise ValueError(f"Unknown cyclic_relative_entries chain {chain_name!r}")
++        cyclic_relative_patches.append(
++            (
++                int(chain_to_idx[chain_name]),
++                int(entry["residue_index_1"]),
++                int(entry["residue_index_2"]),
++                int(entry["offset"]),
++            )
++        )
++
+     options = InferenceOptions(
+-        pocket_constraints=pocket_constraints, contact_constraints=contact_constraints
++        pocket_constraints=pocket_constraints,
++        contact_constraints=contact_constraints,
++        cyclic_relative_patches=cyclic_relative_patches or None,
+     )
+     record = Record(
+         id=name,
+diff --git a/src/boltz/data/types.py b/src/boltz/data/types.py
+index 1ce26b5..1bc6d46 100644
+--- a/src/boltz/data/types.py
++++ b/src/boltz/data/types.py
+@@ -527,6 +527,7 @@ class InferenceOptions:
+     contact_constraints: Optional[
+         list[tuple[tuple[int, int], tuple[int, int], float, bool]]
+     ] = None
++    cyclic_relative_patches: Optional[list[tuple[int, int, int, int]]] = None
+ 
+ 
+ @dataclass(frozen=True)
+diff --git a/src/boltz/model/modules/encoders.py b/src/boltz/model/modules/encoders.py
+index d5054de..486789c 100644
+--- a/src/boltz/model/modules/encoders.py
++++ b/src/boltz/model/modules/encoders.py
+@@ -45,7 +45,7 @@ class FourierEmbedding(Module):
+ class RelativePositionEncoder(Module):
+     """Relative position encoder."""
+ 
+-    def __init__(self, token_z, r_max=32, s_max=2):
++    def __init__(self, token_z, r_max=32, s_max=2, cyclic_pos_enc=False):
+         """Initialize the relative position encoder.
+ 
+         Parameters
+@@ -61,6 +61,7 @@ class RelativePositionEncoder(Module):
+         super().__init__()
+         self.r_max = r_max
+         self.s_max = s_max
++        self.cyclic_pos_enc = cyclic_pos_enc
+         self.linear_layer = LinearNoBias(4 * (r_max + 1) + 2 * (s_max + 1) + 1, token_z)
+ 
+     def forward(self, feats):
+@@ -83,6 +84,36 @@ class RelativePositionEncoder(Module):
+                 torch.zeros_like(feats["cyclic_period"]) + 10000,
+             ).unsqueeze(1)
+             rel_pos = (rel_pos - period * torch.round(rel_pos / period)).long()
++        cyclic_relative_patches = feats.get("cyclic_relative_patches")
++        if cyclic_relative_patches is not None:
++            if not torch.is_tensor(cyclic_relative_patches):
++                cyclic_relative_patches = torch.as_tensor(
++                    cyclic_relative_patches,
++                    device=feats["residue_index"].device,
++                    dtype=feats["residue_index"].dtype,
++                )
++            else:
++                cyclic_relative_patches = cyclic_relative_patches.to(
++                    device=feats["residue_index"].device,
++                    dtype=feats["residue_index"].dtype,
++                )
++            if cyclic_relative_patches.ndim == 2:
++                cyclic_relative_patches = cyclic_relative_patches.unsqueeze(0)
++            for batch_idx in range(cyclic_relative_patches.shape[0]):
++                for asym_id, residue_i, residue_j, patch_offset in cyclic_relative_patches[
++                    batch_idx
++                ].reshape(-1, 4):
++                    pair_mask = (
++                        (feats["asym_id"][batch_idx] == int(asym_id))[:, None]
++                        & (feats["asym_id"][batch_idx] == int(asym_id))[None, :]
++                        & (feats["residue_index"][batch_idx] == int(residue_i))[:, None]
++                        & (feats["residue_index"][batch_idx] == int(residue_j))[None, :]
++                    )
++                    rel_pos[batch_idx] = torch.where(
++                        pair_mask,
++                        torch.full_like(rel_pos[batch_idx], int(patch_offset)),
++                        rel_pos[batch_idx],
++                    )
+ 
+         d_residue = torch.clip(
+             rel_pos + self.r_max,
+diff --git a/src/boltz/model/modules/encodersv2.py b/src/boltz/model/modules/encodersv2.py
+index f02cc3e..2beae22 100644
+--- a/src/boltz/model/modules/encodersv2.py
++++ b/src/boltz/model/modules/encodersv2.py
+@@ -68,6 +68,36 @@ class RelativePositionEncoder(Module):
+                 torch.zeros_like(feats["cyclic_period"]) + 10000,
+             )
+             d_residue = (d_residue - period * torch.round(d_residue / period)).long()
++        cyclic_relative_patches = feats.get("cyclic_relative_patches")
++        if cyclic_relative_patches is not None:
++            if not torch.is_tensor(cyclic_relative_patches):
++                cyclic_relative_patches = torch.as_tensor(
++                    cyclic_relative_patches,
++                    device=feats["residue_index"].device,
++                    dtype=feats["residue_index"].dtype,
++                )
++            else:
++                cyclic_relative_patches = cyclic_relative_patches.to(
++                    device=feats["residue_index"].device,
++                    dtype=feats["residue_index"].dtype,
++                )
++            if cyclic_relative_patches.ndim == 2:
++                cyclic_relative_patches = cyclic_relative_patches.unsqueeze(0)
++            for batch_idx in range(cyclic_relative_patches.shape[0]):
++                for asym_id, residue_i, residue_j, patch_offset in cyclic_relative_patches[
++                    batch_idx
++                ].reshape(-1, 4):
++                    pair_mask = (
++                        (feats["asym_id"][batch_idx] == int(asym_id))[:, None]
++                        & (feats["asym_id"][batch_idx] == int(asym_id))[None, :]
++                        & (feats["residue_index"][batch_idx] == int(residue_i))[:, None]
++                        & (feats["residue_index"][batch_idx] == int(residue_j))[None, :]
++                    )
++                    d_residue[batch_idx] = torch.where(
++                        pair_mask,
++                        torch.full_like(d_residue[batch_idx], int(patch_offset)),
++                        d_residue[batch_idx],
++                    )
+ 
+         d_residue = torch.clip(
+             d_residue + self.r_max,

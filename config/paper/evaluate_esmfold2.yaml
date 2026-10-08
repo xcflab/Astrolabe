@@ -1,0 +1,47 @@
+# @package _global_
+defaults:
+- /base
+- _self_
+task_name: evaluate_esmfold2
+out_dir: null
+repeats: 1
+steps: 1
+seed: 1
+seqs:
+  A: ???
+  B: ???
+homologies: {}
+mutator:
+  selector_expression: null
+  mutator_terms:
+    MCMC:
+      _type: MCMC
+evaluator:
+  evaluator_terms:
+    ESMFold2:
+      _type: ESMFold2
+  esmfold2:
+    num_loops: 3
+    num_sampling_steps: 50
+    num_diffusion_samples: 1
+stages:
+  default:
+    oligo:
+    - AB
+    evaluator: ESMFold2
+    mutators:
+    - MCMC
+    mutation_num: 100%
+    weighted_score_expression: plddt
+    acceptance_threshold: null
+    early_stopping: null
+paper_protocol:
+  source:
+  - MainPaper 116-117,150,171
+  - SI 29-32,40,46
+  representative: fixed_sequence_evaluation
+  notes:
+  - One initialized state and no sequence proposals; input sequence must be literal, with no random-length segments.
+  - For apo/holo 5x5 ensembles, use --num-runs 5 for each state and empty MSAs/templates. All native sample outputs
+    remain under raw_model_results.
+  - AF3 binary evaluation target MSAs/templates come from the frozen target inputs; do not replace with empty contexts.

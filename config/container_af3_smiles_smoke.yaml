@@ -1,0 +1,53 @@
+defaults:
+  - base
+  - override env: env_container
+  - _self_
+
+task_name: sif_af3_smiles_smoke
+out_dir: /tmp/gh_smiles_smoke_runs
+
+# Keep runtime small but still exercise: SMILES parsing -> RDKit/OpenBabel -> AF3 inference.
+steps: 2
+mutation_num: 0
+
+types:
+  A: "p"
+  B: "s"
+
+seqs:
+  # Short protein to reduce compile/runtime.
+  A: "ACDEFGHIKLMNPQRSTVWY"
+  # Small molecule: ethanol
+  B: "CCO"
+
+enable_pyrosetta: false
+skip_complex_poses: true
+
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+      num_seeds: 1
+      num_recycles: 1
+      num_samples: 1
+      run_data_pipeline: false
+      run_inference: true
+      flash_attention_implementation: cudnn
+
+mutator:
+  mutator_terms:
+    MCMC:
+      _type: MCMC
+
+loss:
+  loss_terms: {}
+
+stages:
+  default:
+    evaluator: Alphafold3
+    oligo: ["AB"]
+    mutators: ["MCMC"]
+    mutation_num: 0
+    weighted_score_expression: "0"
+    acceptance_threshold: null
+    early_stopping: null

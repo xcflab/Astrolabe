@@ -1,0 +1,86 @@
+defaults:
+  - base
+  - _self_
+
+# Binder benchmark template (v1.4) - surface-only mutation.
+#
+# Goal: do NOT mutate interface residues; allow mutation only on surface residues
+# away from interface (surface() and not interface()).
+
+task_name: ???
+repeats: 1
+enable_pyrosetta: true
+
+out_dir: ???
+seqs:
+  A: "80-120"
+  # Target sequence (usually fixed, prefix with '+').
+  B: ???
+
+homologies:
+  B: ???
+
+steps: 100
+initializer:
+  mode: dplm
+initial_temperature: 0.03
+mutator:
+  # Required by `astrolabe/argparser.py` (used to build selector mappings).
+  selector_expression: null
+  mutator_terms:
+    LigandMPNN_surface:
+      _type: LigandMPNN
+      model_type: soluble_mpnn
+      temperature: 0.3
+      position_selector: "surface() and not interface(interface_distance=10.0)"
+    dplm:
+      _type: DPLM
+      temperature: 1
+evaluator:
+  evaluator_terms:
+    Alphafold3:
+      _type: Alphafold3
+    Protenix:
+      _type: Protenix
+    chai1:
+      _type: chai1
+
+loss:
+  loss_terms:
+    binder_rog:
+      _type: single_chain_rog
+      included_protomers: A
+    binder_loop_frac:
+      _type: secondary_structure_fraction
+      included_protomers: A
+      sse_type: L
+    sap_score:
+      _type: sap_score
+      included_protomers: A
+    interface_sc:
+      _type: protomer_shape_complementarity
+
+  expression_terms:
+    globin_rog: 0.395 * (A_length ** 0.6) + 7.257
+
+stages:
+  default:
+    oligo: ["A"]
+    evaluator: Protenix
+    mutators: ["dplm"]
+    mutation_num: 100%
+    weighted_score_expression: "-0.4 * (1 / (1 + exp(-((binder_rog - globin_rog) / 5.0)))) - min(binder_loop_frac,1) * 0.6 "
+    acceptance_threshold: "(binder_loop_frac < 0.4) and (binder_rog <= globin_rog + 3)"
+    early_stopping: null
+  ligand:
+    _entrance: "(binder_loop_frac < 0.4) and (binder_rog <= globin_rog + 3)"
+    oligo:
+      - AB
+    evaluator: Protenix
+    mutation_num: 100%
+    acceptance_threshold: null
+    mutators:
+      - LigandMPNN_surface
+    mutator_weights:
+      - 1.0
+    weighted_score_expression: iptm + 0.4*ptm + plddt + interface_sc * 0.2 - 0.3 * (1 / (1 + exp(-((binder_rog - globin_rog) / 5.0)))) - min(binder_loop_frac,1) * 0.6 - 0.01 * sap_score

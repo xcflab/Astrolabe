@@ -1,0 +1,16 @@
+# @package _global_
+defaults:
+  - /paper/pocket_iptm
+  - _self_
+
+paper_protocol:
+  source: 007_halludesign_proteinhunter_bench/004_pocket_refine_dynamically/config/002_catm_liga_matched_rebuild/01_paired_seed_full_rebuild/01_six_cell_fresh50/01_prepare_and_accept.py
+  source_config: 007_halludesign_proteinhunter_bench/004_pocket_refine_dynamically/config/44_target_selection_v3_catm_liga_30run_completion/ty3_catm_liga_30run_completion1/configs/arm_d/CatM_muconate_only_to_BenM_like_benzoate_response_predocker_r21.yaml
+  protocol_revision: archived_fresh50
+  notes:
+    - The fresh50 cohort extends the native r21 configurations to 50 steps. Archived oriented arms use iptm + ptm + plddt + ligand_burial + pocket_occupancy - holes, rather than the current manuscript iptm + pocket_occupancy.
+    - Archived rescue also triggers during steps 0 and 1, filters poses at occupancy >= 0.8, and permits two retries at exhaustiveness 16. The current manuscript protocol has no pose filter or retries.
+    - Native Metropolis acceptance at initial temperature 0.03 and the input sequence masks are retained. These archived settings run on the maintained backend with its corrected coordinate mapping and first-rank pose selection.
+initial_temperature: 0.03
+use_metropolis_acceptance: true
+enable_pyrosetta: true

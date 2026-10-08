@@ -1,0 +1,31 @@
+# @package _global_
+defaults:
+  - /paper/cid_oriented
+  - _self_
+
+predocker:
+  predocker_terms:
+    alanine:
+      _type: all_alanine
+      _condition: interface_box_occupancy < 0.8 or interface_alpha_occupancy < 0.8
+      included_chains: [A]
+    vina:
+      _type: autodock_vina
+      _condition: interface_box_occupancy < 0.8 or interface_alpha_occupancy < 0.8
+      fail_on_error: true
+      binding_site_strategy: interface
+      binding_site_coverage: 90
+      binding_site_padding: 1.0
+      exhaustiveness: 8
+      num_modes: 20
+      rank_vina_order: true
+      cache_first_pose_only: true
+      rank_buried_fraction: false
+      rank_com_diff: false
+      rank_buried_contribution: false
+      rank_alpha_shape_occupancy: false
+      rank_alpha_shape_retry_attempts: 0
+mutator:
+  mutator_terms:
+    ligandmpnn:
+      predocker: [alanine, vina]
