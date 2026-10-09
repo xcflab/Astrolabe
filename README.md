@@ -1,7 +1,13 @@
-# Astrolabe
+<p align="center">
+  <img src="docs/assets/astrolabe-icon.svg" width="168" alt="Astrolabe project icon">
+</p>
 
-[![CPU checks](https://github.com/Molaison/Astrolabe/actions/workflows/release-cpu.yml/badge.svg)](https://github.com/Molaison/Astrolabe/actions/workflows/release-cpu.yml)
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+<h1 align="center">Astrolabe</h1>
+
+<p align="center">
+  <a href="https://github.com/Molaison/Astrolabe/actions/workflows/release-cpu.yml"><img src="https://github.com/Molaison/Astrolabe/actions/workflows/release-cpu.yml/badge.svg" alt="CPU checks"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License: Apache-2.0"></a>
+</p>
 
 Astrolabe is a programmable framework for all-atom biomolecular design. It
 coordinates structure prediction and sequence design across molecular contexts,
