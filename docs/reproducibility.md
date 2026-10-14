@@ -59,12 +59,26 @@ with the configurations. The manuscript is *Astrolabe: Programmable all-atom
 biomolecular design through cross-context coordination and structural intervention*,
 by Zhengpeng Zeng and Chunfu Xu; no preprint or DOI is available yet.
 
-The existing whole-manuscript score/config archive has a separate
+The reviewer-facing manuscript data release has a separate
 [Drive data entry](https://drive.google.com/drive/folders/1XxYyYHEdhOdf3sTbDRnuqBhaVj4FN3SX)
-and [reader guide](https://drive.google.com/file/d/1cojToRgN5Jdd7sbpG-ubvUgwZ9U7PiK2/view).
-Access follows the manuscript's preparation-stage sharing settings. Original
-model outputs and archived cohorts remain distinct from newly generated runs;
-input availability and software checks do not constitute a new GPU rerun.
+and [reader guide](https://drive.google.com/file/d/1tXbp78RxrsFxpZrsBOBkCdLw6ZJxmpmb/view).
+The root contains cleaned figure-linked data, the planned-denominator protein
+benchmark table, the complete 2,720-design target-bound cyclic-peptide cohort,
+release checksums, the updated Figure 5 and a bundled reviewer ZIP. Historical
+unredacted archives are isolated under `internal_audit_archive_20261009`; they
+remain available for author-side traceability but are not reviewer-facing data.
+Original model outputs and archived cohorts remain distinct from newly generated
+runs; input availability and software checks do not constitute a new GPU rerun.
+
+All benchmark success fractions use planned design units as denominators. A unit
+without a source record or evaluable representative remains in its method–target
+or method–ligand cell and counts as non-passing. Metric distributions and metric
+ranks may use the observed values for the relevant metric, with their effective
+counts reported explicitly. `parent_id` is the stable join key for the underlying
+initial design or run: identical IDs indicate paired baseline, SAP-aware or
+post-design-control records. Baseline and SAP-aware IDs match for 12 protein
+targets; ORM2 uses an independently sampled baseline cohort and a paired
+SAP-aware/post-design-control cohort.
 
 Save the source commit, resolved configuration, exact model checkpoint, seeds,
 input hashes, native predictions, planned units and declared selection rule
