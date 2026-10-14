@@ -61,7 +61,7 @@ by Zhengpeng Zeng and Chunfu Xu; no preprint or DOI is available yet.
 
 The reviewer-facing manuscript data release has a separate
 [Drive data entry](https://drive.google.com/drive/folders/1XxYyYHEdhOdf3sTbDRnuqBhaVj4FN3SX)
-and [reader guide](https://drive.google.com/file/d/1tXbp78RxrsFxpZrsBOBkCdLw6ZJxmpmb/view).
+and [reader guide](https://drive.google.com/file/d/1vC_0RmQQ90RFIciU_AGZDgLZZPIVbBDZ/view).
 The root contains cleaned figure-linked data, the planned-denominator protein
 benchmark table, the complete 2,720-design target-bound cyclic-peptide cohort,
 release checksums, the updated Figure 5 and a bundled reviewer ZIP. Historical
