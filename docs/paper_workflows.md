@@ -15,9 +15,14 @@ The configuration alignment uses the 2026-10-08 16:12 UTC MainPaper and
 16:03 UTC SI revisions, with the author's 2026-10-09 clarifications recorded
 in [paper_sources.json](../resources/paper_sources.json).
 
+The reviewer-facing data release is stored in the manuscript Drive folder and
+contains only cleaned figure-linked data, a public manifest and the bundled
+reviewer archive. Historical unredacted records are kept separately for internal
+audit and are not part of the reviewer-facing release.
+
 ## Install and prepare inputs
 
-Install the Python package using the [README](../README.md#install), then prepare
+Install Astrolabe using the commands in the [README](../README.md#install), then prepare
 the required predictors and sequence models with the
 [container installer](../container/README.md#install-af3). Select the models and
 structural tools needed by the chosen protocol; `scripts/install.py --list-software`
@@ -179,10 +184,18 @@ native optimization scores as common AF3 re-evaluation.
 
 For the SolubleMPNN control, one planned row is one parent, `selection` is
 `all_variants`, and its records use zero-based `variant_index` 0–19 in generation
-order. All cumulative thresholds must be satisfied by the same variant. For
-cyclic peptides, use the release's `closure_all_bonds` metric, which checks
+order. All cumulative thresholds must be satisfied by the same variant.
+`parent_id` is the stable join key for the underlying initial design or run:
+identical IDs indicate paired baseline, SAP-aware or post-design-control records.
+Baseline and SAP-aware IDs match for 12 protein targets; ORM2 uses an independently
+sampled baseline cohort, while its SAP-aware and post-design-control records are
+paired.
+
+For cyclic peptides, use the release's `closure_all_bonds` metric, which checks
 absolute distance error ≤0.30 Å across every specified bond and fails missing
-atoms. The optimization Gaussian score is a separate quantity.
+atoms. The optimization Gaussian score is a separate quantity. The frozen
+target-bound cohort contains 2,720 designs across 13 topology–linkage categories,
+including 160 side-chain–side-chain long-gap lactam designs.
 
 Additional structural commands:
 
@@ -197,7 +210,7 @@ astrolabe paper analyze rna --kind bivalent --structure bivalent_complex.cif
 ```bash
 astrolabe paper analyze ligand-rank --records ligand_representatives.csv --out-dir analysis/ligand-rank
 astrolabe paper analyze sensitivity --endpoint protein-binder \
-  --planned planned.csv --records records.csv --denominator available --out-dir analysis/protein-sensitivity
+  --planned planned.csv --records records.csv --denominator planned --out-dir analysis/protein-sensitivity
 astrolabe paper analyze sensitivity --endpoint ligand-binder \
   --planned planned.csv --records records.csv --denominator planned \
   --comparison-methods Astrolabe-AF3 ProteinHunter --seed 0 --out-dir analysis/ligand-sensitivity
@@ -214,10 +227,11 @@ Only ddG is minimized. Missing values are omitted from that metric's median;
 counts and incomplete aggregate ranks remain explicit in the CSV/JSON outputs.
 
 Sensitivity uses the same planned/record schema and fixed selection as `scores`.
-`--denominator planned` retains missing units as non-passing; `available` uses
-units with measured selected records, fixed across all thresholds. The latter
-is the current protein sensitivity panel's measured-cohort analysis. SolubleMPNN
-variants stay within their parent and must pass all applicable gates together.
+The frozen manuscript protein- and ligand-benchmark success-rate panels use
+`--denominator planned`, retaining missing units as non-passing. The `available`
+option is reserved for explicitly labelled measured-cohort diagnostics and is
+not the manuscript success-rate denominator. SolubleMPNN variants stay within
+their parent and must pass all applicable gates together.
 The original protein grids vary ipTM, normalized Rg and normalized SAP; the
 ligand analysis supplies 20,000-resample pointwise intervals and the Rg
 1.15–1.45 rate-difference envelope. `--comparison-methods` names exact CSV labels.
