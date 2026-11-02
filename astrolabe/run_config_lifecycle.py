@@ -315,8 +315,6 @@ def _prune_loss_section(
 ) -> None:
     if not isinstance(loss_cfg, dict):
         return
-    from astrolabe.losses.base import extract_loss_terms
-
     expressions = _collect_stage_expressions(stages_cfg)
     expression_terms = loss_cfg.get("expression_terms") or {}
     required_expression_terms: list[str] = []
@@ -325,22 +323,6 @@ def _prune_loss_section(
             expression_terms=expression_terms,
             expressions=expressions,
         )
-    included_loss_terms = set(
-        extract_loss_terms(
-            expressions=[
-                *expressions,
-                *[
-                    str(expression_terms[name])
-                    for name in required_expression_terms
-                    if name in expression_terms
-                ],
-            ],
-            excluded_terms=list(expression_terms.keys())
-            if isinstance(expression_terms, dict)
-            else None,
-        )
-    )
-
     kept: dict[str, Any] = {}
     for key, value in loss_cfg.items():
         if key == "loss_terms":
@@ -348,7 +330,9 @@ def _prune_loss_section(
                 kept[key] = {
                     str(name): conf
                     for name, conf in value.items()
-                    if str(name) in included_loss_terms
+                    # LossEngine evaluates every explicitly configured non-null
+                    # term, including terms used by conditions or reports.
+                    if conf is not None
                 }
             else:
                 kept[key] = value
