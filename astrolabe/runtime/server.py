@@ -30,6 +30,8 @@ def serve(handler, identity, *, load_count=1, max_message_bytes=1048576):
             not isinstance(epoch, str) or not epoch or not isinstance(req.get('payload'), dict) or
             (epoch, rid) in used):
             raise ValueError('invalid or duplicate request')
+        if len(used) >= 100000:
+            raise ValueError('worker request limit reached')
         used.add((epoch, rid))
         try:
             result = handler(req['payload'])

@@ -27,7 +27,18 @@ def _encode(value, limit):
 
 
 class DaemonClient:
-    def __init__(self, command, identity, *, env=None, max_message_bytes=1048576, startup_timeout=60):
+    def __new__(cls, command, identity, *, env=None, max_message_bytes=1048576, startup_timeout=60, _direct=False):
+        endpoint = os.environ.get('ASTROLABE_EXECUTION_ENDPOINT')
+        token = os.environ.get('ASTROLABE_EXECUTION_TOKEN')
+        if not _direct and (endpoint or token):
+            if not endpoint or not token:
+                raise WorkerError('incomplete execution broker credentials')
+            from .broker_client import BrokerClient
+            return BrokerClient(endpoint, token, command, identity, env=env,
+                                max_message_bytes=max_message_bytes, startup_timeout=startup_timeout)
+        return super().__new__(cls)
+
+    def __init__(self, command, identity, *, env=None, max_message_bytes=1048576, startup_timeout=60, _direct=False):
         if max_message_bytes < 256:
             raise ValueError('max_message_bytes must be at least 256')
         self.limit = max_message_bytes
@@ -80,6 +91,8 @@ class DaemonClient:
             rid = request_id or uuid.uuid4().hex
             if not isinstance(rid, str) or not rid or rid in self._used:
                 raise ValueError('request_id must be a new nonempty string')
+            if len(self._used) >= 100000:
+                raise WorkerError('worker request limit reached; start a new session')
             data = _encode(dict(type='call', request_id=rid, epoch=self.epoch, payload=payload), self.limit)
             self._used.add(rid)
             try:

@@ -3055,7 +3055,8 @@ def run_repeats(
 
     install_handlers()
 
-    for repeat_idx in range(repeats):
+    def repeat_configs():
+      for repeat_idx in range(repeats):
         run_cfg = OmegaConf.create(base_obj)
         run_cfg.repeats = repeats
         run_cfg.repeat_index = repeat_idx
@@ -3075,26 +3076,48 @@ def run_repeats(
                 / f"repeat_{repeat_idx + 1:03d}"
             )
 
-        global_config.reset()
-        print(f"=== Repeat {repeat_idx + 1}/{repeats} ===")
-        execution = run_cfg.get("execution") or {}
-        if execution.get("enabled", False):
-            # Preserve the existing trajectory loop and all of its state in a
-            # fresh interpreter. No backend is assumed safe for concurrent GPU use.
-            from astrolabe.runtime.session import run_trajectory
-            run_trajectory(run_cfg)
-        else:
-            _run_pipeline(run_cfg)
+        yield run_cfg
+
+    execution = lifecycle_cfg.get("execution") or {}
+    max_active = execution.get("max_active", 1)
+    max_resident_models = execution.get("max_resident_models", 1)
+    if type(max_active) is not int or max_active < 1:
+        raise ValueError("execution.max_active must be a positive integer")
+    if type(max_resident_models) is not int or max_resident_models < 1:
+        raise ValueError("execution.max_resident_models must be a positive integer")
+    if not execution.get("enabled", False) and (max_active != 1 or max_resident_models != 1):
+        raise ValueError("nondefault execution limits require execution.enabled=true")
+    if execution.get("enabled", False):
+        from astrolabe.runtime.session import run_parallel, validate_parallel
+        validate_parallel(lifecycle_cfg)
+        completed = run_parallel(repeat_configs(), min(max_active, repeats), stop_requested,
+                                 lambda count: print(f"=== Completed {count}/{repeats} repeats ==="),
+                                 max_resident_models=max_resident_models)
         if stop_requested():
-            if on_stop_requested is None:
-                logging.warning(
-                    "Graceful stop requested; exiting after repeat %d/%d.",
-                    repeat_idx + 1,
-                    repeats,
-                )
+            if on_stop_requested is not None:
+                on_stop_requested(completed, repeats)
             else:
-                on_stop_requested(repeat_idx + 1, repeats)
-            break
+                logging.warning("Graceful stop requested; exiting after %d/%d repeats.", completed, repeats)
+        return
+
+    def serial():
+        for run_cfg in repeat_configs():
+            repeat_idx = int(run_cfg.repeat_index)
+            global_config.reset()
+            print(f"=== Repeat {repeat_idx + 1}/{repeats} ===")
+            _run_pipeline(run_cfg)
+            if stop_requested():
+                if on_stop_requested is None:
+                    logging.warning(
+                        "Graceful stop requested; exiting after repeat %d/%d.",
+                        repeat_idx + 1,
+                        repeats,
+                    )
+                else:
+                    on_stop_requested(repeat_idx + 1, repeats)
+                break
+
+    serial()
 
 
 @hydra.main(version_base=None)
