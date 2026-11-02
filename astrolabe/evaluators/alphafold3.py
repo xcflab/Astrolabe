@@ -590,68 +590,65 @@ class AlphaFold3Evaluator(Evaluator):
         return patched
 
     @staticmethod
-    def predict_structure(fold_input, model_runner, buckets, **kwargs):
-        """Runs the full inference pipeline to predict structures for each seed."""
-
-        cyclic_asym_ids = tuple(
-            int(x) for x in (kwargs.pop("cyclic_asym_ids", ()) or ())
-        )
-        if hasattr(model_runner, "set_cyclic_asym_ids"):
-            model_runner.set_cyclic_asym_ids(cyclic_asym_ids)
+    def prepare_features(fold_input, buckets, **kwargs):
+        """Featurise on the caller CPU; preserve the original per-seed inputs."""
+        kwargs = dict(kwargs)
+        cyclic_asym_ids = tuple(int(x) for x in (kwargs.pop("cyclic_asym_ids", ()) or ()))
         cyclic_relative_patches = tuple(
             tuple(int(y) for y in x)
             for x in (kwargs.pop("cyclic_relative_patches", ()) or ())
         )
-        if hasattr(model_runner, "set_cyclic_relative_patches"):
-            model_runner.set_cyclic_relative_patches(cyclic_relative_patches)
-        logging.debug(f"Featurising data for seeds {fold_input.rng_seeds}...")
-        featurisation_start_time = time.time()
         ccd = chemical_components.Ccd(user_ccd=fold_input.user_ccd)
         if "init_guess_path" in kwargs:
             if "init_guess_chain" not in kwargs:
                 raise ValueError("init_guess_chain not found in kwargs")
-            init_guess_positions = featurisation.generate_initial_guess(
+            kwargs["init_guess_positions"] = featurisation.generate_initial_guess(
                 init_guess_path=kwargs["init_guess_path"], ccd=ccd
             )
-            kwargs["init_guess_positions"] = init_guess_positions
-        query_residue_index_jumps = tuple(kwargs.pop("query_residue_index_jumps", ()) or ())
+        jumps = tuple(kwargs.pop("query_residue_index_jumps", ()) or ())
         with allow_all_x_protein_chains_during_featurisation(fold_input):
-            featurised_examples = featurisation.featurise_input(
+            examples = featurisation.featurise_input(
                 fold_input=fold_input, buckets=buckets, ccd=ccd, verbose=True, **kwargs
             )
-        featurised_examples = AlphaFold3Evaluator._apply_query_residue_index_jumps(
-            featurised_examples,
-            fold_input,
-            query_residue_index_jumps,
+        examples = AlphaFold3Evaluator._apply_query_residue_index_jumps(
+            examples, fold_input, jumps
         )
-        logging.debug(
-            f"Featurising data for seeds {fold_input.rng_seeds} took "
-            f" {time.time() - featurisation_start_time:.2f} seconds."
-        )
-        all_inference_start_time = time.time()
-        all_inference_results = []
-        for seed, example in zip(fold_input.rng_seeds, featurised_examples):
-            logging.debug(f"Running model inference for seed {seed}...")
-            inference_start_time = time.time()
-            rng_key = jax.random.PRNGKey(seed)
-            result = model_runner.run_inference(example, rng_key)
-            inference_results = model_runner.extract_structures(
+        if len(examples) != len(fold_input.rng_seeds):
+            raise ValueError("AF3 featurisation returned a different number of examples than seeds")
+        return examples, cyclic_asym_ids, cyclic_relative_patches
+
+    @staticmethod
+    def forward_features(model_runner, seeds, examples, cyclic_asym_ids=(), cyclic_relative_patches=()):
+        """Run only inference, with the request's exact seeds and topology."""
+        if len(seeds) != len(examples):
+            raise ValueError("AF3 seeds and features differ in length")
+        if hasattr(model_runner, "set_cyclic_asym_ids"):
+            model_runner.set_cyclic_asym_ids(cyclic_asym_ids)
+        if hasattr(model_runner, "set_cyclic_relative_patches"):
+            model_runner.set_cyclic_relative_patches(cyclic_relative_patches)
+        return [model_runner.run_inference(example, jax.random.PRNGKey(seed))
+                for seed, example in zip(seeds, examples)]
+
+    @staticmethod
+    def finalize_features(model_runner, fold_input, examples, results):
+        """Extract structures on the caller from CPU inference results."""
+        if len(results) != len(examples) or len(results) != len(fold_input.rng_seeds):
+            raise ValueError("AF3 result, feature and seed counts differ")
+        return [ResultsForSeed(
+            seed=seed,
+            inference_results=model_runner.extract_structures(
                 batch=example, result=result, target_name=fold_input.name
-            )
-            all_inference_results.append(
-                ResultsForSeed(
-                    seed=seed,
-                    inference_results=inference_results,
-                    full_fold_input=fold_input,
-                )
-            )
-            logging.debug(
-                "Running model inference and extracting output structures for seed"
-                f" {seed} took  {time.time() - inference_start_time:.2f} seconds."
-            )
-        logging.debug(
-            "Running model inference and extracting output structures for seeds"
-            f" {fold_input.rng_seeds} took "
-            f" {time.time() - all_inference_start_time:.2f} seconds."
+            ),
+            full_fold_input=fold_input,
+        ) for seed, example, result in zip(fold_input.rng_seeds, examples, results)]
+
+    @staticmethod
+    def predict_structure(fold_input, model_runner, buckets, **kwargs):
+        """Run the same stages in-process for the legacy evaluator."""
+        examples, cyclic_ids, patches = AlphaFold3Evaluator.prepare_features(
+            fold_input, buckets, **kwargs
         )
-        return all_inference_results
+        results = AlphaFold3Evaluator.forward_features(
+            model_runner, fold_input.rng_seeds, examples, cyclic_ids, patches
+        )
+        return AlphaFold3Evaluator.finalize_features(model_runner, fold_input, examples, results)

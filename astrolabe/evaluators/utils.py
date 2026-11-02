@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import logging
 import pathlib
 import sys
 import typing
@@ -393,6 +394,12 @@ def _build_protenix_evaluator(
             f"Protenix evaluator alias {alias!r} use_constraints must be boolean."
         )
     use_constraints = raw_use_constraints
+    identity_policy = protenix_conf.get("identity_policy", "compat")
+    if identity_policy not in ("compat", "strict"):
+        raise ValueError("Protenix identity_policy must be compat or strict")
+    if "identity_policy" in protenix_conf:
+        del protenix_conf["identity_policy"]
+    requested_model_name = str(protenix_conf.get("model_name", ""))
     if "use_constraints" in protenix_conf:
         del protenix_conf["use_constraints"]
 
@@ -426,6 +433,13 @@ def _build_protenix_evaluator(
     ) or dynamic_binding_site_enabled or raw_constraint is not None
 
     if use_constraints and constraint_guidance_enabled:
+        from astrolabe.backend_capabilities import resolve_protenix_identity
+
+        _, effective_model_name = resolve_protenix_identity(
+            requested_model_name, True, identity_policy
+        )
+        if requested_model_name != effective_model_name:
+            logging.warning("Protenix requested model %s; constraint guidance selects %s", requested_model_name, effective_model_name)
         # Enable embedders if present in config tree.
         try:
             ce = protenix_conf.model.constraint_embedder
@@ -470,7 +484,11 @@ def _build_protenix_evaluator(
 
     protenix_conf.dump_dir = raw_model_results_dir / "protenix"
     model_runner = ProtenixRunner(protenix_conf)
-    return ProtenixEvaluator(model_runner, use_constraints=use_constraints)
+    evaluator = ProtenixEvaluator(model_runner, use_constraints=use_constraints)
+    evaluator.requested_model_name = requested_model_name
+    evaluator.effective_model_name = str(protenix_conf.model_name)
+    evaluator.identity_policy = identity_policy
+    return evaluator
 
 
 @register_evaluator_factory("rhofold")
