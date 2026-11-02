@@ -17,7 +17,7 @@ triggered structural interventions before the next sequence proposal.
 **Accompanying manuscript**  
 *Astrolabe: Programmable all-atom biomolecular design through cross-context coordination and structural intervention*  
 Zhengpeng Zeng and Chunfu Xu  
-The manuscript is currently unpublished; no preprint or DOI is available yet.
+The manuscript is available as a bioRxiv preprint: [10.64898/2026.10.19.760047](https://doi.org/10.64898/2026.10.19.760047).
 
 [Paper workflows](docs/paper_workflows.md) · [Installation](#install) · [Examples](examples/README.md) · [Reproducibility](docs/reproducibility.md) · [中文文档](docs/index.md) · [Citation](#citation)
 
