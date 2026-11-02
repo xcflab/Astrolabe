@@ -3077,7 +3077,14 @@ def run_repeats(
 
         global_config.reset()
         print(f"=== Repeat {repeat_idx + 1}/{repeats} ===")
-        _run_pipeline(run_cfg)
+        execution = run_cfg.get("execution") or {}
+        if execution.get("enabled", False):
+            # Preserve the existing trajectory loop and all of its state in a
+            # fresh interpreter. No backend is assumed safe for concurrent GPU use.
+            from astrolabe.runtime.session import run_trajectory
+            run_trajectory(run_cfg)
+        else:
+            _run_pipeline(run_cfg)
         if stop_requested():
             if on_stop_requested is None:
                 logging.warning(

@@ -88,6 +88,10 @@ initializer:
     prevalidate_inputs: true
     read_sequence_from_sequence_head: true
     seed: ${seed}
+# Opt-in isolated trajectories. Backends without certified split support remain
+# exclusive, and repeats retain their original order and seed derivation.
+execution:
+  enabled: false
 # runtime fullfillment
 raw_model_results_dir: null
 loss:
