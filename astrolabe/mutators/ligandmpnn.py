@@ -100,11 +100,21 @@ class LigandMPNNMutator(Mutator):
 
     def compute_mutation(self, mutation_input_features: Tuple[Any, Any]):
         mutation_output = {}
+        policy = getattr(self, "synchronization_policy", None)
+        ranks = None
+        if policy is not None and policy.coupling == "probability_mean":
+            from astrolabe.mutators.synchronization import reference_decoding_ranks
+            ranks = reference_decoding_ranks(mutation_input_features, global_config.protomers)
         for oligo_name, input_feat in mutation_input_features.items():
             input_feat = dict(input_feat)
+            if ranks is not None:
+                input_feat["distribution_semantics"] = "shared_reference_teacher_forcing"
+                input_feat["reference_decoding_ranks"] = ranks[oligo_name]
             supplemental_inputs = input_feat.pop("supplemental_inputs", [])
             oligo_output = self.runner.design_sequences(**input_feat)
             if supplemental_inputs:
+                if ranks is not None:
+                    raise ValueError("probability_mean does not support supplemental structures")
                 supplemental_outputs = [
                     {
                         "source": supplemental_input["source"],
@@ -646,15 +656,35 @@ class LigandMPNNMutator(Mutator):
         """
         # Extract mappings and sequence lengths
 
+        policy = getattr(self, "synchronization_policy", None)
+        if policy is not None and policy.coupling == "probability_mean" and self.enforce_mutation_num:
+            raise ValueError("probability_mean does not support log-probability mutation enforcement")
         sample_mutations_by_aa_probs(
             evaluation_scores,
             mutation_output,
             self.aa_order,
             self.mutation_weight,
             runtime_config=runtime_config,
+            synchronization_policy=policy,
             entropy_cutoff=self.entropy_cutoff,
             enforce_mutation_num=self.enforce_mutation_num,
         )
+        if policy is not None and runtime_config is not None:
+            runtime_config.setdefault("mutator_synchronization_provenance", []).append({
+                "mutator": str(getattr(self, "alias", self.name)),
+                "context_layout": policy.context_layout,
+                "coupling": policy.coupling,
+                "distribution_semantics": (
+                    "shared_reference_teacher_forcing" if policy.coupling == "probability_mean"
+                    else "native_joint_sequence" if policy.coupling == "native_tie"
+                    else "legacy_order_conditioned_marginals"
+                ),
+                "conditioning_fingerprints": {
+                    str(context): output.get("conditioning_fingerprint")
+                    for context, output in mutation_output.items()
+                    if isinstance(output, dict) and output.get("conditioning_fingerprint")
+                },
+            })
 
 
 class GroupedLigandMPNNMutator(LigandMPNNMutator):

@@ -93,9 +93,11 @@ class MultistateProteinMPNNMutator(ProteinMPNNMutator):
         sequence_model_runner,
         state_betas=None,
         translation_x=5000.0,
+        native_joint_decode=False,
         **kwargs,
     ):
         super().__init__(sequence_model_runner=sequence_model_runner, **kwargs)
+        self.native_joint_decode = bool(native_joint_decode)
         self.state_oligos: list[str] | None = None
         self.shared_protomer: str | None = None
         self.state_betas = self._parse_configured_state_betas(state_betas)
@@ -256,9 +258,22 @@ class MultistateProteinMPNNMutator(ProteinMPNNMutator):
             symmetry_weights=symmetry_weights,
         )
 
+        if self.native_joint_decode:
+            combined_features["return_joint_sequence"] = True
         runner_output = self.runner.design_sequences(**combined_features)
         runner_call_count = 1
         probs = self._validated_sampling_probs(runner_output, layouts)
+        if self.native_joint_decode:
+            generated = runner_output.get("generated_sequences")
+            if generated is None:
+                raise ValueError("native_tie requires native joint decoded sequences")
+            generated = probabilities_to_numpy(generated)
+            if generated.ndim != 2 or generated.shape[1] != probs.shape[1] or generated.shape[0] < 1:
+                raise ValueError("native joint decoded sequence shape mismatch")
+            sequence = generated[0]
+            if not np.issubdtype(sequence.dtype, np.integer) or (sequence < 0).any() or (sequence >= probs.shape[-1]).any():
+                raise ValueError("invalid native joint decoded residue index")
+            probs = np.eye(probs.shape[-1], dtype=float)[sequence][None, :, :]
         outputs = self._split_runner_output(runner_output, probs, layouts)
         self._assert_shared_binder_probabilities_match(outputs, layouts)
 
@@ -280,6 +295,7 @@ class MultistateProteinMPNNMutator(ProteinMPNNMutator):
             "tie_count": len(symmetry_residues.split("|")) if symmetry_residues else 0,
             "runner_call_count": runner_call_count,
             "no_probability_average_fallback": True,
+            "distribution_semantics": ("native_joint_sequence" if self.native_joint_decode else "legacy_order_conditioned_marginals"),
             "min_cross_state_atom_distance": min_cross_state_distance,
         }
         provenance_path = combined_path.with_suffix(".provenance.json")

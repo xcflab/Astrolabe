@@ -257,16 +257,33 @@ def _build_mpnn_mutator(
     runner_conf, mutator_kwargs = _merge_runner_conf(mutator_conf.LigandMPNN, term_conf)
     runner_conf["out_folder"] = str(raw_model_results_dir / output_name)
     sequence_model_runner = LigandMPNN(runner_conf)
-    return mutator_cls(
+    from astrolabe.mutators.synchronization import SynchronizationPolicy
+    policy = mutator_kwargs.pop("synchronization_policy", None)
+    if policy is None:
+        policy = SynchronizationPolicy()
+    policy.validate_backend(sequence_model_runner)
+    mutator = mutator_cls(
         sequence_model_runner=sequence_model_runner,
         **mutator_kwargs,
     )
+    mutator.synchronization_policy = policy
+    return mutator
 
 
 @register_mutator_factory("ligandmpnn")
 def _build_ligandmpnn_mutator(term_conf, *, alias, mutator_conf, raw_model_results_dir):
     from astrolabe.mutators.ligandmpnn import LigandMPNNMutator
+    from astrolabe.mutators.synchronization import SynchronizationPolicy
 
+    term_conf = dict(term_conf)
+    layout = term_conf.pop("context_layout", None)
+    coupling = term_conf.pop("coupling", None)
+    weights = term_conf.pop("context_weights", None)
+    if layout is not None or coupling is not None or weights is not None:
+        policy = SynchronizationPolicy(layout or "separate", coupling or "probability_mean", weights)
+        if policy.coupling == "native_tie":
+            raise ValueError("LigandMPNN far-apart native tie does not yet preserve ligand atoms")
+        term_conf["synchronization_policy"] = policy
     return _build_mpnn_mutator(
         LigandMPNNMutator,
         term_conf,
@@ -307,11 +324,23 @@ def _as_proteinmpnn_term_conf(term_conf):
 def _build_proteinmpnn_mutator(
     term_conf, *, alias, mutator_conf, raw_model_results_dir
 ):
-    from astrolabe.mutators.proteinmpnn import ProteinMPNNMutator
+    from astrolabe.mutators.proteinmpnn import ProteinMPNNMutator, MultistateProteinMPNNMutator
+    from astrolabe.mutators.synchronization import SynchronizationPolicy
 
+    term_conf = _as_proteinmpnn_term_conf(term_conf)
+    layout = term_conf.pop("context_layout", None)
+    coupling = term_conf.pop("coupling", None)
+    weights = term_conf.pop("context_weights", None)
+    mutator_cls = ProteinMPNNMutator
+    if layout is not None or coupling is not None or weights is not None:
+        policy = SynchronizationPolicy(layout or "separate", coupling or "probability_mean", weights)
+        term_conf["synchronization_policy"] = policy
+        if policy.coupling == "native_tie":
+            mutator_cls = MultistateProteinMPNNMutator
+            term_conf["native_joint_decode"] = True
     return _build_mpnn_mutator(
-        ProteinMPNNMutator,
-        _as_proteinmpnn_term_conf(term_conf),
+        mutator_cls,
+        term_conf,
         mutator_conf=mutator_conf,
         raw_model_results_dir=raw_model_results_dir,
         output_name=f"ProteinMPNN_{alias}",
@@ -326,10 +355,15 @@ def _build_multistate_proteinmpnn_mutator(
     term_conf, *, alias, mutator_conf, raw_model_results_dir
 ):
     from astrolabe.mutators.proteinmpnn import MultistateProteinMPNNMutator
+    from astrolabe.mutators.synchronization import SynchronizationPolicy
 
+    term_conf = _as_proteinmpnn_term_conf(term_conf)
+    term_conf["synchronization_policy"] = SynchronizationPolicy(
+        context_layout="far_apart", coupling="legacy_order_conditioned_marginals"
+    )
     return _build_mpnn_mutator(
         MultistateProteinMPNNMutator,
-        _as_proteinmpnn_term_conf(term_conf),
+        term_conf,
         mutator_conf=mutator_conf,
         raw_model_results_dir=raw_model_results_dir,
         output_name=f"MultistateProteinMPNN_{alias}",

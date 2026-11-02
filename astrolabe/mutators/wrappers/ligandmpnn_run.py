@@ -23,6 +23,10 @@ from astrolabe.mutators.wrappers.ligandmpnn_utils import (
 
 
 class LigandMPNN:
+    supported_distribution_semantics = frozenset({
+        "legacy_order_conditioned_marginals", "shared_reference_teacher_forcing"
+    })
+
     def __init__(self, args):
 
         # persistent parameters
@@ -112,9 +116,8 @@ class LigandMPNN:
             ligand_mpnn_use_side_chain_context=ligand_mpnn_use_side_chain_context,
         )
         self.atom_context_num = atom_context_num
-        if args.design_pattern is not None:
-            setattr(model, "design_pattern", args.design_pattern)
-            setattr(model, "design_pattern_range", args.design_pattern_range)
+        setattr(model, "design_pattern", args.design_pattern)
+        setattr(model, "design_pattern_range", args.design_pattern_range)
         model.load_state_dict(checkpoint["model_state_dict"])
         model.to(device)
         model.eval()
@@ -170,11 +173,20 @@ class LigandMPNN:
         chains_to_design=None,
         homo_oligomer="",
         batch_size=1,
+        distribution_semantics="legacy_order_conditioned_marginals",
+        reference_decoding_ranks=None,
+        return_joint_sequence=False,
     ):
         """
         Inference function
         """
         device = self.device
+        if distribution_semantics not in self.supported_distribution_semantics:
+            raise ValueError("unsupported MPNN distribution semantics")
+        if distribution_semantics == "shared_reference_teacher_forcing" and reference_decoding_ranks is None:
+            raise ValueError("teacher forcing requires canonical decoding ranks")
+        if distribution_semantics == "shared_reference_teacher_forcing" and batch_size != 1:
+            raise ValueError("teacher forcing requires exactly one reference sample")
         if bias_AA_per_residue_multi in ("", None):
             bias_AA_per_residue_multi = self.bias_AA_per_residue_multi
         if bias_AA_per_residue in ("", None):
@@ -496,6 +508,37 @@ class LigandMPNN:
                 feature_dict["symmetry_residues"] = remapped_symmetry_residues
                 feature_dict["symmetry_weights"] = parsed_symmetry_weights
 
+                if distribution_semantics == "shared_reference_teacher_forcing":
+                    ranks = torch.as_tensor(reference_decoding_ranks, dtype=torch.float32, device=device)
+                    if ranks.ndim != 1 or ranks.numel() != L or not torch.isfinite(ranks).all() or (ranks <= 0).any():
+                        raise ValueError("reference decoding ranks must cover every physical position")
+                    if self.temperature <= 0:
+                        raise ValueError("teacher forcing requires positive temperature")
+                    feature_dict["randn"] = ranks[None, :].repeat(batch_size, 1)
+                    scored = self.model.score(feature_dict, use_sequence=True)
+                    logits = scored["logits"]
+                    probabilities = torch.softmax((logits + feature_dict["bias"]) / self.temperature, dim=-1)[..., :20]
+                    probabilities = probabilities / probabilities.sum(dim=-1, keepdim=True)
+                    native = feature_dict["S"].repeat(batch_size, 1).long()
+                    if (native >= 20).any() or (native < 0).any():
+                        raise ValueError("reference sequence contains unsupported residues")
+                    mask = (feature_dict["mask"] * feature_dict["chain_mask"]).repeat(batch_size, 1)
+                    fixed = torch.nn.functional.one_hot(native, num_classes=20).to(probabilities.dtype)
+                    probabilities = probabilities * mask[..., None] + fixed * (1 - mask[..., None])
+                    result = {
+                        "sampling_probs": probabilities.cpu(),
+                        "log_probs": scored["log_probs"].cpu(),
+                        "decoding_order": scored["decoding_order"].cpu(),
+                        "conditioning_reference": native.cpu(),
+                        "chain_mask": mask.cpu(),
+                        "distribution_semantics": distribution_semantics,
+                        "temperature": float(self.temperature),
+                        "alphabet": tuple(alphabet[:20]),
+                        "chain_letters": tuple(str(chain) for chain in chain_letters_list),
+                    }
+                    outputs_by_path[str(pdb)] = result
+                    continue
+
                 sampling_probs_list = []
                 log_probs_list = []
                 decoding_order_list = []
@@ -569,6 +612,10 @@ class LigandMPNN:
                 out_dict["chain_mask"] = feature_dict["chain_mask"][0].cpu()
                 out_dict["seed"] = self.seed
                 out_dict["temperature"] = self.temperature
+                output_dict["distribution_semantics"] = "legacy_order_conditioned_marginals"
+                output_dict["alphabet"] = tuple(alphabet[:20])
+                if return_joint_sequence:
+                    output_dict["generated_sequences"] = output_dict["S"]
                 output_dict["chain_letters"] = tuple(
                     str(chain) for chain in chain_letters_list
                 )
@@ -576,4 +623,4 @@ class LigandMPNN:
 
         if multi_mode:
             return {"multi_outputs": outputs_by_path}
-        return output_dict
+        return outputs_by_path[str(pdb_paths[0])]

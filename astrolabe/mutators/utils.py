@@ -411,12 +411,23 @@ def collect_blended_proto_probabilities(
     *,
     protomer_type: ProtomerTypes | Iterable[ProtomerTypes] | None = ProtomerTypes.PROTEIN,
     runtime_config: dict[str, Any] | None = None,
+    synchronization_policy=None,
 ):
-    current_proto_probabilities = collect_proto_probabilities(
-        evaluation_scores,
-        mutation_output,
-        protomer_type=protomer_type,
-    )
+    policy = synchronization_policy
+    if policy is not None:
+        if policy.coupling == "probability_mean" and get_transition_consistency_gate_context(runtime_config) is not None:
+            raise ValueError("probability_mean cannot be combined with transition consistency blending")
+        current_proto_probabilities = policy.aggregate(
+            evaluation_scores, mutation_output, global_config.protomers,
+            _normalize_supported_types(protomer_type) or set(ProtomerTypes),
+            lambda: collect_proto_probabilities(evaluation_scores, mutation_output, protomer_type=protomer_type),
+        )
+    else:
+        current_proto_probabilities = collect_proto_probabilities(
+            evaluation_scores,
+            mutation_output,
+            protomer_type=protomer_type,
+        )
     extra_context = get_transition_consistency_gate_context(runtime_config)
     extra_output = get_transition_consistency_gate_output(runtime_config)
     extra_weight = float(getattr(extra_context, "weight", 0.0) or 0.0)
@@ -1642,6 +1653,7 @@ def sample_mutations_by_aa_probs(
     runtime_config: dict[str, Any] | None = None,
     entropy_cutoff: float | None = None,
     enforce_mutation_num: bool = False,
+    synchronization_policy=None,
 ):
     if propagate_scores:
         per_proto_scores = aggregate_per_proto_scores(
@@ -1676,6 +1688,7 @@ def sample_mutations_by_aa_probs(
         mutation_output,
         protomer_type=protomer_type,
         runtime_config=runtime_config,
+        synchronization_policy=synchronization_policy,
     )
     proto_log_probabilities = None
     if enforce_mutation_num:
