@@ -143,7 +143,7 @@ def _mean_float(value: Any) -> float | None:
     return float(value)
 
 
-def _worker_run(payload: dict[str, Any]) -> dict[str, Any]:
+def _worker_session(payload: dict[str, Any]):
     _prepend_path(_path_with_optional_src(payload.get("transformers_repo_path")))
     _prepend_path(_path_with_optional_src(payload.get("esm_repo_path")))
 
@@ -154,6 +154,16 @@ def _worker_run(payload: dict[str, Any]) -> dict[str, Any]:
         StructurePredictionInput,
     )
     from transformers.models.esmfold2.modeling_esmfold2 import ESMFold2Model
+
+    if payload.get("_verify_sources"):
+        import esm
+        import transformers
+        esm_expected = Path(payload["esm_repo_path"]).resolve() / "esm"
+        transformer_expected = Path(payload["transformers_repo_path"]).resolve() / "src" / "transformers"
+        if not Path(esm.__file__).resolve().is_relative_to(esm_expected):
+            raise RuntimeError("ESMFold2 imported esm from an unexpected source")
+        if not Path(transformers.__file__).resolve().is_relative_to(transformer_expected):
+            raise RuntimeError("ESMFold2 imported transformers from an unexpected source")
 
     model_name, pinned_snapshot = _resolve_model_source(payload["model_name"])
     device = payload.get("device") or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -171,8 +181,6 @@ def _worker_run(payload: dict[str, Any]) -> dict[str, Any]:
     if payload.get("chunk_size") is not None and hasattr(model, "set_chunk_size"):
         model.set_chunk_size(payload["chunk_size"])
 
-    output_dir = Path(payload["output_dir"]).expanduser().resolve()
-    output_dir.mkdir(parents=True, exist_ok=True)
     builder = ESMFold2InputBuilder(
         ccd_cache=_ccd_cache_dir(
             model_name,
@@ -180,6 +188,15 @@ def _worker_run(payload: dict[str, Any]) -> dict[str, Any]:
             local_files_only=bool(payload.get("local_files_only", False)),
         )
     )
+    return model, builder, model_name, device, ProteinInput, StructurePredictionInput
+
+
+def _worker_run(payload: dict[str, Any], session=None) -> dict[str, Any]:
+    if session is None:
+        session = _worker_session(payload)
+    model, builder, model_name, device, ProteinInput, StructurePredictionInput = session
+    output_dir = Path(payload["output_dir"]).expanduser().resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
     results: list[dict[str, Any]] = []
 
     fold_kwargs = {
@@ -268,6 +285,8 @@ class ESMFold2Runner:
         chunk_size: int | None = 64,
         local_files_only: bool = False,
         timeout_seconds: float | None = None,
+        execution: str = "legacy",
+        daemon_device_kind: str | None = None,
     ) -> None:
         self.python_bin = python_bin
         self.esm_repo_path = esm_repo_path
@@ -286,6 +305,11 @@ class ESMFold2Runner:
         self.chunk_size = chunk_size
         self.local_files_only = local_files_only
         self.timeout_seconds = timeout_seconds
+        if execution not in ("legacy", "daemon"):
+            raise ValueError("ESMFold2 execution must be legacy or daemon")
+        self.execution = execution
+        self.daemon_device_kind = daemon_device_kind
+        self._resident = None
 
     @classmethod
     def from_config(cls, config: Any) -> "ESMFold2Runner":
@@ -315,6 +339,8 @@ class ESMFold2Runner:
             "chunk_size",
             "local_files_only",
             "timeout_seconds",
+            "execution",
+            "daemon_device_kind",
         }
         return cls(**{k: v for k, v in container.items() if k in allowed})
 
@@ -340,6 +366,11 @@ class ESMFold2Runner:
             "output_dir": str(output_dir / "structures"),
             "jobs": jobs,
         }
+        if self.execution == "daemon":
+            if self._resident is None:
+                from astrolabe.evaluators.esmfold2_resident import ESMFold2Resident
+                self._resident = ESMFold2Resident(self, payload)
+            return self._resident.run(payload, output_dir)
         input_json = output_dir / "esmfold2_input.json"
         output_json = output_dir / "esmfold2_output.json"
         stdout_log = output_dir / "esmfold2.stdout.log"

@@ -172,8 +172,20 @@ def _build_alphafold3_evaluator(
     )
     if af3_conf is None:
         raise ValueError("AlphaFold3 configuration is missing.")
-    model_runner = alphafold3_setup(af3_conf)
+    execution = af3_conf.get("execution", "legacy")
+    if execution not in ("legacy", "daemon"):
+        raise ValueError("AF3 execution must be legacy or daemon")
+    if execution == "daemon":
+        from astrolabe.evaluators.af3_resident import AF3Resident
+        from astrolabe.evaluators.wrappers.alphafold3 import _configure_refstructure_env, _configure_msa_env
+        _configure_refstructure_env(af3_conf)
+        _configure_msa_env(af3_conf)
+        model_runner = None
+    else:
+        model_runner = alphafold3_setup(af3_conf)
     evaluator = AlphaFold3Evaluator(model_runner, raw_model_results_dir / "alphafold3", af3_conf)
+    if execution == "daemon":
+        evaluator.resident = AF3Resident(af3_conf)
     evaluator.pre_eval_hooks_config = getattr(evaluator_conf, "pre_eval_hooks", None)
     return evaluator
 
@@ -271,6 +283,8 @@ def _esmfold2_kwargs_from_config(config) -> dict[str, typing.Any]:
         "chunk_size",
         "local_files_only",
         "timeout_seconds",
+        "execution",
+        "daemon_device_kind",
     }
     if isinstance(container, dict):
         kwargs.update({k: v for k, v in container.items() if k in allowed})

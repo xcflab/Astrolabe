@@ -42,6 +42,8 @@ class ESMFold2Evaluator(Evaluator):
         chunk_size: int | None = 64,
         local_files_only: bool = False,
         timeout_seconds: float | None = None,
+        execution: str = "legacy",
+        daemon_device_kind: str | None = None,
     ) -> None:
         self._model_name = model_name
         self._device = device
@@ -64,11 +66,21 @@ class ESMFold2Evaluator(Evaluator):
             chunk_size=chunk_size,
             local_files_only=local_files_only,
             timeout_seconds=timeout_seconds,
+            execution=execution,
+            daemon_device_kind=daemon_device_kind,
         )
 
     def prepare_input(self, inputs, runtime_config):
         jobs = []
         for oligo_name, folding_input in inputs.items():
+            if getattr(self.runner, "execution", "legacy") == "daemon":
+                from astrolabe.constraints import Constraint, ConstraintKind, validate_constraints
+                requested = []
+                if getattr(folding_input, "cyclic_chain_ids", None) or getattr(folding_input, "cyclic_relative_patches", None):
+                    requested.append(Constraint(ConstraintKind.TOPOLOGY, None, "cyclic"))
+                if getattr(folding_input, "bonded_atom_pairs", None):
+                    requested.append(Constraint(ConstraintKind.TOPOLOGY, None, "bonded_atom_pairs"))
+                validate_constraints("esmfold2", requested, {})
             if not all(
                 global_config.protomers[chain_id].type == ProtomerTypes.PROTEIN
                 for chain_id in oligo_name

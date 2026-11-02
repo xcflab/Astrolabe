@@ -253,6 +253,51 @@ class AlphaFold3Evaluator(Evaluator):
     def run_function(self, input_feat):
         output = {}
         for oligo, feat in input_feat.items():
+            if getattr(self, "resident", None) is not None:
+                from astrolabe.constraints import Constraint, ConstraintKind, validate_constraints
+                declared = self._get_config_value(self.af3_conf, "daemon_constraints", ()) or ()
+                constraints = [Constraint(ConstraintKind(item["kind"]), item.get("payload"), item["mechanism"]) for item in declared]
+                for mechanism in ("cyclic_asym_ids", "cyclic_relative_patches", "query_residue_index_jumps"):
+                    if self.kwargs[oligo].get(mechanism):
+                        constraints.append(Constraint(ConstraintKind.TOPOLOGY, None, mechanism))
+                allowed = {"af3": {(ConstraintKind.TOPOLOGY, "cyclic_asym_ids"),
+                                   (ConstraintKind.TOPOLOGY, "cyclic_relative_patches"),
+                                   (ConstraintKind.TOPOLOGY, "query_residue_index_jumps")}}
+                validate_constraints("af3", constraints, allowed)
+                prepared = None
+                cache_enabled = bool(self._get_config_value(self.af3_conf, "feature_cache", False))
+                if cache_enabled:
+                    from copy import deepcopy
+                    from astrolabe.feature_cache import feature_key
+                    from astrolabe.evaluators.worker_identity import digest_path
+                    import alphafold3
+                    raw = json.loads(feat.to_json())
+                    raw.pop("name", None)
+                    options = dict(self.kwargs[oligo])
+                    if "init_guess_path" in options:
+                        options["init_guess_path"] = digest_path(options["init_guess_path"])
+                    dependencies = {"schema": 1, "source": digest_path(Path(alphafold3.__file__).parent),
+                        "chains": raw.get("sequences"), "chain_order": [str(c.id) for c in feat.chains],
+                        "topology": raw.get("bondedAtomPairs"), "constraints": options,
+                        "seed": list(feat.rng_seeds), "msa": raw.get("sequences"),
+                        "templates": raw.get("sequences"), "ccd": [raw.get("userCCD"), digest_path(chemical_components._CCD_PICKLE_FILE)],
+                        "options": {"buckets": self.buckets.get(oligo)}}
+                    key = feature_key(dependencies)
+                    cached = getattr(self, "_last_feature_cache", None)
+                    if cached and cached[0] == key:
+                        prepared = deepcopy(cached[1])
+                if prepared is None:
+                    prepared = self.prepare_features(feat, self.buckets.get(oligo), **self.kwargs[oligo])
+                    if cache_enabled:
+                        self._last_feature_cache = (key, deepcopy(prepared))
+                examples, cyclic, patches = prepared
+                results = self.resident.forward(feat.rng_seeds, examples, cyclic, patches)
+                from astrolabe.evaluators.wrappers.alphafold3 import ModelRunner
+                class Extractor:
+                    def extract_structures(self, **kwargs):
+                        return ModelRunner.extract_structures(None, **kwargs)
+                output[oligo] = self.finalize_features(Extractor(), feat, examples, results)
+                continue
             output[oligo] = self.predict_structure(
                 fold_input=feat,
                 model_runner=self.model_runner,

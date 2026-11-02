@@ -15,13 +15,13 @@ class BackendCapability:
 
 BACKENDS = {entry.identity: entry for entry in (
     BackendCapability("af2", "adapter", "unsupported", "in-process"),
-    BackendCapability("af3", "adapter", "in-process-stages", "cached runner parameters"),
+    BackendCapability("af3", "adapter", "daemon-forward", "one resident runner per client"),
     BackendCapability("protenix-v0.5", "adapter", "unsupported", "in-process mutable runner"),
     BackendCapability("protenix-v0.5-constraint", "adapter", "unsupported", "in-process mutable runner"),
     BackendCapability("protenix-v1", "adapter", "unsupported", "in-process mutable runner"),
     BackendCapability("protenix-v2", "adapter", "unsupported", "in-process mutable runner"),
     BackendCapability("esmfold1", "adapter", "unsupported", "in-process lazy model"),
-    BackendCapability("esmfold2", "adapter", "unsupported", "one subprocess per call"),
+    BackendCapability("esmfold2", "adapter", "resident-atomic", "one resident model and builder per client"),
     BackendCapability("opendde", "adapter", "unsupported", "one subprocess per complex"),
     BackendCapability("mol-1", "no adapter", "unsupported", "unavailable"),
     BackendCapability("chai-1", "adapter", "unsupported", "component cache; components move between cpu and device"),
