@@ -3,7 +3,10 @@ import json
 import logging
 
 import numpy as np
-import torch
+try:
+    import torch
+except ImportError:
+    torch = None
 
 from astrolabe.core import global_config
 from astrolabe.core.binding_site import ChainPositions, parse_chain_positions
@@ -452,7 +455,7 @@ def _resolve_residue_level_pae_matrices(eval_result, *, oligo_name: str) -> list
 
 
 def _to_numpy_float_array(value) -> np.ndarray:
-    if torch.is_tensor(value):
+    if torch is not None and torch.is_tensor(value):
         return np.asarray(value.detach().cpu().float().numpy(), dtype=float)
     if isinstance(value, np.ndarray):
         return np.asarray(value, dtype=float)

@@ -937,6 +937,13 @@ def build_mutator_runtime_config(
     step, updated_sites=None, outprefix=None, former_config=None
 ):
     former_config = former_config or {}
+    try:
+        score_engine = global_config.loss_computer
+    except RuntimeError:
+        score_engine = None
+    if score_engine is not None:
+        former_config.setdefault("score_catalog", getattr(score_engine, "score_catalog", []))
+        former_config.setdefault("score_selector_queries", getattr(score_engine, "score_selector_queries", {}))
     stage_oligos = former_config.get("oligo")
     try:
         stage_manager = getattr(global_config, "stage_manager", None)

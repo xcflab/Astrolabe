@@ -148,6 +148,7 @@ class LossEngine:
         self.defined_losses = loss_config.get("loss_terms", {}) or {}
         self.score_queries = loss_config.get("score_queries", {}) or {}
         self.score_catalog = loss_config.get("score_catalog", []) or []
+        self.score_selector_queries = loss_config.get("score_selector_queries", {}) or {}
         self.expression_terms = (
             loss_config.get("expression_terms", {}) or {}
         )
@@ -531,12 +532,15 @@ class LossEngine:
     def _query_score_symbols(self, eval_result, runtime_config):
         if not self.score_queries:
             return {}
-        from astrolabe.score_evidence import ScoreQuery, query_score, records_from_contributions
+        from astrolabe.score_evidence import ScoreQuery, query_score, records_from_contributions, records_from_standard_scores
 
         runtime_config = runtime_config or {}
         records = list(getattr(eval_result, "score_records", None) or [])
         records.extend(runtime_config.get("score_records", []) or [])
         snapshots = runtime_config.get("score_snapshots", {}) or {}
+        snapshot = runtime_config.get("score_capture_snapshot")
+        if snapshot:
+            records.extend(records_from_standard_scores(eval_result, snapshot))
         if self.score_catalog:
             snapshot = runtime_config.get("score_capture_snapshot")
             if not snapshot:
@@ -546,7 +550,9 @@ class LossEngine:
             records.extend(records_from_contributions(contributions, self.score_catalog, snapshot))
         results = {}
         for alias, config in self.score_queries.items():
-            query = ScoreQuery(**dict(config))
+            query_config = dict(config)
+            query_config.setdefault("snapshot", "current_proposal")
+            query = ScoreQuery(**query_config)
             value = query_score(records, query, snapshots=snapshots)
             if query.axes:
                 raise ValueError("LossEngine score queries must reduce to a scalar")

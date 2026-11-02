@@ -15,6 +15,10 @@ def score_position_selector(evaluation_result, protomers, name, *, runtime_confi
         raise ValueError('score selector must retain exactly one physical position axis')
     records = list(getattr(evaluation_result, 'score_records', None) or [])
     records.extend(runtime_config.get('score_records', []) or [])
+    capture = runtime_config.get('score_capture_snapshot')
+    if capture:
+        from astrolabe.score_evidence import records_from_standard_scores
+        records.extend(records_from_standard_scores(evaluation_result, capture, protomers=protomers))
     catalog = runtime_config.get('score_catalog', []) or []
     if catalog:
         from astrolabe.score_evidence import records_from_contributions
@@ -28,10 +32,17 @@ def score_position_selector(evaluation_result, protomers, name, *, runtime_confi
     snapshots = runtime_config.get('score_snapshots') or getattr(evaluation_result, 'score_snapshots', None) or {}
     values = query_score(records, query, snapshots=snapshots, generating_selector=True)
     target = snapshots.get(query.snapshot, query.snapshot)
-    rec = next(r for r in records if r.spec.name == query.name and r.spec.source == query.source and r.snapshot == target)
+    rec = next(r for r in records if r.spec.name == query.name and r.spec.source == query.source and r.snapshot == target and (query.entity is None or r.spec.entity == query.entity))
     axis = rec.spec.axes.index(query.axes[0])
     labels = tuple((query.select or {}).get(query.axes[0], rec.coordinates[axis]))
     mapping = config['mapping']
+    if mapping == 'auto':
+        mapping = {}
+        for label in labels:
+            parts = str(label).split(':')
+            if len(parts) != 4 or not parts[2].isdigit():
+                raise ValueError('automatic mapping requires unambiguous physical residue labels')
+            mapping[label] = (parts[3], int(parts[2]) - 1)
     if set(mapping) != set(labels):
         raise ValueError('position mapping must cover every selected physical coordinate')
     masks = {key: np.zeros(proto.length, dtype=bool) for key, proto in protomers.items()}
