@@ -2,6 +2,7 @@
 from __future__ import annotations
 import base64
 import json
+import sys
 from pathlib import Path
 import numpy as np
 
@@ -15,6 +16,18 @@ def dump_tree(root, value):
             return {'t': 'scalar', 'v': x}
         if type(x) is bytes:
             return {'t': 'bytes', 'v': base64.b64encode(x).decode('ascii')}
+        torch = sys.modules.get('torch')
+        if torch is not None and isinstance(x, torch.Tensor):
+            if x.layout != torch.strided or x.is_quantized or x.is_conj() or x.is_neg():
+                raise TypeError('unsupported torch tensor layout or view')
+            supported = {'bool', 'uint8', 'int8', 'int16', 'int32', 'int64', 'float16',
+                         'bfloat16', 'float32', 'float64', 'complex64', 'complex128'}
+            dtype = str(x.dtype).removeprefix('torch.')
+            if dtype not in supported: raise TypeError(f'unsupported torch dtype {dtype}')
+            tensor = x.detach().cpu().contiguous()
+            raw = tensor.reshape(-1).view(torch.uint8).numpy().copy()
+            return {'t': 'torch', 'dtype': dtype, 'shape': list(tensor.shape),
+                    'nbytes': raw.nbytes, 'v': encode(raw)}
         if isinstance(x, np.generic):
             return {'t': 'numpy_scalar', 'v': encode(np.asarray(x))}
         if isinstance(x, np.ndarray):
@@ -51,6 +64,25 @@ def load_tree(root):
                 if v is not None and type(v) not in (str, bool, int, float): raise ValueError('invalid scalar')
                 return v
             if t == 'bytes': return base64.b64decode(node['v'], validate=True)
+            if t == 'torch':
+                import torch
+                supported = {'bool', 'uint8', 'int8', 'int16', 'int32', 'int64', 'float16',
+                             'bfloat16', 'float32', 'float64', 'complex64', 'complex128'}
+                dtype = node['dtype']
+                shape = node['shape']
+                if dtype not in supported or not isinstance(shape, list) or any(type(x) is not int or x < 0 for x in shape):
+                    raise ValueError('invalid torch tensor metadata')
+                raw = decode(node['v'])
+                if not isinstance(raw, np.ndarray) or raw.dtype != np.uint8 or raw.ndim != 1 or raw.nbytes != node['nbytes']:
+                    raise ValueError('invalid torch tensor bytes')
+                target_dtype = getattr(torch, dtype)
+                count = 1
+                for size in shape: count *= size
+                if count * torch.empty((), dtype=target_dtype).element_size() != raw.nbytes:
+                    raise ValueError('torch tensor size mismatch')
+                if count == 0:
+                    return torch.empty(shape, dtype=target_dtype)
+                return torch.from_numpy(raw.copy()).view(target_dtype).reshape(shape)
             if t == 'numpy_scalar':
                 v = decode(node['v'])
                 if not isinstance(v, np.ndarray) or v.shape != (): raise ValueError('invalid numpy scalar')
