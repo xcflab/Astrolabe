@@ -5,6 +5,7 @@ import logging
 import pathlib
 import sys
 import typing
+import uuid
 from dataclasses import dataclass
 from typing import List
 
@@ -616,6 +617,7 @@ class StandardScores:
     chain_pair_scores: dict[str, dict[str, list[np.ndarray]]] | None = None
     complex_poses: dict[str, typing.Any] | None = None
     score_contributions: typing.Any | None = None
+    assessment_id: str = dataclasses.field(default_factory=lambda: uuid.uuid4().hex)
 
     @staticmethod
     def _wrap_dict_values_in_list(
