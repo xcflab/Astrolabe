@@ -1227,7 +1227,7 @@ def _canonical_value(value: Any, *, path: str) -> Any:
     if isinstance(value, (set, frozenset)):
         items = [_canonical_value(item, path=f"{path}{{set}}") for item in value]
         items.sort(key=lambda item: json.dumps(item, sort_keys=True, separators=(",", ":")))
-        return {"$set": items}
+        return {"$frozenset" if isinstance(value, frozenset) else "$set": items}
     raise TypeError(
         f"unsupported value at {path}: {type(value).__module__}."
         f"{type(value).__qualname__}; arrays must be referenced through Blob"

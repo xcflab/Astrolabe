@@ -297,6 +297,7 @@ def test_initial_candidate_enforces_allowed_tokens():
 def test_design_codec_roundtrips_frozenset_in_set():
     value = {frozenset({1, 2}), frozenset({3})}
     assert design_codec.decode(design_codec.encode(value)) == value
+    assert key_for({1, 2}) != key_for(frozenset({1, 2}))
 
 
 def test_system_edit_rejects_partial_or_forged_candidates():
