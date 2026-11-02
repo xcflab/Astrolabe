@@ -146,6 +146,8 @@ class LossEngine:
         self.registry = loss_registry
         self.runtime_context = runtime_context or global_config.build_runtime_context()
         self.defined_losses = loss_config.get("loss_terms", {}) or {}
+        self.score_queries = loss_config.get("score_queries", {}) or {}
+        self.score_catalog = loss_config.get("score_catalog", []) or []
         self.expression_terms = (
             loss_config.get("expression_terms", {}) or {}
         )
@@ -354,6 +356,7 @@ class LossEngine:
         }
         self._merge_reference_symbols(total_env, reference_symbols)
         self._merge_score_contribution_symbols(total_env, contribution_symbols)
+        self._merge_score_contribution_symbols(total_env, self._query_score_symbols(eval_result, runtime_config))
         required_expression_terms = self._ordered_expression_terms_for_expressions(
             [
                 self.weighted_score_expression,
@@ -407,6 +410,7 @@ class LossEngine:
             total_env,
             self._runtime_score_contribution_symbols(runtime_config),
         )
+        self._merge_score_contribution_symbols(total_env, self._query_score_symbols(eval_result, runtime_config))
         return total_env
 
     def score_context_for_expressions(
@@ -523,6 +527,31 @@ class LossEngine:
         from astrolabe.structure_start import reference_gate_score_context
 
         return reference_gate_score_context(result)
+
+    def _query_score_symbols(self, eval_result, runtime_config):
+        if not self.score_queries:
+            return {}
+        from astrolabe.score_evidence import ScoreQuery, query_score, records_from_contributions
+
+        runtime_config = runtime_config or {}
+        records = list(getattr(eval_result, "score_records", None) or [])
+        records.extend(runtime_config.get("score_records", []) or [])
+        snapshots = runtime_config.get("score_snapshots", {}) or {}
+        if self.score_catalog:
+            snapshot = runtime_config.get("score_capture_snapshot")
+            if not snapshot:
+                raise ValueError("score_capture_snapshot is required for catalog capture")
+            contributions = list(getattr(eval_result, "score_contributions", None) or [])
+            contributions.extend(score_contributions_from_runtime_config(runtime_config))
+            records.extend(records_from_contributions(contributions, self.score_catalog, snapshot))
+        results = {}
+        for alias, config in self.score_queries.items():
+            query = ScoreQuery(**dict(config))
+            value = query_score(records, query, snapshots=snapshots)
+            if query.axes:
+                raise ValueError("LossEngine score queries must reduce to a scalar")
+            results[alias] = value
+        return results
 
     def _runtime_score_contribution_symbols(self, runtime_config):
         contributions = score_contributions_from_runtime_config(runtime_config)

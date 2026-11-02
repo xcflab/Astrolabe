@@ -46,7 +46,7 @@ class _SelectorExpressionTransformer(ast.NodeTransformer):
 
 
 def construct_position_selector(
-    expression, evaluation_result, protomers
+    expression, evaluation_result, protomers, runtime_config=None
 ):
     default_sites = {name: np.ones(protomer.length, dtype=bool) for name, protomer in protomers.items()}
     if expression == "None" or expression is None:
@@ -86,7 +86,11 @@ def construct_position_selector(
 
     env = {}
     for var in position_vars:
-        if var == "sse":
+        if var == "score":
+            from astrolabe.selectors.score import score_position_selector
+
+            env[var] = partial(score_position_selector, evaluation_result, protomers, runtime_config=runtime_config)
+        elif var == "sse":
             from astrolabe.selectors.sse import SecondaryStructurePositionSelector
 
             env[var] = partial(

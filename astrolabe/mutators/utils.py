@@ -14,7 +14,7 @@ except Exception:  # pragma: no cover
 
 from astrolabe.core import global_config
 from astrolabe.core.protomer_config_parser import MutableTypes, ProtomerTypes
-from astrolabe.selectors.utils import construct_position_selector
+from astrolabe.selectors.utils import construct_position_selector, extract_variables
 from astrolabe.per_residue_scores import (
     build_mutator_selector_score_context,
     combine_per_proto_mutator_scores,
@@ -999,9 +999,18 @@ def prepare_exclude_sites(
         Dictionary mapping protomers to lists of positions to exclude from mutation
     """
     # Get mask of positions that can be mutated based on position_selector criteria
-    mutable_mask_selector = construct_position_selector(
-        position_selector, evaluation_result, protomers
+    uses_score_selector = (
+        isinstance(position_selector, str) and position_selector != "None"
+        and "score" in extract_variables(position_selector)
     )
+    if uses_score_selector:
+        mutable_mask_selector = construct_position_selector(
+            position_selector, evaluation_result, protomers, runtime_config=runtime_config
+        )
+    else:
+        mutable_mask_selector = construct_position_selector(
+            position_selector, evaluation_result, protomers
+        )
     mutable_mask_protomer = {
         proto: protomers[proto].mutable_mask for proto in protomers.keys()
     }
@@ -1060,6 +1069,7 @@ def prepare_exclude_sites(
         if (
             sum(mutable_mask_wt_selector[name]) == 0
             and fallback_to_all_mutable_if_selector_empty
+            and not uses_score_selector
         ):
             logging.warning(
                 "Position selector for protomer %s selected no mutable positions; "
