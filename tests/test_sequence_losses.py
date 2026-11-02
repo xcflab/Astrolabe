@@ -25,6 +25,24 @@ class _HashableEvalResult:
     names = ("ABC",)
 
 
+def test_loss_engine_recomputes_when_working_sequence_changes(monkeypatch):
+    from astrolabe.losses.base import LossEngine
+
+    protomer = _protein_protomer(sequence="AAAA", mutated_sequence="AAAA")
+    _monkeypatch_global_const(monkeypatch, "protomers", {"A": protomer})
+    engine = LossEngine({"loss_terms": {"fraction": {
+        "_type": "sequence_residue_fraction",
+        "included_protomers": "A", "residues": "X",
+    }}}, validate_config=False)
+    engine.setup("fraction", None, None, validate_config=False)
+    scores = _HashableEvalResult()
+    _, initial = engine._extract_scores_with_registry(scores)
+    protomer.mutated_sequence = "AXXX"
+    _, updated = engine._extract_scores_with_registry(scores)
+    assert initial["fraction"] == 0.0
+    assert updated["fraction"] == 0.75
+
+
 def test_sequence_residue_fraction_counts_x_from_current_protomer_sequence(
     monkeypatch,
 ) -> None:

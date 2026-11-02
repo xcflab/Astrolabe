@@ -692,11 +692,21 @@ class LossEngine:
         self._extract_scores_with_registry_cached.cache_clear()
 
     def _score_cache_token(self):
+        # Some losses read the working sequence directly, even when a mutation
+        # stack intentionally reuses the previous evaluator result.
+        try:
+            protomers = getattr(global_config, "protomers", {}) or {}
+            sequences = tuple(sorted(
+                (str(name), _freeze_cache_value(getattr(protomer, "mutated_sequence", None)))
+                for name, protomer in protomers.items()
+            ))
+        except RuntimeError:
+            sequences = ()
         if not any(
             spec == DYNAMIC_BINDING_SITE_LOSS
             for spec, _loss_func, _params in getattr(self, "loss_specs", {}).values()
         ):
-            return None
+            return ("working-sequences", sequences)
         try:
             dynamic_binding_site = getattr(global_config, "dynamic_binding_site", None)
         except RuntimeError:
@@ -704,6 +714,7 @@ class LossEngine:
         return (
             DYNAMIC_BINDING_SITE_LOSS,
             _freeze_cache_value(dynamic_binding_site),
+            sequences,
         )
 
     @functools.lru_cache(maxsize=4)
