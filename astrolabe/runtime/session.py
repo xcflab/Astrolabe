@@ -28,6 +28,6 @@ def run_trajectory(cfg):
             # Preserve the same import roots for the fresh interpreter.
             roots = [str(pathlib.Path(p).resolve()) for p in sys.path if p]
             env["PYTHONPATH"] = os.pathsep.join(roots + ([env["PYTHONPATH"]] if env.get("PYTHONPATH") else []))
-            subprocess.run([sys.executable, '-m', 'astrolabe.runtime.trajectory', str(config_path)], check=True, env=env)
+            subprocess.run([sys.executable, '-m', 'astrolabe.runtime.trajectory', str(config_path)], check=True, env=env, pass_fds=(lock_fd,))
     finally:
         os.close(lock_fd)
