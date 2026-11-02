@@ -11,9 +11,9 @@ def main():
     os.dup2(2, 1)
     sys.stdout = os.fdopen(protocol_fd, 'w', buffering=1)
     spec = json.loads(Path(sys.argv[1]).read_text())
-    root = Path(spec['session']).resolve(strict=True)
     from astrolabe.evaluators.worker_identity import identity
-    actual = identity(sys.executable, spec['code_paths'], spec['weight_paths'], spec['device'])
+    semantics = {k: v for k, v in spec['payload'].items() if k not in ('esm_repo_path', 'transformers_repo_path', 'cache_dir', '_verify_sources')}
+    actual = identity(sys.executable, spec['code_paths'], spec['weight_paths'], spec['device'], semantics)
     if os.environ.get('CUDA_VISIBLE_DEVICES') != spec['device']['visible']:
         raise RuntimeError('visible device environment mismatch')
     with contextlib.redirect_stdout(sys.stderr):
@@ -34,9 +34,9 @@ def main():
             if actual_kind != spec['device']['device_kind']:
                 raise RuntimeError(f'ESMFold2 device kind mismatch: {actual_kind}')
     from astrolabe.runtime.server import serve
+    from astrolabe.evaluators.request_path import request_directory
     def handle(payload):
-        request = (root / payload['request']).resolve(strict=True)
-        if request.parent != root or not request.is_dir(): raise ValueError('invalid request directory')
+        request = request_directory(payload['request_dir'])
         jobs = json.loads((request / 'jobs.json').read_text())
         for job in jobs:
             name = job['name']

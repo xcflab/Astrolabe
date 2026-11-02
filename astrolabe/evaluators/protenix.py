@@ -173,25 +173,33 @@ class ProtenixEvaluator(Evaluator):
         dataset_name = f"step_{step:03d}"
         for oligo_name, cplx_input in input_feat.items():
             data, atom_array, data_error_message = cplx_input
-            new_configs = update_inference_configs(
-                self.model_runner.configs, data["N_token"].item()
+            prediction = self.forward_prepared(self.model_runner, data)
+            result[oligo_name] = self.finalize_prediction(
+                self.model_runner, dataset_name, oligo_name, data, atom_array, prediction
             )
-            self.model_runner.update_model_configs(new_configs)
-            prediction = self.model_runner.predict(data)
-            self.model_runner.dumper.dump(
-                dataset_name=dataset_name,
-                pdb_id=oligo_name,
-                seed=self.model_runner.configs.seed,
-                pred_dict=prediction,
-                atom_array=atom_array,
-                entity_poly_type=data["entity_poly_type"],
-            )
-            prediction["atom_to_residue"] = data["input_feature_dict"][
-                "atom_to_token_idx"
-            ]
-            result[oligo_name] = prediction
 
         return result
+
+    @staticmethod
+    def forward_prepared(model_runner, data):
+        """Apply this request's length-dependent settings before the model call."""
+        new_configs = update_inference_configs(model_runner.configs, data["N_token"].item())
+        model_runner.update_model_configs(new_configs)
+        return model_runner.predict(data)
+
+    @staticmethod
+    def finalize_prediction(model_runner, dataset_name, oligo_name, data, atom_array, prediction):
+        """Keep the original atom metadata on the owner for structure dumping."""
+        model_runner.dumper.dump(
+            dataset_name=dataset_name,
+            pdb_id=oligo_name,
+            seed=model_runner.configs.seed,
+            pred_dict=prediction,
+            atom_array=atom_array,
+            entity_poly_type=data["entity_poly_type"],
+        )
+        prediction["atom_to_residue"] = data["input_feature_dict"]["atom_to_token_idx"]
+        return prediction
 
     def prepare_output(self, output, inputs, runtime_config):
         """"""

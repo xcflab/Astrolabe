@@ -13,9 +13,10 @@ def main():
     sys.stdout = os.fdopen(protocol_fd, 'w', buffering=1)
     config_path = Path(sys.argv[1]).resolve(strict=True)
     config = json.loads(config_path.read_text())
-    session = Path(config['session']).resolve(strict=True)
     from astrolabe.evaluators.worker_identity import identity
-    actual = identity(sys.executable, config['code_paths'], config['weight_paths'], config['device'])
+    fields = ('flash_attention_implementation', 'num_samples', 'num_recycles', 'save_embeddings', 'jax_compilation_cache_dir', 'refstructure_workers', 'refstructure_cache', 'refstructure_cache_max_entries', 'msa_cache', 'msa_cache_max_entries')
+    semantics = {key: config['model_config'].get(key) for key in fields}
+    actual = identity(sys.executable, config['code_paths'], config['weight_paths'], config['device'], semantics)
     if os.environ.get('CUDA_VISIBLE_DEVICES') != config['device']['visible']:
         raise RuntimeError('visible device environment mismatch')
     with contextlib.redirect_stdout(sys.stderr):
@@ -36,10 +37,9 @@ def main():
         _ = runner.model_params
     from astrolabe.evaluators.tree_codec import load_tree, dump_tree
     from astrolabe.runtime.server import serve
+    from astrolabe.evaluators.request_path import request_directory
     def handle(payload):
-        request = (session / payload['request']).resolve(strict=True)
-        if request.parent != session or not request.is_dir():
-            raise ValueError('invalid request directory')
+        request = request_directory(payload['request_dir'])
         batch = load_tree(request / 'input')
         with contextlib.redirect_stdout(sys.stderr):
             result = AlphaFold3Evaluator.forward_features(runner, batch['seeds'], batch['examples'], batch['cyclic'], batch['patches'])

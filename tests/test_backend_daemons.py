@@ -73,8 +73,10 @@ else:
     code = tmp_path / 'fake-af3'; code.mkdir(); (code / '__init__.py').write_text('code')
     weights = tmp_path / 'weights'; weights.write_text('weights')
     device = {'platform': 'cpu', 'id': 0, 'device_kind': 'mock', 'visible': ''} if backend == 'af3' else {'name': 'cpu', 'visible': ''}
-    spec = {'session': str(tmp_path), 'code_paths': [str(code)], 'weight_paths': [str(weights)], 'device': device,
-            'model_config': {'model_dir': str(weights)}, 'payload': {}}
+    model_conf = {'model_dir': str(weights), 'flash_attention_implementation': 'mock', 'num_samples': 1, 'num_recycles': 2, 'save_embeddings': False}
+    semantics = {k: model_conf.get(k) for k in ('flash_attention_implementation', 'num_samples', 'num_recycles', 'save_embeddings', 'jax_compilation_cache_dir', 'refstructure_workers', 'refstructure_cache', 'refstructure_cache_max_entries', 'msa_cache', 'msa_cache_max_entries')} if backend == 'af3' else {}
+    spec = {'code_paths': [str(code)], 'weight_paths': [str(weights)], 'device': device,
+            'model_config': model_conf, 'payload': {}}
     (tmp_path / 'worker.json').write_text(json.dumps(spec))
     env = dict(os.environ, PYTHONPATH=os.pathsep.join([str(tmp_path), str(repo)]),
                CUDA_VISIBLE_DEVICES='', PYTHONDONTWRITEBYTECODE='1')
@@ -85,20 +87,21 @@ else:
         assert line, worker.stderr.read()
         return json.loads(line)
     def call(rid, name):
-        worker.stdin.write(json.dumps({'type': 'call', 'epoch': 'e', 'request_id': rid, 'payload': {'request': name}}) + '\n'); worker.stdin.flush()
+        worker.stdin.write(json.dumps({'type': 'call', 'epoch': 'e', 'request_id': rid, 'payload': {'request_dir': name}}) + '\n'); worker.stdin.flush()
         return receive()
     try:
         hello = receive()
         assert hello['pid'] == worker.pid and hello['load_count'] == 1
-        assert hello['identity'] == identity(sys.executable, [str(code)], [str(weights)], device)
-        assert call('bad', 'missing')['type'] == 'error'
+        assert hello['identity'] == identity(sys.executable, [str(code)], [str(weights)], device, semantics)
+        assert call('bad', str(tmp_path / 'request-missing'))['type'] == 'error'
         for idx, seq in enumerate(['AAA', 'CCC']):
-            request = tmp_path / ('request-' + str(idx)); request.mkdir()
+            parent = tmp_path / ('trajectory-' + str(idx)); parent.mkdir()
+            request = parent / ('request-' + str(idx)); request.mkdir(mode=0o700)
             if backend == 'af3':
                 dump_tree(request / 'input', {'seeds': [idx], 'examples': [seq], 'cyclic': (idx,), 'patches': ()})
             else:
                 (request / 'jobs.json').write_text(json.dumps([{'name': 'A', 'chains': [{'id': 'A', 'sequence': seq}]}]))
-            assert call(str(idx), request.name)['type'] == 'result'
+            assert call(str(idx), str(request))['type'] == 'result'
             if backend == 'af3': assert load_tree(request / 'output')[0] == {'input': seq, 'seed': idx, 'cyclic': (idx,)}
             else: assert (request / 'structures' / 'A_model.cif').read_text() == seq
         worker.stdin.write('{"type":"shutdown"}\n'); worker.stdin.flush()
@@ -135,3 +138,60 @@ def test_af3_cache_and_constraints_are_on_execution_path(monkeypatch):
     evaluator.af3_conf = {'daemon_constraints': [{'kind': 'hard', 'mechanism': 'contact'}]}
     with pytest.raises(ValueError, match='Unsupported constraint'):
         evaluator.run_function({'A': feat('AAC')})
+
+
+def test_identity_depends_on_model_configuration_not_worktree_path(tmp_path):
+    left = tmp_path / 'checkout-a'; right = tmp_path / 'checkout-b'
+    left.mkdir(); right.mkdir()
+    for directory in (left, right):
+        (directory / 'runner.py').write_text('same code')
+    weight = tmp_path / 'weight'; weight.write_text('checkpoint')
+    cfg = {'num_recycles': 10, 'num_samples': 5, 'precision': 'bf16'}
+    first = identity(sys.executable, [left / 'runner.py'], [weight], {'id': 0}, cfg)
+    second = identity(sys.executable, [right / 'runner.py'], [weight], {'id': 0}, cfg)
+    assert first == second
+    for field in cfg:
+        changed = dict(cfg, **{field: 'changed'})
+        assert first != identity(sys.executable, [right / 'runner.py'], [weight], {'id': 0}, changed)
+    weight.write_text('different checkpoint')
+    assert first != identity(sys.executable, [right / 'runner.py'], [weight], {'id': 0}, cfg)
+
+
+def test_device_probe_obeys_cpu_visibility(monkeypatch):
+    from astrolabe.evaluators.worker_identity import probe_device
+    env = dict(os.environ, CUDA_VISIBLE_DEVICES='', JAX_PLATFORMS='cpu')
+    assert probe_device(sys.executable, 'af3', env=env)['platform'] == 'cpu'
+    assert probe_device(sys.executable, 'esmfold2', env=env)['name'] == 'cpu'
+
+
+def test_broker_artifact_spec_is_stable_and_owned(monkeypatch, tmp_path):
+    from astrolabe.evaluators.worker_session import WorkerArtifacts
+    from astrolabe.evaluators.request_path import request_directory
+    root = tmp_path / 'session'; root.mkdir(mode=0o700)
+    monkeypatch.setenv('ASTROLABE_EXECUTION_ENDPOINT', 'broker')
+    monkeypatch.setenv('ASTROLABE_EXECUTION_TOKEN', 'token')
+    monkeypatch.setenv('ASTROLABE_EXECUTION_ARTIFACT_ROOT', str(root))
+    first, second = WorkerArtifacts(), WorkerArtifacts()
+    identity = {'model': 'x', 'config': {'recycles': 10}}
+    spec = {'config': 1}
+    assert first.specification(identity, spec) == second.specification(identity, spec)
+    with pytest.raises(ValueError, match='incompatible'):
+        second.specification(identity, {'config': 2})
+    request = root / 'request-unique'; request.mkdir(mode=0o700)
+    assert request_directory(str(request)) == request
+    elsewhere = tmp_path / 'request-outside'; elsewhere.mkdir(mode=0o700)
+    with pytest.raises(ValueError, match='outside'):
+        request_directory(str(elsewhere))
+    first.close(); second.close()
+    assert root.exists()
+
+
+def test_device_probe_broker_requires_admission(monkeypatch):
+    from astrolabe.evaluators.worker_identity import probe_device
+    import importlib.util
+    if importlib.util.find_spec('astrolabe.runtime.admission'):
+        pytest.skip('covered by runtime broker admission tests after integration')
+    monkeypatch.setenv('ASTROLABE_EXECUTION_ENDPOINT', 'broker')
+    monkeypatch.setenv('ASTROLABE_EXECUTION_TOKEN', 'token')
+    with pytest.raises(RuntimeError, match='runtime.admission'):
+        probe_device(sys.executable, 'af3')

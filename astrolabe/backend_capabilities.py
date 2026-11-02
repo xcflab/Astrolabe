@@ -30,7 +30,7 @@ BACKENDS = {entry.identity: entry for entry in (
 )}
 
 
-def resolve_protenix_identity(requested: str, guidance: bool, policy: str = "compat") -> tuple[str, str]:
+def resolve_protenix_identity(requested: str | None, guidance: bool, policy: str = "compat") -> tuple[str | None, str | None]:
     """Report the legacy constraint-checkpoint override, or reject it in strict mode."""
     if policy not in ("compat", "strict"):
         raise ValueError("Protenix identity_policy must be compat or strict")

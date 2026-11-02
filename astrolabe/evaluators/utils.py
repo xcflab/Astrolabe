@@ -413,7 +413,8 @@ def _build_protenix_evaluator(
         raise ValueError("Protenix identity_policy must be compat or strict")
     if "identity_policy" in protenix_conf:
         del protenix_conf["identity_policy"]
-    requested_model_name = str(protenix_conf.get("model_name", ""))
+    requested_value = protenix_conf.get("model_name", None)
+    requested_model_name = None if requested_value is None else str(requested_value)
     if "use_constraints" in protenix_conf:
         del protenix_conf["use_constraints"]
 
@@ -500,7 +501,8 @@ def _build_protenix_evaluator(
     model_runner = ProtenixRunner(protenix_conf)
     evaluator = ProtenixEvaluator(model_runner, use_constraints=use_constraints)
     evaluator.requested_model_name = requested_model_name
-    evaluator.effective_model_name = str(protenix_conf.model_name)
+    effective = protenix_conf.get("model_name", None)
+    evaluator.effective_model_name = None if effective is None else str(effective)
     evaluator.identity_policy = identity_policy
     return evaluator
 
