@@ -294,6 +294,26 @@ def test_initial_candidate_enforces_allowed_tokens():
     assert result.assignments[0].value.tokens == ("C",)
 
 
+def test_shared_variable_has_one_assignment_and_multiple_physical_occurrences():
+    data = DataStore()
+    mapping = _index_map(data, ("1", "2"))
+    occurrences = tuple(
+        Occurrence(
+            identity=key_for(("copy", chain)), state="bound", assembly="AA",
+            chain=chain, component=chain, variable="A", index_map=mapping,
+        )
+        for chain in ("A", "B")
+    )
+    system = make_system(("A",), occurrences, _topology(data))
+    first = make_candidate(system, (Assignment("A", Polymer("protein", ("A", "C"), ())),))
+    second = system.edit(first, (Assignment("A", Polymer("protein", ("A", "G"), ())),))
+    assert len(first.assignments) == len(second.assignments) == 1
+    assert first.assignments[0].value.tokens == ("A", "C")
+    assert second.assignments[0].value.tokens == ("A", "G")
+    assert tuple(item.variable for item in system.occurrences) == ("A", "A")
+    assert system.occurrences[0].identity != system.occurrences[1].identity
+
+
 def test_design_codec_roundtrips_frozenset_in_set():
     value = {frozenset({1, 2}), frozenset({3})}
     assert design_codec.decode(design_codec.encode(value)) == value
